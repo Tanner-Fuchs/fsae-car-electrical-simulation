@@ -19,8 +19,8 @@ You need **Python 3.9 or newer** and **git**.
 Then, in a terminal (PowerShell on Windows):
 
 ```bash
-git clone https://github.com/<owner>/<repo>.git
-cd <repo>
+git clone https://github.com/Tanner-Fuchs/fsae-car-electrical-simulation.git
+cd fsae-car-electrical-simulation
 python -m venv .venv
 ```
 
