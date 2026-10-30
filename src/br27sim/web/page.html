@@ -1,0 +1,431 @@
+<title>BR27 Electrical Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a pit-wall telemetry sheet. Sticky header with the run's status chips,
+   tabs per subsystem, each tab = controls rail + stacked plots. */
+:root {
+  --bg: #f3f4f6;
+  --panel: #ffffff;
+  --ink: #12161d;
+  --ink-2: #4a515c;
+  --ink-3: #7a818c;
+  --rule: #d9dce1;
+  --accent: #0b6e8a;
+  --accent-ink: #ffffff;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s7: #6250d6;
+  --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --crit: #d03b3b;
+  --good-ink: #0a6e0a; --warn-ink: #8a5a00; --crit-ink: #b02a2a;
+  --chip-good: #e6f4e6; --chip-warn: #fdf1d6; --chip-crit: #fbe3e3;
+  --grid: rgba(18,22,29,0.08);
+  --scene: #e9ecf0;
+  --f-display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111418; --panel: #191d23; --ink: #eceef1; --ink-2: #b4bac3; --ink-3: #868d97; --rule: #2c323b;
+    --accent: #3fb3d3; --accent-ink: #071216;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s7: #9085e9;
+    --good-ink: #5fd35f; --warn-ink: #f5c04a; --crit-ink: #f08080;
+    --chip-good: #12301a; --chip-warn: #33280c; --chip-crit: #3a1717;
+    --grid: rgba(236,238,241,0.08); --scene: #161a20; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111418; --panel: #191d23; --ink: #eceef1; --ink-2: #b4bac3; --ink-3: #868d97; --rule: #2c323b;
+  --accent: #3fb3d3; --accent-ink: #071216;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s7: #9085e9;
+  --good-ink: #5fd35f; --warn-ink: #f5c04a; --crit-ink: #f08080;
+  --chip-good: #12301a; --chip-warn: #33280c; --chip-crit: #3a1717;
+  --grid: rgba(236,238,241,0.08); --scene: #161a20; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--panel); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--panel); border-bottom: 1px solid var(--rule); }
+header.top .wrap { padding-block: 10px 0; display: grid; gap: 8px; }
+.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: 28px; letter-spacing: 0.02em; margin: 0; text-transform: uppercase; }
+.brand .sub { color: var(--ink-3); font-size: 13px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 4px; font-size: 12.5px; font-variant-numeric: tabular-nums; background: var(--bg); border: 1px solid var(--rule); cursor: pointer; }
+.chip b { font-family: var(--f-mono); font-weight: 500; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.chip.good .dot { background: var(--good); } .chip.good { background: var(--chip-good); }
+.chip.warn .dot { background: var(--warn); } .chip.warn { background: var(--chip-warn); }
+.chip.crit .dot { background: var(--crit); } .chip.crit { background: var(--chip-crit); }
+nav.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+nav.tabs a { font-family: var(--f-display); font-weight: 600; font-size: 17px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-2); text-decoration: none; padding: 6px 12px 8px; border-bottom: 3px solid transparent; white-space: nowrap; }
+nav.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+nav.tabs a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+main .wrap { padding-block: 18px 48px; }
+@media (max-width: 700px) { header.top { position: static; } h1 { font-size: 24px; } .rail { top: 0; } }
+section.view { display: grid; gap: 18px; }
+.view-head { display: grid; gap: 4px; max-width: 72ch; }
+h2 { font-family: var(--f-display); font-weight: 600; font-size: 24px; letter-spacing: 0.02em; text-transform: uppercase; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--f-display); font-weight: 600; font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; margin: 0; color: var(--ink); }
+p { margin: 0; }
+.lede { color: var(--ink-2); }
+.split { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.rail { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; display: grid; gap: 12px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 120px); }
+@media (max-width: 860px) { .rail { position: static; } }
+.rail h3 { font-size: 15px; color: var(--ink-2); }
+.field { display: grid; gap: 3px; }
+.field label { font-size: 12.5px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px; }
+.field label output { font-family: var(--f-mono); color: var(--ink); }
+.field .src { font-size: 11px; color: var(--ink-3); }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+select, input[type="number"] { width: 100%; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13.5px; }
+.check input { accent-color: var(--accent); width: 18px; height: 18px; }
+button.btn { font: inherit; font-size: 14px; font-weight: 500; padding: 7px 12px; border-radius: 4px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+button.ghost { background: transparent; color: var(--accent); }
+.stack { display: grid; gap: 18px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; display: grid; gap: 10px; min-width: 0; align-content: start; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.card-head .note { font-size: 12.5px; color: var(--ink-3); }
+.plot { position: relative; height: 230px; min-width: 0; }
+.plot.tall { height: 300px; }
+.plot.short { height: 170px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
+.kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.kv div { display: grid; gap: 1px; padding: 8px 10px; background: var(--bg); border-radius: 4px; }
+.kv span { font-size: 11.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
+.kv b { font-family: var(--f-mono); font-weight: 500; font-size: 16px; font-variant-numeric: tabular-nums; }
+.kv b.bad { color: var(--crit-ink); } .kv b.ok { color: var(--good-ink); } .kv b.meh { color: var(--warn-ink); }
+.flags { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.flags li { display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 13.5px; align-items: start; }
+.flags li::before { content: ""; width: 10px; height: 10px; margin-top: 5px; border-radius: 2px; }
+.flags li.crit::before { background: var(--crit); } .flags li.warn::before { background: var(--warn); } .flags li.good::before { background: var(--good); } .flags li.info::before { background: var(--accent); }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); font-weight: 500; }
+td.num, th.num { text-align: right; font-family: var(--f-mono); }
+td.wrap { white-space: normal; min-width: 220px; }
+.mono { font-family: var(--f-mono); }
+.tag { font-size: 11px; padding: 1px 6px; border-radius: 3px; background: var(--bg); color: var(--ink-2); border: 1px solid var(--rule); }
+#scene3d { position: relative; height: 460px; border-radius: 6px; overflow: hidden; background: var(--scene); touch-action: none; }
+#scene3d canvas { display: block; }
+#scene3d .hint { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: var(--ink-3); pointer-events: none; }
+#scene3d .labels { position: absolute; inset: 0; pointer-events: none; }
+#scene3d .lbl { position: absolute; transform: translate(-50%, -130%); font-size: 11.5px; font-weight: 600; padding: 1px 6px; border-radius: 3px; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); white-space: nowrap; }
+#scene3d .lbl.sel { border-color: var(--accent); color: var(--accent); }
+.parts { display: flex; gap: 6px; flex-wrap: wrap; }
+.parts button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.parts button i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.parts button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.engine-canvas { width: 100%; height: 370px; display: block; }
+.timing-canvas { width: 100%; height: 300px; display: block; }
+.sd-chain { width: 100%; height: auto; display: block; }
+.sd-chain .sw { cursor: pointer; }
+.sd-chain text { font-family: var(--f-body); fill: var(--ink); }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+#faultTable tbody tr { cursor: pointer; } #faultTable tbody tr[aria-selected="true"] td { background: var(--bg); }
+.sev { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; } .sev::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--c); }
+.foot { font-size: 12.5px; color: var(--ink-3); max-width: 80ch; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <h1>BR27 Electrical Simulator</h1>
+      <span class="sub">Bobcat Racing · FSAE 2027 · EMU Black on CBR600RR · 12 V LV · CAN 2.0</span>
+    </div>
+    <div class="chips" id="chips"></div>
+    <nav class="tabs" aria-label="Subsystems">
+      <a href="#car">Car</a>
+      <a href="#engine">Engine</a>
+      <a href="#power">12 V power</a>
+      <a href="#shutdown">Shutdown</a>
+      <a href="#can">CAN / DAQ</a>
+      <a href="#faults">Faults</a>
+      <a href="#wiring">Wiring</a>
+      <a href="#inputs">Inputs</a>
+    </nav>
+  </div>
+</header>
+
+<main><div class="wrap">
+
+<!-- CAR -->
+<section class="view" id="v-car">
+  <div class="view-head">
+    <h2>The car, wired</h2>
+    <p class="lede">A rough FSAE car with the CBR600RR behind the driver, the dash, IMU and GPS up front, the NOCO NLP14 battery and EMU Black under the seat, and a sensor node at each corner. Drag to rotate, pinch to zoom, tap a part to see what the simulation says about it.</p>
+  </div>
+  <div class="card">
+    <div id="scene3d"><div class="labels" id="labels3d"></div><span class="hint">Drag to orbit · pinch or scroll to zoom</span></div>
+    <div class="parts" id="parts"></div>
+    <div id="partInfo" class="lede"></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3>CAN buses as routed</h3>
+      <p class="lede" id="routeText"></p>
+      <div class="kv" id="routeKv"></div>
+    </div>
+    <div class="card">
+      <h3>Packaging flags</h3>
+      <ul class="flags" id="carFlags"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ENGINE -->
+<section class="view" id="v-engine" hidden>
+  <div class="view-head">
+    <h2>CBR600RR engine and EMU Black</h2>
+    <p class="lede">A mock 599 cc inline-four on the 20 mm restrictor. The animation runs the real firing order (1-2-4-3) in slow motion and the timing strip shows what the ECU is doing each crank degree: the 12-tooth crank wheel, cam sync tooth, injector pulses and coil dwell to spark.</p>
+  </div>
+  <div class="split">
+    <aside class="rail">
+      <h3>Engine state</h3>
+      <div class="field"><label for="e_rpm">Engine speed <output id="o_e_rpm"></output></label><input type="range" id="e_rpm" min="1500" max="12500" step="100" value="6000"></div>
+      <div class="field"><label for="e_tps">Throttle (cable) <output id="o_e_tps"></output></label><input type="range" id="e_tps" min="0" max="100" step="1" value="60"></div>
+      <div class="field"><label for="e_slow">Slow motion <output id="o_e_slow"></output></label><input type="range" id="e_slow" min="20" max="600" step="10" value="150"><span class="src">Real cycles shown per second of animation are divided by this.</span></div>
+      <button class="btn ghost" id="e_pause" type="button">Pause</button>
+      <h3>Lap model</h3>
+      <div class="field"><label for="p_shiftRpm">Upshift at <output id="o_p_shiftRpm"></output></label><input type="range" id="p_shiftRpm" min="8000" max="12500" step="250"></div>
+      <div class="field"><label for="p_finalDrive">Final drive <output id="o_p_finalDrive"></output></label><input type="range" id="p_finalDrive" min="2.6" max="4.2" step="0.05"></div>
+      <div class="field"><label for="p_injFlowCc">Injector flow (cc/min) <output id="o_p_injFlowCc"></output></label><input type="range" id="p_injFlowCc" min="150" max="400" step="10"><span class="src">Stock CBR600RR primary injector, not measured yet</span></div>
+      <div class="field"><label for="p_vehicleV">Battery voltage for fuel calc <output id="o_p_vehicleV"></output></label><input type="range" id="p_vehicleV" min="8" max="15" step="0.1"></div>
+      <div class="field"><label for="p_ambientC">Ambient air <output id="o_p_ambientC"></output></label><input type="range" id="p_ambientC" min="5" max="45" step="1"></div>
+    </aside>
+    <div class="stack">
+      <div class="card">
+        <div class="card-head"><h3>Firing, slow motion</h3><span class="note" id="engNote"></span></div>
+        <canvas class="engine-canvas" id="engCanvas"></canvas>
+        <div class="kv" id="engKv"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Timing strip, one 720° cycle</h3><span class="note">Moving line is the crank position in the animation</span></div>
+        <canvas class="timing-canvas" id="timingCanvas"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>One endurance-style lap</h3><span class="note" id="lapNote"></span></div>
+        <div class="kv" id="lapKv"></div>
+        <div class="grid2">
+          <div><p class="foot">Car speed (km/h)</p><div class="plot short"><canvas id="c_speed"></canvas></div></div>
+          <div><p class="foot">Engine speed (rpm)</p><div class="plot short"><canvas id="c_rpm"></canvas></div></div>
+          <div><p class="foot">Throttle position (%)</p><div class="plot short"><canvas id="c_tps"></canvas></div></div>
+          <div><p class="foot">Manifold pressure (kPa)</p><div class="plot short"><canvas id="c_map"></canvas></div></div>
+          <div><p class="foot">Injector duty cycle (%)</p><div class="plot short"><canvas id="c_duty"></canvas></div></div>
+          <div><p class="foot">Injector pulse width (ms)</p><div class="plot short"><canvas id="c_pw"></canvas></div></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Wide-open throttle power (kW)</h3><div class="plot"><canvas id="c_wot"></canvas></div><p class="foot">The restrictor chokes near <span id="chokeTxt"></span> g/s of air, so power flattens past ~10,000 rpm.</p></div>
+        <div class="card"><h3>Battery voltage vs injector pulse</h3><div class="plot"><canvas id="c_dead"></canvas></div><p class="foot">Pulse width (ms) at peak power. Low voltage opens the injector late, so the ECU's dead-time table adds pulse. A wrong table shows up as a lean or rich engine when the battery sags.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- POWER -->
+<section class="view" id="v-power" hidden>
+  <div class="view-head">
+    <h2>12 V power through an endurance run</h2>
+    <p class="lede">Key on, cold crank, staging, stint one, the 3 minute driver change, hot restart, stint two. Battery, stator, series regulator, every load in the charging form's budget, and the four corner nodes' LT8609S supplies.</p>
+  </div>
+  <div class="split">
+    <aside class="rail">
+      <h3>Battery</h3>
+      <div class="field"><label for="p_battery">Battery</label><select id="p_battery"></select><span class="src" id="batNote"></span></div>
+      <div class="field"><label for="p_soc0">Starting charge <output id="o_p_soc0"></output></label><input type="range" id="p_soc0" min="20" max="100" step="1"></div>
+      <div class="field"><label for="p_cableMOhm">Cable + switch resistance (mΩ) <output id="o_p_cableMOhm"></output></label><input type="range" id="p_cableMOhm" min="2" max="20" step="1"></div>
+      <div class="field"><label for="p_mainBreakerA">Main breaker rating <output id="o_p_mainBreakerA"></output></label><input type="range" id="p_mainBreakerA" min="40" max="200" step="10"><span class="src">Manual reset, between battery and master switch</span></div>
+      <div class="field"><label for="p_starterA">Starter current (A) <output id="o_p_starterA"></output></label><input type="range" id="p_starterA" min="80" max="200" step="5"></div>
+      <h3>Charging</h3>
+      <div class="field"><label for="p_regType">Regulator</label><select id="p_regType"><option value="series">Series MOSFET (FH020AA class)</option><option value="shunt">Stock shunt</option></select></div>
+      <div class="field"><label for="p_regSet">Set point <output id="o_p_regSet"></output></label><input type="range" id="p_regSet" min="13.6" max="14.8" step="0.1"></div>
+      <div class="field"><label for="p_regFault">Regulator fault</label><select id="p_regFault"><option value="none">None</option><option value="open">Stops charging</option><option value="overcharge">Overcharges (15.8 V)</option></select></div>
+      <div class="field"><label for="p_regFaultMin">Fault at minute <output id="o_p_regFaultMin"></output></label><input type="range" id="p_regFaultMin" min="1" max="29" step="1"></div>
+      <h3>Event</h3>
+      <div class="field"><label for="p_stagingMin">Staging idle (min) <output id="o_p_stagingMin"></output></label><input type="range" id="p_stagingMin" min="0" max="20" step="1"></div>
+      <label class="check"><input type="checkbox" id="p_keyOnDuringChange"> Electrics on during driver change</label>
+      <label class="check"><input type="checkbox" id="p_fanWhenOff"> Fan may run with engine off</label>
+      <div class="field"><label for="p_ambientC2">Ambient air <output id="o_p_ambientC2"></output></label><input type="range" id="p_ambientC2" min="5" max="45" step="1"></div>
+    </aside>
+    <div class="stack">
+      <div class="card">
+        <div class="card-head"><h3>Results</h3><span class="note" id="pwrNote"></span></div>
+        <div class="kv" id="pwrKv"></div>
+        <ul class="flags" id="pwrFlags"></ul>
+      </div>
+      <div class="card"><div class="card-head"><h3>Bus voltage (V)</h3><span class="note">Shaded bands are the phases of the event</span></div><div class="plot tall"><canvas id="c_v"></canvas></div></div>
+      <div class="grid2">
+        <div class="card"><h3>Battery charge (%)</h3><div class="plot"><canvas id="c_soc"></canvas></div></div>
+        <div class="card"><h3>Coolant temperature (°C)</h3><div class="plot"><canvas id="c_cool"></canvas></div><p class="foot">The radiator fan is the biggest switched load, so it shows up in the battery current.</p></div>
+      </div>
+      <div class="card"><div class="card-head"><h3>Current (A)</h3><div class="legend" id="curLegend"></div></div><div class="plot"><canvas id="c_cur"></canvas></div></div>
+      <div class="card">
+        <div class="card-head"><h3>Cold crank, first 1.5 s (V)</h3><div class="legend" id="crankLegend"></div></div>
+        <div class="plot"><canvas id="c_crank"></canvas></div>
+        <div class="kv" id="crankKv"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SHUTDOWN -->
+<section class="view" id="v-shutdown" hidden>
+  <div class="view-head">
+    <h2>Shutdown system (IC.9)</h2>
+    <p class="lede">Tap a switch to open it. The Primary Master Switch cuts the battery directly. The Cockpit Main Switch, BOTS and inertia switch sit in series with the kill relay coil, whose contacts feed the injectors, coils and fuel pump. No BSPD: that is only required with electronic throttle, and BR27 runs a cable.</p>
+  </div>
+  <div class="card">
+    <svg class="sd-chain" id="sdSvg" viewBox="0 0 920 330" role="img" aria-label="Shutdown circuit diagram"></svg>
+    <div class="kv" id="sdFeeds"></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-head"><h3>What happens after it opens</h3><div class="legend" id="sdLegend"></div></div>
+      <div class="plot"><canvas id="c_sd"></canvas></div>
+      <div class="kv" id="sdKv"></div>
+    </div>
+    <div class="card">
+      <h3>Tech inspection checks</h3>
+      <ul class="flags" id="sdFlags"></ul>
+    </div>
+  </div>
+</section>
+
+<!-- CAN -->
+<section class="view" id="v-can" hidden>
+  <div class="view-head">
+    <h2>CAN bus and data logging</h2>
+    <p class="lede">One CAN 2.0 bus with the EMU Black at one end and the dash MCU at the other. The four corner nodes sit on short stubs along the way, and the dash MCU reads the IMU and GPS directly and logs them, so they stay off the bus. Every frame is simulated with real arbitration, using the rates from the sample-rate form. The CAN FD layouts stay in the menu as what-ifs.</p>
+  </div>
+  <div class="split">
+    <aside class="rail">
+      <h3>Layout</h3>
+      <div class="field"><label for="p_canLayout">Buses</label><select id="p_canLayout"><option value="classic">One CAN 2.0 bus (chosen)</option><option value="split">What-if: CAN FD chassis bus + CAN 2.0 EMU bus</option><option value="fdAll">What-if: one CAN FD bus, EMU on it</option></select><span class="src">Tanner chose CAN 2.0 for everything</span></div>
+      <div class="field"><label for="v_bus">Bus shown below</label><select id="v_bus"></select></div>
+      <h3>Traffic</h3>
+      <div class="field"><label for="p_bitrate">Nominal bitrate</label><select id="p_bitrate"><option value="1000000">1 Mbps (proposed)</option><option value="500000">500 kbps</option><option value="250000">250 kbps</option><option value="125000">125 kbps</option></select></div>
+      <div class="field"><label for="p_fdDataRate">CAN FD data rate</label><select id="p_fdDataRate"><option value="2000000">2 Mbps</option><option value="5000000">5 Mbps</option><option value="8000000">8 Mbps</option></select><span class="src">Only used by the CAN FD what-if layouts</span></div>
+      <div class="field"><label for="p_emuRate">EMU Black stream rate</label><select id="p_emuRate"><option value="100">100 Hz</option><option value="50">50 Hz</option></select></div>
+      <div class="field"><label for="p_emuFrames">EMU frames per cycle <output id="o_p_emuFrames"></output></label><input type="range" id="p_emuFrames" min="4" max="16" step="1"><span class="src">8 assumed, check in the EMU client</span></div>
+      <div class="field"><label for="p_extraFrames">Extra 200 Hz frames (aero etc.) <output id="o_p_extraFrames"></output></label><input type="range" id="p_extraFrames" min="0" max="12" step="1"></div>
+      <div class="field"><label for="p_dashFwdFrames">Dash MCU frames sent to nodes <output id="o_p_dashFwdFrames"></output></label><input type="range" id="p_dashFwdFrames" min="0" max="8" step="1"><span class="src">The dash logs everything and sends shared values (speed, gear, lap) back out, IDs 0x140+</span></div>
+      <label class="check"><input type="checkbox" id="p_imuGpsOnCan"> Also put IMU and GPS on CAN</label><span class="src">Off: they go straight into the dash MCU logger. Turn on only if another node needs them.</span>
+      <div class="field"><label for="p_dashFwdHz">Dash-to-node rate <output id="o_p_dashFwdHz"></output></label><input type="range" id="p_dashFwdHz" min="5" max="100" step="5"></div>
+      <label class="check"><input type="checkbox" id="p_suspPots"> Add suspension pots (corner frames go to 500 Hz)</label>
+      <label class="check"><input type="checkbox" id="p_packSusp"> FD: pack two samples per corner frame</label>
+      <div class="field"><label for="p_stuffing">Bit stuffing</label><select id="p_stuffing"><option value="worst">Worst case</option><option value="typical">Typical</option></select></div>
+      <div class="field"><label for="p_ber">Bit error rate</label><select id="p_ber"><option value="0">None</option><option value="0.00001">1 in 100,000</option><option value="0.0001">1 in 10,000 (noisy harness)</option></select></div>
+      <div class="field"><label for="p_nodeOffline">Node offline</label><select id="p_nodeOffline"><option value="none">All online</option><option value="FL">Node FL</option><option value="FR">Node FR</option><option value="RL">Node RL</option><option value="RR">Node RR</option></select></div>
+      <h3>Wiring of the bus shown</h3>
+      <label class="check"><input type="checkbox" id="p_termEnd1"> <span id="lblEnd1">120 Ω at end 1</span></label>
+      <label class="check"><input type="checkbox" id="p_termEnd2"> <span id="lblEnd2">120 Ω at end 2</span></label>
+      <label class="check"><input type="checkbox" id="p_termExtra"> Extra 120 Ω left on a node</label>
+      <div class="field"><label for="p_stubM">Node stub length (m) <output id="o_p_stubM"></output></label><input type="range" id="p_stubM" min="0.05" max="1" step="0.05"></div>
+      <h3>Aliasing check</h3>
+      <div class="field"><label for="a_rate">Logged rate</label><select id="a_rate"><option value="500">500 Hz</option><option value="200" selected>200 Hz (wheel speed, brake)</option><option value="100">100 Hz</option></select></div>
+      <label class="check"><input type="checkbox" id="a_filt" checked> RC + 2 kHz oversample + digital filter</label>
+      <div class="field"><label for="a_rpm">Engine vibration from <output id="o_a_rpm"></output></label><input type="range" id="a_rpm" min="3000" max="12500" step="250" value="11000"></div>
+    </aside>
+    <div class="stack">
+      <div class="card">
+        <div class="card-head"><h3>Results</h3><span class="note" id="canNote"></span></div>
+        <div class="kv" id="canKv"></div>
+        <ul class="flags" id="canFlags"></ul>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Brake pressure and brake light, one lap</h3><div class="legend" id="brakeLegend"></div></div>
+        <div class="plot"><canvas id="c_brake"></canvas></div>
+        <div class="kv" id="brakeKv"></div>
+        <ul class="flags" id="brakeFlags"></ul>
+      </div>
+      <div class="card"><div class="card-head"><h3>Bus load in each 10 ms window (%)</h3><span class="note">Dashed: 50 % target and 70 % limit from the DAQ form</span></div><div class="plot"><canvas id="c_load"></canvas></div></div>
+      <div class="grid2">
+        <div class="card"><h3>Load by sender (%)</h3><div class="plot"><canvas id="c_nodes"></canvas></div></div>
+        <div class="card"><h3 id="sweepTitle">Same traffic at each bitrate (%)</h3><div class="plot"><canvas id="c_sweep"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Every frame on the bus</h3><span class="note">Lower ID wins arbitration</span></div>
+        <div class="scroll"><table id="msgTable"></table></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="card-head"><h3>Signal at the far end</h3><span class="note" id="phyNote"></span></div><div class="plot"><canvas id="c_phy"></canvas></div><div class="kv" id="phyKv"></div></div>
+        <div class="card"><div class="card-head"><h3>Fast signal as logged</h3><div class="legend" id="aliasLegend"></div></div><div class="plot"><canvas id="c_alias"></canvas></div><p class="foot" id="aliasNote"></p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAULTS -->
+<section class="view" id="v-faults" hidden>
+  <div class="view-head">
+    <h2>Fault codes and CAN priority</h2>
+    <p class="lede">Every node runs the same logic for each code it owns: a condition has to hold for its debounce time before the code goes active, and it has to stay clear for its clear time before it resets. Latching codes stay active until the car is reset. Fault frames get the lowest IDs on the bus, so they win arbitration over all sensor and ECU data.</p>
+  </div>
+  <div class="split">
+    <aside class="rail">
+      <h3>Fault to test</h3>
+      <div class="field"><label for="f_code">Code</label><select id="f_code"></select></div>
+      <div id="faultCard" class="lede" style="font-size:13.5px"></div>
+      <p class="foot">The frame is injected at the busiest moment of the simulated bus, when the most frames are queued, so it has to win arbitration to get through.</p>
+    </aside>
+    <div class="stack">
+      <div class="card">
+        <div class="card-head"><h3 id="logicTitle">Fault logic</h3><div class="legend" id="logicLegend"></div></div>
+        <div class="plot"><canvas id="c_fault"></canvas></div>
+        <div class="kv" id="logicKv"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>CAN ID priority map</h3><span class="note">Lower ID wins arbitration · 0x000 to 0x7FF</span></div>
+        <div class="scroll"><svg id="prioSvg" viewBox="0 0 900 150" style="width:100%;min-width:620px;height:auto;display:block" role="img" aria-label="CAN ID priority bands"></svg></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>The fault frame on a busy bus</h3><span class="note" id="ganttNote"></span></div>
+        <div class="scroll"><svg id="ganttSvg" viewBox="0 0 900 150" style="width:100%;min-width:620px;height:auto;display:block" role="img" aria-label="Frames on the bus around the fault"></svg></div>
+        <div class="kv" id="faultKv"></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="card-head"><h3>Bit-by-bit arbitration</h3></div><div class="scroll"><table id="arbTable"></table></div><p class="foot" id="arbNote"></p></div>
+        <div class="card"><h3>Fault frame layout (8 bytes)</h3><div class="scroll"><table id="frameTable"></table></div><p class="foot">Sent once at every state change, then repeated at the severity's rate while active. The dash shows the highest-severity active code and the logger keeps every frame.</p></div>
+      </div>
+      <div class="card"><div class="card-head"><h3>All fault codes</h3><span class="note">Tap a row to test it</span></div><div class="scroll"><table id="faultTable"></table></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- INPUTS -->
+<section class="view" id="v-wiring" hidden>
+  <div class="view-head">
+    <h2>Powertrain wiring</h2>
+    <p class="lede">EMU Black pins from the label on the team's unit, with a proposed use for each one on the CBR600RR, and the harness from the battery through the firewall to the engine. The EMU only switches the ground side of the injectors, coils and pump relay. Their +12 V comes from the kill bus, so the shutdown switches kill fuel and spark in hardware.</p>
+  </div>
+  <div class="card"><div class="card-head"><h3>Harness schematic</h3><span class="note">Scroll or pinch to zoom. PDF and .xlsx exports are in the project files under wiring/.</span></div><div class="scroll" id="wiringSvg" style="min-height:320px"></div></div>
+  <div class="card"><div class="card-head"><h3>Fuel system</h3><span class="note">How the pump, relay, injectors, fuel pressure and the float level sender connect, with the shutdown path. Same pins as the harness.</span></div><div class="scroll" id="fuelSvg" style="min-height:320px"></div></div>
+  <div class="grid2">
+    <div class="card"><h3>Black 39-pin connector (B)</h3><div class="scroll"><table id="pinsBlack"></table></div></div>
+    <div class="card"><h3>Grey 24-pin connector (G)</h3><div class="scroll"><table id="pinsGrey"></table></div>
+      <h3 style="margin-top:16px">Fuses</h3><div class="scroll"><table id="fuseTable"></table></div></div>
+  </div>
+  <div class="card"><h3>Build notes</h3><ul class="flags" id="wiringNotes"></ul></div>
+  <div class="card"><h3>Components and selection status</h3><div class="scroll"><table id="compTable"></table></div><p class="foot">Dashed boxes in the schematic are parts still to be selected. Exports in the project files under wiring/: PDF (schematic, pinout, this list) and an .xlsx from-to wire list for harness tools.</p></div>
+</section>
+<section class="view" id="v-inputs" hidden>
+  <div class="view-head">
+    <h2>Where the numbers come from</h2>
+    <p class="lede">Every default in the model, tagged with its source. "Assumption" means nobody has measured or chosen it yet. Changing a slider on another tab overrides the value here.</p>
+  </div>
+  <div class="card"><div class="scroll"><table id="inputsTable"></table></div></div>
+  <div class="card"><h3>Open questions this model depends on</h3><ul class="flags" id="openQs"></ul></div>
+  <p class="foot">Source code: the br27sim Python package (src/br27sim/ in the repo). The model runs in Python; <code>br27sim serve</code> starts this page and <code>br27sim report</code> prints the headline results.</p>
+</section>
+
+</div></main>

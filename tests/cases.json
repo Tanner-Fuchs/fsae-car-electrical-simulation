@@ -1,0 +1,493 @@
+{
+ "lap_default": [
+  "simulateLap",
+  [
+   {}
+  ]
+ ],
+ "lap_variant": [
+  "simulateLap",
+  [
+   {
+    "finalDrive": 3.5,
+    "ambientC": 35,
+    "shiftRpm": 12000,
+    "massKg": 300
+   }
+  ]
+ ],
+ "power_default": [
+  "simulatePower",
+  [
+   {},
+   {
+    "__lap__": {}
+   }
+  ]
+ ],
+ "power_lipo": [
+  "simulatePower",
+  [
+   {
+    "battery": "lipo3s4"
+   },
+   {
+    "__lap__": {
+     "battery": "lipo3s4"
+    }
+   }
+  ]
+ ],
+ "power_lfp8": [
+  "simulatePower",
+  [
+   {
+    "battery": "lfp8"
+   },
+   {
+    "__lap__": {
+     "battery": "lfp8"
+    }
+   }
+  ]
+ ],
+ "power_agm": [
+  "simulatePower",
+  [
+   {
+    "battery": "agm"
+   },
+   {
+    "__lap__": {
+     "battery": "agm"
+    }
+   }
+  ]
+ ],
+ "power_regopen": [
+  "simulatePower",
+  [
+   {
+    "regFault": "open",
+    "regFaultMin": 15
+   },
+   {
+    "__lap__": {}
+   }
+  ]
+ ],
+ "power_overcharge": [
+  "simulatePower",
+  [
+   {
+    "regFault": "overcharge",
+    "regFaultMin": 10,
+    "regType": "shunt"
+   },
+   {
+    "__lap__": {}
+   }
+  ]
+ ],
+ "power_breaker": [
+  "simulatePower",
+  [
+   {
+    "mainBreakerA": 40,
+    "starterA": 200
+   },
+   {
+    "__lap__": {}
+   }
+  ]
+ ],
+ "power_nodeoff_hot": [
+  "simulatePower",
+  [
+   {
+    "nodeOffline": "FL",
+    "ambientC": 40,
+    "fanWhenOff": true,
+    "keyOnDuringChange": false,
+    "soc0": 30
+   },
+   {
+    "__lap__": {
+     "ambientC": 40
+    }
+   }
+  ]
+ ],
+ "crank_default": [
+  "simulateCrank",
+  [
+   {}
+  ]
+ ],
+ "fire_mid": [
+  "firingEvents",
+  [
+   {},
+   6000,
+   0.5
+  ]
+ ],
+ "fire_high": [
+  "firingEvents",
+  [
+   {},
+   11000,
+   1
+  ]
+ ],
+ "fire_cut": [
+  "firingEvents",
+  [
+   {},
+   4000,
+   0.01
+  ]
+ ],
+ "shut_cms": [
+  "simulateShutdown",
+  [
+   {},
+   "cms",
+   6000
+  ]
+ ],
+ "shut_pms": [
+  "simulateShutdown",
+  [
+   {},
+   "pms",
+   6000
+  ]
+ ],
+ "state_bots": [
+  "shutdownState",
+  [
+   {
+    "bots": true
+   }
+  ]
+ ],
+ "can_classic": [
+  "simulateCanAll",
+  [
+   {
+    "canLayout": "classic"
+   }
+  ]
+ ],
+ "can_classic_500k_ber": [
+  "simulateCanAll",
+  [
+   {
+    "canLayout": "classic",
+    "bitrate": 500000,
+    "ber": 1e-05,
+    "nodeOffline": "RR",
+    "extraFrames": 3
+   }
+  ]
+ ],
+ "can_split": [
+  "simulateCanAll",
+  [
+   {
+    "canLayout": "split",
+    "packSusp": true,
+    "suspPots": true,
+    "imuGpsOnCan": true
+   }
+  ]
+ ],
+ "can_fdall": [
+  "simulateCanAll",
+  [
+   {
+    "canLayout": "fdAll",
+    "stuffing": "typical",
+    "imuGpsOnCan": true
+   }
+  ]
+ ],
+ "can_classic_imu": [
+  "simulateCanAll",
+  [
+   {
+    "imuGpsOnCan": true,
+    "dashFwdFrames": 4
+   }
+  ]
+ ],
+ "phy_all": [
+  "canPhysical",
+  [
+   {},
+   "all"
+  ]
+ ],
+ "phy_noterm": [
+  "canPhysical",
+  [
+   {
+    "termEnd2": false,
+    "trunkAllM": 7.5
+   },
+   "all"
+  ]
+ ],
+ "phy_ch": [
+  "canPhysical",
+  [
+   {
+    "canLayout": "split",
+    "termExtra": true,
+    "stubM": 0.3
+   },
+   "ch"
+  ]
+ ],
+ "phy_none": [
+  "canPhysical",
+  [
+   {
+    "termEnd1": false,
+    "termEnd2": false,
+    "bitrate": 1000000,
+    "trunkAllM": 60
+   },
+   "all"
+  ]
+ ],
+ "alias_500": [
+  "aliasDemo",
+  [
+   500,
+   false,
+   11000,
+   0.5
+  ]
+ ],
+ "alias_500f": [
+  "aliasDemo",
+  [
+   500,
+   true,
+   11000,
+   0.5
+  ]
+ ],
+ "alias_200": [
+  "aliasDemo",
+  [
+   200,
+   false,
+   11000,
+   0.5
+  ]
+ ],
+ "alias_200f": [
+  "aliasDemo",
+  [
+   200,
+   true,
+   11000,
+   0.5
+  ]
+ ],
+ "alias_50f": [
+  "aliasDemo",
+  [
+   50,
+   true,
+   7000,
+   0.5
+  ]
+ ],
+ "fault_default": [
+  "simulateFault",
+  [
+   {},
+   "BR-C01",
+   null
+  ]
+ ],
+ "fault_w08": [
+  "simulateFault",
+  [
+   {},
+   "BR-W08",
+   null
+  ]
+ ],
+ "fault_i02_split_ch": [
+  "simulateFault",
+  [
+   {
+    "canLayout": "split"
+   },
+   "BR-I02",
+   "ch"
+  ]
+ ],
+ "fault_c03_split_pt": [
+  "simulateFault",
+  [
+   {
+    "canLayout": "split"
+   },
+   "BR-C03",
+   "pt",
+   400
+  ]
+ ],
+ "arb": [
+  "arbitrate",
+  [
+   128,
+   256
+  ]
+ ],
+ "ft_fd": [
+  "frameTime",
+  [
+   {
+    "stuffing": "worst",
+    "bitrate": 1000000,
+    "fdDataRate": 5000000
+   },
+   20,
+   true
+  ]
+ ],
+ "msgs_split_pt": [
+  "canMessages",
+  [
+   {
+    "canLayout": "split"
+   },
+   "pt"
+  ]
+ ],
+ "defaults": [
+  "withDefaults",
+  [
+   {
+    "nodeLoad5V": {
+     "FL": 0.5
+    }
+   }
+  ]
+ ],
+ "logic_BR-C01": [
+  "faultLogic",
+  [
+   "BR-C01"
+  ]
+ ],
+ "logic_BR-C02": [
+  "faultLogic",
+  [
+   "BR-C02"
+  ]
+ ],
+ "logic_BR-C03": [
+  "faultLogic",
+  [
+   "BR-C03"
+  ]
+ ],
+ "logic_BR-C04": [
+  "faultLogic",
+  [
+   "BR-C04"
+  ]
+ ],
+ "logic_BR-C05": [
+  "faultLogic",
+  [
+   "BR-C05"
+  ]
+ ],
+ "logic_BR-W01": [
+  "faultLogic",
+  [
+   "BR-W01"
+  ]
+ ],
+ "logic_BR-W02": [
+  "faultLogic",
+  [
+   "BR-W02"
+  ]
+ ],
+ "logic_BR-W03": [
+  "faultLogic",
+  [
+   "BR-W03"
+  ]
+ ],
+ "logic_BR-W04": [
+  "faultLogic",
+  [
+   "BR-W04"
+  ]
+ ],
+ "logic_BR-W05": [
+  "faultLogic",
+  [
+   "BR-W05"
+  ]
+ ],
+ "logic_BR-W06": [
+  "faultLogic",
+  [
+   "BR-W06"
+  ]
+ ],
+ "logic_BR-W07": [
+  "faultLogic",
+  [
+   "BR-W07"
+  ]
+ ],
+ "logic_BR-W08": [
+  "faultLogic",
+  [
+   "BR-W08"
+  ]
+ ],
+ "logic_BR-W09": [
+  "faultLogic",
+  [
+   "BR-W09"
+  ]
+ ],
+ "logic_BR-W10": [
+  "faultLogic",
+  [
+   "BR-W10"
+  ]
+ ],
+ "logic_BR-W11": [
+  "faultLogic",
+  [
+   "BR-W11"
+  ]
+ ],
+ "logic_BR-I01": [
+  "faultLogic",
+  [
+   "BR-I01"
+  ]
+ ],
+ "logic_BR-I02": [
+  "faultLogic",
+  [
+   "BR-I02"
+  ]
+ ]
+}

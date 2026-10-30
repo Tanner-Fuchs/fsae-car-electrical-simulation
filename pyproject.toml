@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "br27sim"
+version = "0.1.0"
+description = "Bobcat Racing BR27 (FSAE 2027) electrical system simulator"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["openpyxl>=3.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+pdf = ["playwright>=1.40"]
+
+[project.scripts]
+br27sim = "br27sim.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+br27sim = ["web/*.html", "web/*.js", "web/vendor/*.js"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
