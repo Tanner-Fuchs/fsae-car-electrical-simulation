@@ -69,3 +69,17 @@ def test_unknown_function_is_an_error(url):
 def test_no_files_outside_web(url):
     with pytest.raises(urllib.error.HTTPError):
         get(url + "/../server.py")
+
+
+def test_cad_upload_and_serve(url, tmp_path, monkeypatch):
+    monkeypatch.setenv("BR27SIM_DATA", str(tmp_path))
+    from test_cad import binary_stl, box
+    data = binary_stl(box(0, 0, 0, 100, 100, 100))
+    req = urllib.request.Request(f"{url}/api/cad/upload?name=battery.stl&role=battery", data=data)
+    with urllib.request.urlopen(req) as r:
+        s = json.loads(r.read())
+    assert s["files"][0]["role"] == "battery" and "battery" in s["positions"]
+    with urllib.request.urlopen(f"{url}/cad-files/battery.stl") as r:
+        assert r.read() == data
+    with pytest.raises(urllib.error.HTTPError):
+        get(url + "/cad-files/..%2F..%2Fetc%2Fpasswd")

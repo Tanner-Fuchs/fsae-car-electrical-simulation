@@ -96,6 +96,12 @@ button.ghost { background: transparent; color: var(--accent); }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 760px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
+.cadrow { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; margin: 10px 0; }
+.cadrow select, .cadrow input[type=number], #cadTable select { font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel); color: var(--ink); }
+.cadrow .xyz { display: flex; gap: 4px; } .cadrow .xyz input { width: 76px; }
+.cadrow label.btn { display: inline-block; font-size: 14px; font-weight: 500; padding: 7px 12px; border-radius: 4px; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+.cadrow .chk { font-size: 13px; display: flex; gap: 6px; align-items: center; }
+#cadTable td button { font: inherit; font-size: 12px; padding: 2px 8px; border: 1px solid var(--rule); border-radius: 4px; background: none; color: var(--ink-2); cursor: pointer; }
 .kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .kv div { display: grid; gap: 1px; padding: 8px 10px; background: var(--bg); border-radius: 4px; }
 .kv span { font-size: 11.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
@@ -168,6 +174,22 @@ td.wrap { white-space: normal; min-width: 220px; }
     <div id="scene3d"><div class="labels" id="labels3d"></div><span class="hint">Drag to orbit · pinch or scroll to zoom</span></div>
     <div class="parts" id="parts"></div>
     <div id="partInfo" class="lede"></div>
+  </div>
+  <div class="card" id="cadCard">
+    <h3>CAD models (STL)</h3>
+    <p class="lede">Import the frame and main components as STL files, exported from the car assembly so each one keeps its place. Give each file a role: the frame, or the part it is (battery, ECU, a corner node...). Parts placed from CAD replace the placeholders, and the harness and CAN bus lengths are then measured between their real positions, which feeds the CAN physical layer results. You can also place a part by tapping a spot on the CAD.</p>
+    <div class="cadrow">
+      <label class="btn" for="cadFiles">Import STL files…</label><input type="file" id="cadFiles" accept=".stl,model/stl" multiple hidden>
+      <div class="field"><label for="cadUnits">STL units</label><select id="cadUnits"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option><option value="in">inches</option></select></div>
+      <div class="field"><label for="cadUp">Up axis in CAD</label><select id="cadUp"><option value="z">Z up</option><option value="y">Y up</option></select></div>
+      <div class="field"><label for="cadFwd">Front of the car points to</label><select id="cadFwd"><option value="+x">+X</option><option value="-x">−X</option><option value="+z">+Z (after up fix)</option><option value="-z">−Z (after up fix)</option></select></div>
+      <div class="field"><label>Offset x / y / z (m)</label><span class="xyz"><input type="number" step="0.01" id="cadOx"><input type="number" step="0.01" id="cadOy"><input type="number" step="0.01" id="cadOz"></span></div>
+      <button class="btn ghost" type="button" id="cadCenter">Center frame on car</button>
+      <label class="chk"><input type="checkbox" id="cadHide"> Hide placeholder car</label>
+    </div>
+    <div class="scroll"><table id="cadTable"></table></div>
+    <div class="cadrow"><span class="lede" id="cadPlaceText"></span><button class="btn ghost" type="button" id="cadPlace">Place selected part on CAD</button></div>
+    <p class="foot" id="cadDir"></p>
   </div>
   <div class="grid2">
     <div class="card">

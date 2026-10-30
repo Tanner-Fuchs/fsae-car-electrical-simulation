@@ -8,6 +8,52 @@ DAQ, fault codes, and the powertrain harness.
 The model is Python. The interactive page (3D car, charts, every tab) runs in your browser
 and gets all of its numbers from the Python model through a small local server.
 
+## Just run it (the launcher)
+
+You don't need Python or git to use the simulator. Download the launcher once:
+
+- **Windows:** [BR27-Simulator.bat](https://github.com/Tanner-Fuchs/fsae-car-electrical-simulation/releases/download/launcher/BR27-Simulator.bat)
+- **Mac / Linux:** [br27-simulator.command](https://github.com/Tanner-Fuchs/fsae-car-electrical-simulation/releases/download/launcher/br27-simulator.command)
+  (Mac: right-click it, Open, then Open again the first time)
+
+Double-click it. The first start takes a minute or two: it downloads a private copy of
+Python and the simulator into `%LOCALAPPDATA%\BR27Sim` (Windows) or `~/.br27sim`
+(Mac/Linux), then your browser opens the simulator. Every later start checks this repo
+and downloads the newest version if there is one, so you always run the latest model.
+Close the black window to stop the simulator.
+
+> Windows may say "Windows protected your PC" the first time. Click **More info**, then
+> **Run anyway**. The launcher is a plain text file; open it in Notepad to see what it does.
+
+To publish an update that everyone's launcher picks up, see [docs/PUBLISHING.md](docs/PUBLISHING.md).
+
+## Import the car's CAD
+
+On the **Car** tab, the **CAD models (STL)** card takes STL files of the frame and the main
+components (battery, ECU, dash, corner nodes, fuel pump and so on).
+
+1. In your CAD program, export each part as STL **from the full car assembly**, keeping the
+   assembly origin, so every part lands where it really sits on the car.
+2. Pick the files with **Import STL files…**. The simulator guesses each file's role from its name
+   (frame, battery, ecu...); change it in the table if it guessed wrong. "Other (display only)" files
+   are drawn but not used for routing.
+3. Set the **units**, which CAD axis is **up**, and which points **forward**, until the car sits
+   upright and faces forward. **Center frame on car** puts the frame on the centreline with its bottom
+   just off the ground.
+4. Parts without their own STL can be placed by hand: select it in the table, click **Place selected
+   part on CAD**, then tap the model where it goes. Tick **Hide placeholder car** once
+   your CAD covers it.
+
+Each part's position (its STL's centre, or where you placed it) sets the harness and CAN
+routes, and those route lengths feed the CAN physical layer model (trunk lengths and
+signal timing). Your STLs and settings are kept in `%LOCALAPPDATA%\BR27Sim\cad` or
+`~/.br27sim/cad`, outside the app, so updates never touch them. Set the `BR27SIM_DATA`
+environment variable to keep them somewhere else, such as a shared team drive.
+
+## Work on the code
+
+The rest of this page is for changing the simulator itself.
+
 ## Setup (once)
 
 You need **Python 3.9 or newer** and **git**.
@@ -88,6 +134,8 @@ print(lap["stats"]["lapTime"], power["stats"]["endSoc"])
 | Aliasing demo | `src/br27sim/daq.py` |
 | EMU Black pinout, fuses, part status, wire list, harness drawings | `src/br27sim/wiring.py` |
 | The page itself (layout, charts, 3D car, text) | `src/br27sim/web/` (HTML and JavaScript) |
+| STL import, CAD axes and part positions | `src/br27sim/cad.py` (server side), `web/car3d.js` (drawing) |
+| The launchers | `launcher/` |
 
 Every default carries a tag saying where it came from: `[form: ...]` for a concept form,
 `[rules X.Y]` for the FSAE rules, `[Tanner]` for a team decision, `[assumption]` for a
@@ -122,6 +170,7 @@ pytest
   dead regulator drains the battery, and so on).
 - `tests/test_wiring.py` checks the wire list (every used EMU pin has a wire) and the exports.
 - `tests/test_server.py` checks the local server answers the page correctly.
+- `tests/test_cad.py` checks STL reading, the CAD axis settings and part positions.
 
 GitHub Actions runs the tests on every push (Windows and Linux, Python 3.9 and 3.12).
 

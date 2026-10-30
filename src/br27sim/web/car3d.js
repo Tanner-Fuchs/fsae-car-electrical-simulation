@@ -55,6 +55,73 @@
     { id: 'inertia', name: 'Inertia switch', color: '#d03b3b', sys: 'Shutdown' }
   ];
 
+  // Once parts are placed from CAD, buses are routed as harness runs along the
+  // frame axes (forward/back, then across, then up/down) between the parts.
+  let customRoutes = false;
+  function ortho(...pts) {
+    const out = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      const a = out[out.length - 1], b = pts[i];
+      for (const q of [[b[0], a[1], a[2]], [b[0], a[1], b[2]], b]) {
+        const l = out[out.length - 1];
+        if (Math.hypot(q[0] - l[0], q[1] - l[1], q[2] - l[2]) > 1e-4) out.push(q.slice());
+      }
+    }
+    return out.length > 1 ? out : [pts[0], pts[0].map(v => v + 1e-3)];
+  }
+  function routes() {
+    if (!customRoutes) {
+      return { pt: PT_ROUTE, ch: CH_ROUTE, all: ALL_ROUTE, power: POWER_ROUTE,
+        extra: [[[P.imu, [0.45, 0.55, -0.02], P.dash], 0xe87ba4, 0.004], [[P.gps, [0.47, 0.62, 0.03], P.dash], 0xe87ba4, 0.004],
+          [[P.pms, [-0.40, 0.45, 0.15], [-0.30, 0.10, 0.0], P.ecu], 0xd03b3b, 0.005], [[P.regulator, [-0.48, 0.45, 0.36], [-0.40, 0.70, 0.33], P.pms], 0xeda100, 0.006],
+          [[P.brakeF, [0.84, 0.22, -0.22], P.nodeFL], 0xeb6834, 0.004], [[P.brakeR, [-0.70, 0.22, -0.25], P.nodeRL], 0xeb6834, 0.004],
+          [[P.nodeRL, [-0.92, 0.40, -0.12], P.brakeLight], 0xd03b3b, 0.004]] };
+    }
+    return {
+      pt: ortho(P.ecu, P.dash),
+      ch: ortho(P.dash, P.nodeFL, P.nodeFR, P.nodeRR, P.nodeRL),
+      all: ortho(P.ecu, P.nodeRL, P.nodeRR, P.nodeFR, P.nodeFL, P.dash),
+      power: ortho(P.battery, P.breaker, P.pms),
+      extra: [[ortho(P.imu, P.dash), 0xe87ba4, 0.004], [ortho(P.gps, P.dash), 0xe87ba4, 0.004], [ortho(P.pms, P.ecu), 0xd03b3b, 0.005],
+        [ortho(P.regulator, P.pms), 0xeda100, 0.006], [ortho(P.brakeF, P.nodeFL), 0xeb6834, 0.004], [ortho(P.brakeR, P.nodeRL), 0xeb6834, 0.004],
+        [ortho(P.nodeRL, P.brakeLight), 0xd03b3b, 0.004]]
+    };
+  }
+  const DEFAULT_P = JSON.parse(JSON.stringify(P));
+  const routeM = {};
+  function updateRouteM() {
+    const r = routes();
+    routeM.pt = routeLength(r.pt); routeM.ch = routeLength(r.ch); routeM.all = routeLength(r.all);
+  }
+  // Part positions from CAD (simulator metres). Parts not listed go back to the placeholders.
+  function setPositions(pos) {
+    pos = pos || {};
+    for (const k of Object.keys(DEFAULT_P)) P[k] = Array.isArray(DEFAULT_P[k]) ? DEFAULT_P[k].slice() : DEFAULT_P[k];
+    let any = false;
+    for (const [k, v] of Object.entries(pos)) if (Array.isArray(P[k]) && v) { P[k] = v.slice(); any = true; }
+    customRoutes = any;
+    updateRouteM();
+    return routeM;
+  }
+
+  // STL (binary or ASCII) to a flat Float32Array, 9 floats per triangle
+  function parseStl(buf) {
+    const dv = new DataView(buf);
+    if (buf.byteLength >= 84) {
+      const n = dv.getUint32(80, true);
+      if (84 + 50 * n === buf.byteLength) {
+        const a = new Float32Array(n * 9);
+        for (let i = 0; i < n; i++) for (let k = 0; k < 9; k++) a[i * 9 + k] = dv.getFloat32(84 + 50 * i + 12 + 4 * k, true);
+        return a;
+      }
+    }
+    const text = new TextDecoder().decode(buf), out = [];
+    const re = /vertex\s+(\S+)\s+(\S+)\s+(\S+)/g;
+    let m;
+    while ((m = re.exec(text))) out.push(+m[1], +m[2], +m[3]);
+    return new Float32Array(out);
+  }
+
   function routeLength(pts) {
     let L = 0;
     for (let i = 1; i < pts.length; i++) {
@@ -93,7 +160,8 @@
     const grid = new THREE.GridHelper(6, 24, 0x888888, 0x888888);
     grid.material.transparent = true; grid.material.opacity = 0.18; scene.add(grid);
 
-    // spaceframe from tube segments
+    // spaceframe from tube segments (everything from here to the engine is the placeholder car)
+    const placeholderStart = scene.children.length;
     const tubeMat = mat(0x9aa3ad, { metalness: 0.6, roughness: 0.35 });
     const tube = (a, b, r) => {
       const A = v3(a), B = v3(b), len = A.distanceTo(B);
@@ -143,6 +211,7 @@
       t.rotation.x = Math.PI / 2; t.position.set(x, P.wheelR, s * P.track / 2); scene.add(t);
       const r = new THREE.Mesh(new THREE.CylinderGeometry(P.wheelR * 0.62, P.wheelR * 0.62, 0.195, 18), rimMat);
       r.rotation.x = Math.PI / 2; r.position.copy(t.position); scene.add(r);
+      t.userData.wheel = r.userData.wheel = true;
       // wishbones
       tube([x, 0.14, s * 0.24], [x, P.wheelR - 0.04, s * (P.track / 2 - 0.08)], 0.008);
       tube([x, 0.40, s * 0.24], [x, P.wheelR + 0.06, s * (P.track / 2 - 0.08)], 0.008);
@@ -168,6 +237,8 @@
     // firewall between driver and engine / lithium battery (T.1.8)
     const fw = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.85), mat(0xc0c7cf, { transparent: true, opacity: 0.28, side: THREE.DoubleSide, metalness: 0.8, depthWrite: false }));
     fw.position.set(-0.40, 0.55, 0); fw.rotation.y = Math.PI / 2; fw.rotation.x = 0; scene.add(fw);
+
+    const placeholder = scene.children.slice(placeholderStart).filter(o => !o.userData.wheel);
 
     // engine: transverse inline-4, crankcase + 4 cylinders + intake with restrictor
     const engGroup = new THREE.Group();
@@ -223,19 +294,61 @@
       const m = new THREE.Mesh(new THREE.TubeGeometry(curve, pts.length * 14, r, 6, false), mat(color, { emissive: color, emissiveIntensity: 0.35 }));
       scene.add(m); return m;
     };
-    const busWires = {
-      pt: wire(PT_ROUTE, 0x2a78d6, 0.007),
-      ch: wire(CH_ROUTE, 0x1baf7a, 0.007),
-      all: wire(ALL_ROUTE, 0x1baf7a, 0.007)
-    };
-    wire([P.imu, [0.45, 0.55, -0.02], P.dash], 0xe87ba4, 0.004);
-    wire([P.gps, [0.47, 0.62, 0.03], P.dash], 0xe87ba4, 0.004);
-    wire(POWER_ROUTE, 0xd03b3b, 0.008);
-    wire([P.pms, [-0.40, 0.45, 0.15], [-0.30, 0.10, 0.0], P.ecu], 0xd03b3b, 0.005);
-    wire([P.regulator, [-0.48, 0.45, 0.36], [-0.40, 0.70, 0.33], P.pms], 0xeda100, 0.006);
-    wire([P.brakeF, [0.84, 0.22, -0.22], P.nodeFL], 0xeb6834, 0.004);
-    wire([P.brakeR, [-0.70, 0.22, -0.25], P.nodeRL], 0xeb6834, 0.004);
-    wire([P.nodeRL, [-0.92, 0.40, -0.12], P.brakeLight], 0xd03b3b, 0.004);
+    let busWires = {}, allWires = [], layoutNow = 'classic';
+    function buildWires() {
+      for (const m of allWires) { scene.remove(m); m.geometry.dispose(); }
+      const r = routes();
+      busWires = { pt: wire(r.pt, 0x2a78d6, 0.007), ch: wire(r.ch, 0x1baf7a, 0.007), all: wire(r.all, 0x1baf7a, 0.007) };
+      allWires = [busWires.pt, busWires.ch, busWires.all, wire(r.power, 0xd03b3b, 0.008)];
+      for (const [pts, color, rad] of r.extra) allWires.push(wire(pts, color, rad));
+      busWires.pt.visible = busWires.ch.visible = layoutNow === 'split'; busWires.all.visible = layoutNow !== 'split';
+    }
+    buildWires();
+    // placeholder boxes go where the parts are
+    const baseMeshes = Object.assign({}, meshes);
+    function movePlaceholders() {
+      for (const [id, m] of Object.entries(baseMeshes)) if (id !== 'engine' && P[id]) m.position.set(...P[id]);
+      engGroup.position.set(...P.engine);
+    }
+
+    // CAD meshes from imported STLs
+    const cadGroup = new THREE.Group();
+    scene.add(cadGroup);
+    const stlCache = {};
+    async function setCad(cad) {
+      for (const m of cadGroup.children.slice()) { cadGroup.remove(m); m.geometry.dispose(); }
+      Object.assign(meshes, baseMeshes);
+      for (const m of Object.values(baseMeshes)) m.visible = true;
+      engGroup.visible = true;
+      const mx = new THREE.Matrix4().set(...cad.matrix.flat());
+      for (const f of cad.files) {
+        const key = f.name + ':' + f.triangles;
+        if (!stlCache[key]) {
+          const res = await fetch('/cad-files/' + encodeURIComponent(f.name));
+          stlCache[key] = parseStl(await res.arrayBuffer());
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(stlCache[key], 3));
+        g.computeVertexNormals();
+        const def = PARTS.find(p => p.id === f.role);
+        const m = new THREE.Mesh(g, f.role === 'frame'
+          ? mat(0x9aa3ad, { metalness: 0.55, roughness: 0.4, side: THREE.DoubleSide })
+          : mat(def ? def.color : 0xb0b6be, { side: THREE.DoubleSide, emissive: def ? def.color : 0x000000, emissiveIntensity: 0.12 }));
+        m.applyMatrix4(mx);
+        m.userData.file = f.name;
+        if (def) {
+          m.userData.id = def.id;
+          meshes[def.id].visible = false;
+          if (def.id === 'engine') engGroup.visible = false;
+          meshes[def.id] = m;
+        }
+        cadGroup.add(m);
+      }
+      for (const o of placeholder) o.visible = !cad.settings.hidePlaceholder;
+      movePlaceholders();
+      buildWires();
+      select(selected);
+    }
 
     // labels
     const labelDivs = {};
@@ -244,14 +357,14 @@
       d.className = 'lbl'; d.textContent = p.name; d.hidden = true;
       labelsEl.appendChild(d); labelDivs[p.id] = d;
     }
-    let selected = null;
+    let selected = null, placing = null;
     const showAlways = new Set(['engine', 'battery', 'dash']);
 
     function select(id) {
       selected = id;
       for (const p of PARTS) {
         const m = meshes[p.id];
-        if (m && m.material && m.material.emissiveIntensity !== undefined && p.id !== 'engine') m.material.emissiveIntensity = p.id === id ? 0.9 : 0.15;
+        if (m && m.material && m.material.emissiveIntensity !== undefined && (p.id !== 'engine' || m.parent === cadGroup)) m.material.emissiveIntensity = p.id === id ? 0.9 : m.parent === cadGroup ? 0.12 : 0.15;
         labelDivs[p.id].classList.toggle('sel', p.id === id);
       }
       onSelect && onSelect(id);
@@ -266,8 +379,13 @@
       const r = renderer.domElement.getBoundingClientRect();
       ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
       ray.setFromCamera(ptr, camera);
+      if (placing) {
+        const hit = ray.intersectObjects(cadGroup.children.concat(placeholder), true)[0];
+        if (hit) { const cb = placing; placing = null; container.style.cursor = ''; cb([hit.point.x, hit.point.y, hit.point.z]); }
+        return;
+      }
       const hits = ray.intersectObjects(Object.values(meshes), false);
-      if (hits.length) select(hits[0].object.userData.id);
+      if (hits.length && hits[0].object.userData.id) select(hits[0].object.userData.id);
     });
 
     function setTheme() {
@@ -324,9 +442,14 @@
       toggleShell(v) { shell.visible = v; },
       pause() { running = false; },
       resume() { if (!running) { running = true; requestAnimationFrame(frame); } },
-      setLayout(layout) { busWires.pt.visible = busWires.ch.visible = layout === 'split'; busWires.all.visible = layout !== 'split'; }
+      setLayout(layout) { layoutNow = layout; busWires.pt.visible = busWires.ch.visible = layout === 'split'; busWires.all.visible = layout !== 'split'; },
+      setCad,
+      // next tap on the CAD (or placeholder car) calls cb with the point hit, in simulator metres
+      startPlacing(cb) { placing = cb; container.style.cursor = 'crosshair'; },
+      cancelPlacing() { placing = null; container.style.cursor = ''; }
     };
   }
 
-  root.BRCar = { create, PARTS, P, routeM: { pt: routeLength(PT_ROUTE), ch: routeLength(CH_ROUTE), all: routeLength(ALL_ROUTE) } };
+  updateRouteM();
+  root.BRCar = { create, PARTS, P, routeM, setPositions, parseStl };
 })(window);

@@ -10,7 +10,9 @@ from functools import lru_cache
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from . import JS_API, can, engine, faults, params, shutdown, wiring
+import urllib.parse
+
+from . import JS_API, cad, can, engine, faults, params, shutdown, wiring
 from .jsonio import dumps
 
 WEB = Path(__file__).resolve().parent / "web"
@@ -101,6 +103,13 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, dumps(constants()))
             if path == "/api/wiring":
                 return self.send(200, dumps(wiring_bundle()))
+            if path == "/api/cad":
+                return self.send(200, dumps(cad.summary()))
+            if path.startswith("/cad-files/"):
+                name = urllib.parse.unquote(path[len("/cad-files/"):])
+                f = (cad.data_dir() / name).resolve()
+                if f.parent == cad.data_dir().resolve() and f.is_file():
+                    return self.send(200, f.read_bytes(), "model/stl")
             f = (WEB / path.lstrip("/")).resolve()
             if WEB in f.parents and f.is_file():
                 return self.send(200, f.read_bytes(), TYPES.get(f.suffix, "application/octet-stream"))
@@ -109,7 +118,17 @@ class Handler(BaseHTTPRequestHandler):
             self.send(500, traceback.format_exc(), "text/plain")
 
     def do_POST(self):
-        path = self.path.split("?")[0]
+        path, _, query = self.path.partition("?")
+        if path in ("/api/cad/upload", "/api/cad/update"):
+            try:
+                body = self.rfile.read(int(self.headers.get("Content-Length") or 0))
+                if path == "/api/cad/upload":
+                    q = urllib.parse.parse_qs(query)
+                    cad.add_file(q.get("name", ["part.stl"])[0], body, q.get("role", ["other"])[0])
+                    return self.send(200, dumps(cad.summary()))
+                return self.send(200, dumps(cad.update(json.loads(body or b"{}"))))
+            except Exception as e:
+                return self.send(400, str(e), "text/plain")
         if not path.startswith("/api/call/"):
             return self.send(404, "not found", "text/plain")
         try:
@@ -124,8 +143,28 @@ def make_server(host="127.0.0.1", port=8027):
     return ThreadingHTTPServer((host, port), Handler)
 
 
+def _already_running(port):
+    """True if a br27sim server is already answering on this port."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/constants", timeout=2) as r:
+            return r.status == 200 and b"DEFAULTS" in r.read(200)
+    except Exception:
+        return False
+
+
 def serve(host="127.0.0.1", port=8027, open_browser=True):
-    httpd = make_server(host, port)
+    try:
+        httpd = make_server(host, port)
+    except OSError:
+        if _already_running(port):
+            # a second launch: the simulator is already up, just show it
+            print(f"BR27 simulator is already running at http://127.0.0.1:{port}/")
+            if open_browser:
+                webbrowser.open(f"http://127.0.0.1:{port}/")
+            return
+        print(f"Port {port} is in use by another program, picking a free one.")
+        httpd = make_server(host, 0)
     url = f"http://{host}:{httpd.server_address[1]}/"
     print(f"BR27 simulator running at {url}  (Ctrl+C to stop)")
     if open_browser:

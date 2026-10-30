@@ -1,0 +1,21 @@
+# Publishes the launchers as downloads on the "launcher" release, so anyone can grab them from
+# https://github.com/Tanner-Fuchs/fsae-car-electrical-simulation/releases/tag/launcher
+name: launcher
+on:
+  push:
+    branches: [main]
+    paths: [launcher/**]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view launcher >/dev/null 2>&1 || gh release create launcher --title "Launcher" \
+            --notes "Download BR27-Simulator.bat (Windows) or br27-simulator.command (Mac/Linux) and double-click it. It installs and updates the simulator by itself."
+          gh release upload launcher launcher/BR27-Simulator.bat launcher/br27-simulator.command --clobber

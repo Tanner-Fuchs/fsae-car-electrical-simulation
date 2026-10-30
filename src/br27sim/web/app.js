@@ -158,6 +158,7 @@
           car.select(b.dataset.id);
         });
         car.select(selectedPart);
+        if (CAD) car.setCad(CAD).catch(e => window.BRShowError && window.BRShowError('the CAD view', e));
       } catch (err) {
         $('scene3d').innerHTML = `<p class="lede" style="padding:16px">The 3D view needs WebGL, which this browser did not provide (${err.message}).</p>`;
       }
@@ -178,7 +179,7 @@
       items.push([`${b === 'pt' ? 'EMU bus' : b === 'ch' ? 'FD bus' : 'Bus'} length`, `${fmt(ph.trunk, 1)} m`, ph.trunk > ph.maxLen ? 'bad' : 'ok']);
       items.push([`${b === 'pt' ? 'EMU bus' : b === 'ch' ? 'FD bus' : 'Bus'} load`, `${fmt(R.cans[i].stats.load, 0)} %`, R.cans[i].stats.load > 50 ? 'meh' : 'ok']);
     });
-    items.push(['Length basis', '3D path × 1.25']);
+    items.push(['Length basis', CAD && Object.keys(CAD.positions).length ? 'CAD positions × 1.25' : '3D path × 1.25']);
     kv('routeKv', items);
     const bat = R.power.bat;
     const f = [];
@@ -187,7 +188,8 @@
     f.push(['info', 'The EMU Black under the seat is close to the CG and away from engine heat, but its harness to the injectors, coils and crank sensor passes through the firewall: use grommets (T.1.8).']);
     f.push(['warn', 'The IMU by the dash sits well ahead of the CG. The sensor mounting form wanted it within 150 mm of the CG. Either mount it near the CG on its own wire or correct the lever arm in post-processing.']);
     f.push(['info', 'Corner nodes sit inboard of each wheel, so sensor leads to the wheel speed sensor stay under 1 m (sensor mounting form guideline).']);
-    f.push(['info', 'Component positions are rough placeholders until chassis CAD exists.']);
+    const placed = CAD ? Object.keys(CAD.positions).length : 0;
+    f.push(['info', placed ? `${placed} part${placed > 1 ? 's' : ''} placed from CAD; the rest are rough placeholders. With CAD positions, bus lengths follow the frame axes between the parts.` : 'Component positions are rough placeholders until chassis CAD is imported (CAD models card above).']);
     flags('carFlags', f);
   }
 
@@ -677,6 +679,90 @@
     ]);
   }
 
+  // ------------------------------------------------------------ CAD (STL) import
+  // Files and settings are kept by the Python server (br27sim/cad.py), outside the app folder.
+  let CAD = null;
+  const partName = id => (window.BRCar.PARTS.find(p => p.id === id) || { name: id }).name;
+  function setTrunks() {
+    params.trunkPtM = +(RM.pt * ROUTE_ALLOWANCE).toFixed(1);
+    params.trunkChM = +(RM.ch * ROUTE_ALLOWANCE).toFixed(1);
+    params.trunkAllM = +(RM.all * ROUTE_ALLOWANCE).toFixed(1);
+  }
+  function applyCad(cad, rerun) {
+    CAD = cad;
+    window.BRCar.setPositions(cad.positions);
+    setTrunks();
+    if (car) car.setCad(cad).catch(e => window.BRShowError && window.BRShowError('the CAD view', e));
+    renderCadPanel();
+    if (rerun) schedule();
+  }
+  async function cadPost(url, body) {
+    const r = await fetch(url, { method: 'POST', body: body instanceof ArrayBuffer ? body : JSON.stringify(body) });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+  const cadChange = change => cadPost('/api/cad/update', change).then(c => applyCad(c, true)).catch(e => alert('CAD: ' + e.message));
+  function guessRole(name) {
+    const n = name.toLowerCase();
+    if (/frame|chassis|spaceframe/.test(n)) return 'frame';
+    const words = { engine: /engine|cbr|motor/, battery: /batt|nlp14|noco/, ecu: /ecu|emu/, dash: /dash|display|screen/, regulator: /reg/,
+      nodeFL: /node.?fl|fl.?node/, nodeFR: /node.?fr|fr.?node/, nodeRL: /node.?rl|rl.?node/, nodeRR: /node.?rr|rr.?node/, imu: /imu/, gps: /gps/,
+      pms: /pms|master/, breaker: /breaker/, cms: /cms|cockpit/, bots: /bots|overtravel/, inertia: /inertia/, brakeLight: /brake.?light/ };
+    for (const [id, re] of Object.entries(words)) if (re.test(n)) return id;
+    return 'other';
+  }
+  function renderCadPanel() {
+    if (!CAD) return;
+    const st = CAD.settings;
+    $('cadUnits').value = st.units; $('cadUp').value = st.up; $('cadFwd').value = st.forward; $('cadHide').checked = !!st.hidePlaceholder;
+    ['cadOx', 'cadOy', 'cadOz'].forEach((id, i) => { $(id).value = (+st.offset[i]).toFixed(3); });
+    const roles = [['frame', 'Frame / chassis'], ['other', 'Other (display only)']].concat(window.BRCar.PARTS.map(p => [p.id, p.name]));
+    const opts = r => roles.map(([v, l]) => `<option value="${v}"${v === r ? ' selected' : ''}>${l}</option>`).join('');
+    const xyz = a => a.map(v => fmt(v, 2)).join(', ');
+    let rows = CAD.files.map(f => `<tr><td class="mono">${f.name.replace(/</g, '&lt;')}</td><td><select data-file="${f.name}">${opts(f.role)}</select></td>` +
+      `<td class="num">${f.triangles.toLocaleString()}</td><td class="mono">${f.size.map(v => fmt(v, 2)).join(' × ')}</td><td class="mono">${xyz(f.center)}</td><td class="num">${fmt(f.volumeL, 2)}</td>` +
+      `<td><button type="button" data-remove="${f.name}">Remove</button></td></tr>`).join('');
+    for (const id of CAD.placed || []) rows += `<tr><td>${partName(id)}</td><td>placed by hand</td><td></td><td></td><td class="mono">${xyz(CAD.positions[id])}</td><td></td><td><button type="button" data-unplace="${id}">Reset</button></td></tr>`;
+    $('cadTable').innerHTML = `<thead><tr><th>File / part</th><th>Role</th><th class="num">Triangles</th><th>Size (m)</th><th>Centre x, y, z (m)</th><th class="num">Volume (L)</th><th></th></tr></thead><tbody>` +
+      (rows || '<tr><td colspan="7">No CAD imported yet. The 3D car uses placeholder positions.</td></tr>') + '</tbody>';
+    $('cadDir').textContent = `CAD files are stored in ${CAD.dir} (kept across updates). Axes: +x forward, +y up, +z to the driver's right, metres.`;
+  }
+  function bindCad() {
+    $('cadFiles').addEventListener('change', async e => {
+      const files = [...e.target.files];
+      e.target.value = '';
+      try {
+        let c = null;
+        for (const f of files) {
+          $('cadPlaceText').textContent = `Importing ${f.name}…`;
+          c = await cadPost(`/api/cad/upload?name=${encodeURIComponent(f.name)}&role=${guessRole(f.name)}`, await f.arrayBuffer());
+        }
+        $('cadPlaceText').textContent = '';
+        if (c) applyCad(c, true);
+      } catch (err) { $('cadPlaceText').textContent = ''; alert('CAD import failed: ' + err.message); }
+    });
+    const settings = () => cadChange({ settings: { units: $('cadUnits').value, up: $('cadUp').value, forward: $('cadFwd').value,
+      offset: ['cadOx', 'cadOy', 'cadOz'].map(id => +$(id).value || 0), hidePlaceholder: $('cadHide').checked } });
+    ['cadUnits', 'cadUp', 'cadFwd', 'cadOx', 'cadOy', 'cadOz', 'cadHide'].forEach(id => $(id).addEventListener('change', settings));
+    $('cadCenter').addEventListener('click', () => cadChange({ centerFrame: true }));
+    $('cadTable').addEventListener('change', e => { const s = e.target.closest('select[data-file]'); if (s) cadChange({ file: s.dataset.file, role: s.value }); });
+    $('cadTable').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.remove && confirm(`Remove ${b.dataset.remove} from the simulator?`)) cadChange({ remove: b.dataset.remove });
+      if (b.dataset.unplace) cadChange({ position: { part: b.dataset.unplace, xyz: null } });
+    });
+    $('cadPlace').addEventListener('click', () => {
+      if (!car) return;
+      $('cadPlaceText').textContent = `Tap a spot on the car for: ${partName(selectedPart)}.`;
+      car.startPlacing(pt => { $('cadPlaceText').textContent = ''; cadChange({ position: { part: selectedPart, xyz: pt } }); });
+    });
+  }
+  function loadCad() {
+    fetch('/api/cad').then(r => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
+      .then(c => { bindCad(); applyCad(c, true); })
+      .catch(() => { const c = $('cadCard'); if (c) c.hidden = true; }); // static page without the Python server
+  }
+
   // ------------------------------------------------------------ theme + boot
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
   const retheme = () => { C.resetAll(); if (car) car.setTheme(); renderView(currentView); };
@@ -688,4 +774,5 @@
   if (window.Chart) { Chart.defaults.font.family = C.css('--f-body'); }
   runModel();
   route();
+  loadCad();
 })();
