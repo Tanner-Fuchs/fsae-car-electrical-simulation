@@ -5,6 +5,8 @@ fuel system drawings (SVG), and the from-to wire list.
 The page, `br27sim export-wiring` (SVG, xlsx, PDF) and the tests all read this
 one file, so they always agree. Update STATUS as parts get selected.
 """
+import re
+
 from ._js import js_str
 
 # [pin, EMU function, BR27 use, wire, group]. Black = 39-pin, Grey = 24-pin.
@@ -124,7 +126,7 @@ STATUS = {
   'EMU-B': 'S', 'EMU-G': 'S', 'BAT': 'S',
   'CKP': 'K', 'CMP': 'K', 'ECT': 'K', 'INJ1': 'K', 'INJ2': 'K', 'INJ3': 'K', 'INJ4': 'K', 'IGN1': 'K', 'IGN2': 'K', 'IGN3': 'K', 'IGN4': 'K', 'NEUT': 'K', 'TPS': 'K',
   'IAT': 'T', 'OILP': 'T', 'FUELP': 'T', 'FLVL': 'T', 'OILT': 'T', 'KNK': 'T', 'LSU': 'T', 'PUMP': 'T', 'FAN': 'T',
-  'FB': 'T', 'K1': 'T', 'K2': 'T', 'K3': 'T', 'BH1': 'T', 'BRK': 'T', 'PMS': 'T', 'REG': 'T',
+  'FB': 'T', 'K1': 'T', 'K2': 'T', 'K3': 'T', 'BH1': 'T', 'GR1': 'T', 'GR2': 'T', 'BRK': 'T', 'PMS': 'T', 'REG': 'T',
   'S1': '', 'S2': '', 'S3': '', 'GS': '', 'CAN': '', 'R1': ''
 }
 DEV_REF = { 'crank': 'CKP', 'cam': 'CMP', 'tps': 'TPS', 'clt': 'ECT', 'iat': 'IAT', 'oilp': 'OILP', 'fuelp': 'FUELP', 'fuellvl': 'FLVL', 'oilt': 'OILT', 'knock': 'KNK', 'neutral': 'NEUT', 'wbo': 'LSU',
@@ -188,7 +190,7 @@ def schematic_svg():
     o.append('<text class="z" x="24" y="88">COCKPIT SIDE: UNDER THE SEAT, MAIN HOOP, DASH</text>')
     o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE BAY: BEHIND THE FIREWALL</text>')
     o.append('<text class="h" x="6" y="28">BR27 powertrain harness, EMU Black on 2012 CBR600RR</text>')
-    o.append('<text class="s" x="6" y="48">Proposal, rev C, 2026-10-30 (adds the fuel level sender). Dashed boxes are parts still to be selected. Pins from the EMU Black label (B = black 39-pin, G = grey 24-pin). Fuse sizes and gauges are proposals; check against the EMU Black manual before building.</text>')
+    o.append('<text class="s" x="6" y="48">Proposal, rev D, 2026-10-30 (team wire color code; rev C added the fuel level sender). Dashed boxes are parts still to be selected. Pins from the EMU Black label (B = black 39-pin, G = grey 24-pin). Fuse sizes and gauges are proposals; check against the EMU Black manual before building.</text>')
 
     # firewall + bulkhead connector
     bhTop, bhBot = y(0) - 12, ySig(len(ROWS) - 1) + 12
@@ -329,9 +331,9 @@ def fuel_system_svg():
     o.append('<text class="z" x="24" y="88">COCKPIT SIDE: UNDER THE SEAT, MAIN HOOP, DASH</text>')
     o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE BAY: BEHIND THE FIREWALL (TANK, PUMP, RAIL)</text>')
     o.append('<text class="h" x="6" y="28">BR27 fuel system: how it connects (EMU Black, 2012 CBR600RR)</text>')
-    o.append('<text class="s" x="6" y="48">Proposal, rev C, 2026-10-30. Same pins and refs as the harness schematic and wire list. Dashed boxes are parts still to be selected. Pink band = fuel line (plumbing, for context).</text>')
+    o.append('<text class="s" x="6" y="48">Proposal, rev D, 2026-10-30. Same pins and refs as the harness schematic and wire list. Dashed boxes are parts still to be selected. Pink band = fuel line (plumbing, for context).</text>')
     o.append(f'<line x1="{n(fwX)}" y1="64" x2="{n(fwX)}" y2="{n(H - 8)}" stroke="var(--k3)" stroke-width="3" class="dash"/>')
-    o.append(f'<text class="s" x="{n(fwX + 6)}" y="112">Firewall, all wires via</text><text class="s" x="{n(fwX + 6)}" y="126">bulkhead BH1 (T.1.8.6)</text>')
+    o.append(f'<text class="s" x="{n(fwX + 6)}" y="112">Firewall: signals via bulkhead BH1,</text><text class="s" x="{n(fwX + 6)}" y="126">pump power via grommet GR1 (T.1.8.6)</text>')
 
     def blk(x, yy, w, h, t, lines=None, tbd=False):
         o.append(f'<rect class="box{" tbd" if tbd else ""}" x="{n(x)}" y="{n(yy)}" width="{n(w)}" height="{n(h)}" rx="4"/><text x="{n(x + 10)}" y="{n(yy + 18)}">{esc(t)}</text>')
@@ -472,7 +474,9 @@ CONNECTORS = [
     ["K1", "Kill relay (30/85/86/87)", "Fuse box", 4],
     ["K2", "Fuel pump relay (30/85/86/87)", "Fuse box", 4],
     ["K3", "Fan relay (30/85/86/87)", "Fuse box", 4],
-    ["BH1", "Firewall bulkhead connector", "Firewall", ""],
+    ["BH1", "Firewall bulkhead connector, panel mount with sealing gasket (sealed pass-through, T.1.8.6)", "Firewall", ""],
+    ["GR1", "Firewall grommet, sealed (T.1.8.6.d), for the pump and fan +12 V wires", "Firewall", ""],
+    ["GR2", "Grommets at every other panel pass-through: battery and charging cables, corner node and dash runs, sidepod (count set when routing is final)", "Various", ""],
     ["S1", "+5 V ref splice", "Engine bay", ""],
     ["S2", "Sensor ground splice", "Engine bay", ""],
     ["S3", "Kill bus +12 V splice", "Engine bay", ""],
@@ -500,17 +504,35 @@ def components():
             for ref, desc, loc, pins in extra + CONNECTORS if STATUS.get(ref) != ""]
 
 
+def team_color(sig):
+    """Team wire color code (BR27 Master Timeline, Wiring standards)."""
+    if sig == "CAN_H":
+        return "White"
+    if sig == "CAN_L":
+        return "Black"
+    if sig == "+5V_REF":
+        return "Blue"
+    if re.search(r"GND|VR−", sig) and sig != "WBO_VGND":
+        return "Black"
+    if re.search(r"12V|KILL_IN|_FEED|IGN_SENSE", sig):
+        return "Red"
+    return "Yellow"
+
+
 def wire_list():
     w = []
     bh = [0]
 
     # [from, fromPin, to, toPin, signal, awg, color, mm, group, bulkhead?]
+    # Colors follow the team code in the BR27 Master Timeline (rev D): black ground, red power,
+    # yellow signal, blue 5 V, CAN black = low / white = high. team_color() overrides the rev C
+    # per-wire suggestions still passed as col; heat-shrink labels carry the wire ID.
     def add(f, fp, t, tp, sig, awg, col, mm, grp="", thru=False):
         via = ""
         if thru:
             bh[0] += 1
             via = "BH1-" + str(bh[0])
-        w.append({"from": f, "fromPin": n(fp), "to": t, "toPin": n(tp), "signal": sig, "awg": awg, "color": col, "mm": mm,
+        w.append({"from": f, "fromPin": n(fp), "to": t, "toPin": n(tp), "signal": sig, "awg": awg, "color": team_color(sig), "mm": mm,
                   "group": grp or "", "via": via})
 
     def E(c, pin):
@@ -576,6 +598,10 @@ def wire_list():
     add("S1", "OUT", "R1", 1, "+5V_REF", 22, "Orange", 500)
     add("R1", 2, "FLVL", "SIG", "FUEL_LVL", 22, "Grey", 100)
     add("S2", "OUT", "FLVL", "GND", "SGND", 22, "Brown", 500)
+    # pump and fan +12 V cross the firewall through the sealed grommet GR1, not the bulkhead (their grounds stay on the engine side) (rev D)
+    for r in w:
+        if re.match(r"^(PUMP|FAN)_12V$", r["signal"]):
+            r["via"] = "GR1"
     return [{"id": "W" + str(i + 1).zfill(3), **r} for i, r in enumerate(w)]
 
 
