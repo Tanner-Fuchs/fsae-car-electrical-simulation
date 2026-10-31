@@ -128,11 +128,11 @@
     const crank = power.crank;
     const T = {
       engine: `Mock 2012 Honda CBR600RR, 599 cc inline-four, firing order 1-2-4-3, on a 20 mm restrictor (IC.1.6). Model makes about ${fmt(lap.stats.peakHp, 0)} hp at ${lap.stats.peakRpm} rpm and burns ${fmt(lap.stats.fuelPerLapL * 1000, 0)} mL per lap. Open the Engine tab to watch it fire.`,
-      ecu: `EMU Black under the seat. It drives 4 injectors (peak duty ${fmt(lap.stats.maxDuty, 0)} %) and 4 coils, reads the stock 12-tooth crank wheel and a cam sync tooth at up to ${fmt(lap.stats.toothHzMax / 1000, 1)} kHz, and terminates one end of the classic CAN powertrain bus. It is fed after the master switch but ahead of the kill relay, so it keeps logging when the shutdown circuit opens.`,
+      ecu: `EMU Black under the seat. It drives 4 injectors (peak duty ${fmt(lap.stats.maxDuty, 0)} %) and 4 coils, reads the stock 12-tooth crank wheel and a cam sync tooth at up to ${fmt(lap.stats.toothHzMax / 1000, 1)} kHz, and sits mid-bus on a short stub (under 0.3 m) to the CAN junction in the electrical box, with its built-in 120 Ω switched off. It is fed after the master switch but ahead of the kill relay, so it keeps logging when the shutdown circuit opens.`,
       battery: `${power.bat.label}. Cranking pulls it to ${fmt(crank.minV, 1)} V at the inrush peak. It ends the endurance run at ${fmt(power.stats.endSoc, 0)} % charge. With the regulator dead it would run the car for about ${fmt(power.stats.noChargeMin, 0)} minutes.`,
       breaker: `Manual-reset ${params.mainBreakerA} A main breaker between the battery and the master switch. All battery current goes through it. Cranking heats it to ${fmt(power.stats.breakerPeakPct, 0)} % of its trip point.`,
       regulator: `Series MOSFET regulator in the sidepod airflow, set to ${fmt(params.regSet, 1)} V. Its output goes through the second pole of the master switch onto the switched bus. Average heat is about ${fmt(power.stats.regHeatW, 0)} W. Stator gives about 10 A at idle and 26 A at 5000 rpm (charging form, verify).`,
-      dash: `Custom dash and dash MCU at the front. The MCU terminates the far end of the CAN 2.0 bus and is the logger. It reads the IMU and GPS directly and stores them without putting them on CAN (a LoRa link to the pit would also hang off the MCU, not the bus). As logger it records every frame on the bus and sends shared values the nodes need (fused speed, gear, rpm, lap and logging state) back out on IDs 0x140+. It also shows the charging warnings (below 12.8 V above 3000 rpm, above 15.0 V any time).`,
+      dash: `Custom dash and dash MCU at the front. The MCU terminates the front end of the CAN 2.0 bus (120 Ω) and is the logger. It reads the IMU and GPS directly and stores them without putting them on CAN (a LoRa link to the pit would also hang off the MCU, not the bus). As logger it records every frame on the bus and sends shared values the nodes need (fused speed, gear, rpm, lap and logging state) back out on IDs 0x140+. It also shows the charging warnings (below 12.8 V above 3000 rpm, above 15.0 V any time).`,
       imu: `IMU next to the dash, wired to the dash MCU. It is about ${fmt(window.BRCar.P.imu[0] + 0.15, 2)} m ahead of the CG, so yaw rate adds false lateral and longitudinal g: at 1.1 rad/s in a tight corner that is about ${fmt(1.1 * 1.1 * (window.BRCar.P.imu[0] + 0.15) / 9.81, 2)} g. Log the offset and correct it in post, or mount the IMU near the CG.`,
       gps: `GPS antenna by the dash with a clear view of the sky, wired to the dash MCU, logged at 20 Hz.`,
       nodeFL: `Corner node FL at the front-left suspension pickup: wheel speed, front brake pressure, steering angle (no suspension pots on this car). MCU (final part not chosen) with an LT8609S 5 V supply, on the CAN 2.0 bus.`,
@@ -140,7 +140,7 @@
       brakeF: `Front brake pressure sensor (0–100 bar, 0.5–4.5 V) in the front circuit, read by node FL at 200 Hz. Peak about ${fmt(R.lap.stats.maxBrakeF, 0)} bar on this lap.`,
       brakeR: `Rear brake pressure sensor in the rear circuit, read by node RL at 200 Hz. Peak about ${fmt(R.lap.stats.maxBrakeR, 0)} bar on this lap.`,
       brakeLight: `Brake light on the rear centerline between wheel centre and shoulder height (T.3.4.2). Driven by node RL from brake pressure, on for ${fmt(R.lap.stats.brakeLightPct, 0)} % of the lap. Its state goes out on CAN as frame 0x0A0.`,
-      nodeRL: `Corner node RL: wheel speed, rear brake pressure, and it drives the brake light. In the CAN FD what-if it is the far end of the chassis bus; on the CAN 2.0 bus it is a stub with no terminator.`,
+      nodeRL: `Corner node RL: wheel speed, rear brake pressure, and it drives the brake light. It is the rear end of the CAN 2.0 bus and carries a 120 Ω terminator (also the far end in the CAN FD what-if).`,
       nodeRR: `Corner node RR: wheel speed, kept away from the exhaust (150 mm team guideline).`,
       pms: `Primary Master Switch on the right side of the main hoop at shoulder height (T.9.3). 2-pole rotary: pole 1 carries every amp of battery current, pole 2 breaks the regulator output so the alternator is disconnected too. Direct acting, no relay (IC.9.3.2).`,
       cms: `Cockpit Main Switch next to the steering wheel, push-pull, 24 mm minimum (IC.9.4). Works through the kill relay.`,
@@ -177,7 +177,7 @@
     if (params.canLayout === 'split') {
       $('routeText').textContent = 'Blue: the classic powertrain bus runs straight from the EMU Black under the seat to the dash MCU, with a terminator at each. Green: the CAN FD chassis bus starts at the dash MCU and visits FL, FR, RR and ends at RL, which carries its second terminator.';
     } else {
-      $('routeText').textContent = 'One bus from the EMU Black under the seat, back to RL and RR, up the right side to FR and FL, and on to the dash. The EMU and the dash are the two ends.';
+      $('routeText').textContent = 'One bus with a CAN junction in the electrical box under the seat. The EMU Black joins it on a short stub with its terminator off. The front chain runs box → FL → FR → dash (120 Ω at the dash MCU); the rear chain runs box → RR → RL (120 Ω at node RL).';
     }
     const buses = S.CAN_LAYOUTS[params.canLayout].buses;
     const items = [];
@@ -944,9 +944,9 @@
       ['good', 'The EMU is fed from F1 ahead of the kill relay, so it keeps logging after a shutdown. Everything it fires (injectors, coils, wideband heater, pump relay) gets +12 V from the kill bus.'],
       ['warn', 'Coil 4 is on the black connector (B14), not the grey one. Easy to miss when building the harness.'],
       ['info', 'Crank and cam VR sensors: shielded twisted pair, shield grounded at the EMU sensor ground only.'],
-      ['info', `Run all engine-bay wires through one bulkhead connector in the firewall, about ${Wr.bulkheadCount()} circuits.`],
+      ['info', `Run all engine-bay wires through sealed firewall grommet GR1, about ${Wr.bulkheadCount()} circuits.`],
       ['info', 'Fuel system: the pump relay (G13) and the injectors take +12 V from the kill bus, so any shutdown switch stops fuel. The float fuel level sender reads on Analog #5 (B35) through a 470 Ω pull-up (R1) to +5 V, about 0.33 V full to 1.69 V empty; the EMU sends it to the dash over CAN.'],
-      ['info', 'CAN: the EMU is one end of the bus. Put 120 Ω across B12 and B25 at the EMU; the other 120 Ω goes at the dash MCU.'],
+      ['info', 'CAN: the EMU is mid-bus on a stub under 0.3 m to the CAN junction in the electrical box. Leave its software-selectable 120 Ω OFF. The bus ends are the dash MCU and node RL, 120 Ω at each.'],
       ['warn', 'Pin functions come from the label on the unit. The BR27 use column is a proposal; assign the outputs in the EMU client and check against the EMU Black manual before powering up.']
     ]);
     wiringDone = true;

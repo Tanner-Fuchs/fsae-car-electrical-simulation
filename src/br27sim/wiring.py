@@ -23,7 +23,7 @@ BLACK = [
   [9, 'Flex fuel in', '', '', 'spare'],
   [10, 'Switch #1 in', 'Neutral switch (to ground)', '22 AWG', 'sensor'],
   [11, 'RS232 TXD', '', '', 'spare'],
-  [12, 'CAN H', 'CAN H, EMU end of the bus (120 Ω terminator here)', '22 AWG twisted pair', 'can'],
+  [12, 'CAN H', 'CAN H, stub to the CAN junction in the electrical box (EMU 120 Ω OFF)', '22 AWG twisted pair', 'can'],
   [13, 'Battery +12V', 'ECU feed, F1 5 A, after PMS and ahead of kill relay', '18 AWG', 'power'],
   [14, 'Ignition coil #4', 'Coil, cylinder 4 (this one is on the black connector)', '20 AWG', 'out-ign'],
   [15, 'EGT in #2', '', '', 'spare'],
@@ -33,10 +33,10 @@ BLACK = [
   [19, 'WBO Ip', 'LSU 4.9 wideband, Ip (pin 1)', '22 AWG', 'wbo'],
   [20, 'VSS in', 'Spare (wheel speeds come over CAN)', '', 'spare'],
   [21, 'Camsync in #1', 'Cam VR sensor + (cut to one sync tooth)', '22 AWG shielded twisted pair', 'sensor'],
-  [22, 'WBO Rcal', 'LSU 4.9 wideband, Rcal (pin 2)', '22 AWG', 'wbo'],
+  [22, 'WBO Rcal', 'LSU 4.9 wideband, Rcal / trim (pin 5)', '22 AWG', 'wbo'],
   [23, 'Switch #2 in', 'Spare (launch or pit limiter button)', '', 'spare'],
   [24, 'RS232 RXD', '', '', 'spare'],
-  [25, 'CAN L', 'CAN L, EMU end of the bus', '22 AWG twisted pair', 'can'],
+  [25, 'CAN L', 'CAN L, stub to the CAN junction in the electrical box', '22 AWG twisted pair', 'can'],
   [26, '+5V supply', '+5 V ref: TPS', '22 AWG', 'ref'],
   [27, 'Power ground', 'Power ground, engine block star point', '16 AWG', 'gnd'],
   [28, 'ECU ground', 'ECU ground, engine block star point', '18 AWG', 'gnd'],
@@ -44,7 +44,7 @@ BLACK = [
   [30, 'Analog in #4', 'Spare (gear position if fitted)', '', 'spare'],
   [31, 'Analog in #1', 'Oil pressure sensor, TBD (0.5–4.5 V)', '22 AWG', 'sensor'],
   [32, 'IAT in', 'Intake air temp sensor, TBD (plenum)', '22 AWG', 'sensor'],
-  [33, 'WBO VGND', 'LSU 4.9 wideband, virtual ground (pin 5)', '22 AWG', 'wbo'],
+  [33, 'WBO VGND', 'LSU 4.9 wideband, virtual ground (pin 2)', '22 AWG', 'wbo'],
   [34, '+5V supply', '+5 V ref: oil and fuel pressure, fuel level pull-up', '22 AWG', 'ref'],
   [35, 'Analog in #5', 'Fuel level sender, float, TBD (240–33 Ω reed type, 470 Ω pull-up to +5 V)', '22 AWG', 'sensor'],
   [36, 'Switch #3 in', 'Spare', '', 'spare'],
@@ -126,7 +126,7 @@ STATUS = {
   'EMU-B': 'S', 'EMU-G': 'S', 'BAT': 'S',
   'CKP': 'K', 'CMP': 'K', 'ECT': 'K', 'INJ1': 'K', 'INJ2': 'K', 'INJ3': 'K', 'INJ4': 'K', 'IGN1': 'K', 'IGN2': 'K', 'IGN3': 'K', 'IGN4': 'K', 'NEUT': 'K', 'TPS': 'K',
   'IAT': 'T', 'OILP': 'T', 'FUELP': 'T', 'FLVL': 'T', 'OILT': 'T', 'KNK': 'T', 'LSU': 'T', 'PUMP': 'T', 'FAN': 'T',
-  'FB': 'T', 'K1': 'T', 'K2': 'T', 'K3': 'T', 'BH1': 'T', 'GR1': 'T', 'GR2': 'T', 'BRK': 'T', 'PMS': 'T', 'REG': 'T',
+  'FB': 'T', 'K1': 'T', 'K2': 'T', 'K3': 'T', 'GR1': 'T', 'GR2': 'T', 'BRK': 'T', 'PMS': 'T', 'REG': 'T',
   'S1': '', 'S2': '', 'S3': '', 'GS': '', 'CAN': '', 'R1': ''
 }
 DEV_REF = { 'crank': 'CKP', 'cam': 'CMP', 'tps': 'TPS', 'clt': 'ECT', 'iat': 'IAT', 'oilp': 'OILP', 'fuelp': 'FUELP', 'fuellvl': 'FLVL', 'oilt': 'OILT', 'knock': 'KNK', 'neutral': 'NEUT', 'wbo': 'LSU',
@@ -190,15 +190,15 @@ def schematic_svg():
     o.append('<text class="z" x="24" y="88">COCKPIT SIDE: UNDER THE SEAT, MAIN HOOP, DASH</text>')
     o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE BAY: BEHIND THE FIREWALL</text>')
     o.append('<text class="h" x="6" y="28">BR27 powertrain harness, EMU Black on 2012 CBR600RR</text>')
-    o.append('<text class="s" x="6" y="48">Proposal, rev D, 2026-10-30 (team wire color code; rev C added the fuel level sender). Dashed boxes are parts still to be selected. Pins from the EMU Black label (B = black 39-pin, G = grey 24-pin). Fuse sizes and gauges are proposals; check against the EMU Black manual before building.</text>')
+    o.append('<text class="s" x="6" y="48">Proposal, rev E, 2026-10-31 (firewall grommets instead of a bulkhead connector; rev D team wire colors; rev C fuel level sender). Dashed boxes are parts still to be selected. Pins from the EMU Black label (B = black 39-pin, G = grey 24-pin). Fuse sizes and gauges are proposals; check against the EMU Black manual before building.</text>')
 
-    # firewall + bulkhead connector
+    # firewall + grommet pass-through (rev E: grommets, no bulkhead connector)
     bhTop, bhBot = y(0) - 12, ySig(len(ROWS) - 1) + 12
     o.append(f'<line x1="{n(fwX)}" y1="64" x2="{n(fwX)}" y2="{n(H - 8)}" stroke="var(--k3)" stroke-width="3" class="dash"/>')
     o.append(f'<rect class="box tbd" x="{n(fwX - 14)}" y="{n(bhTop)}" width="28" height="{n(bhBot - bhTop)}" rx="4"/>')
     o.append(f'<rect x="{n(fwX - 62)}" y="{n(bhTop - 36)}" width="124" height="32" fill="var(--pn)"/>')
     o.append(f'<text class="s" x="{n(fwX)}" y="{n(bhTop - 22)}" text-anchor="middle">Firewall</text>')
-    o.append(f'<text class="s" x="{n(fwX)}" y="{n(bhTop - 8)}" text-anchor="middle">bulkhead conn. (TBD)</text>')
+    o.append(f'<text class="s" x="{n(fwX)}" y="{n(bhTop - 8)}" text-anchor="middle">grommet GR1 (TBD)</text>')
 
     # EMU block
     emuTop, emuBot = y(0) - 16, y(nRows - 1) + 16
@@ -230,7 +230,7 @@ def schematic_svg():
             o.append(f'<rect class="box{tbd}" x="{n(devX)}" y="{n(y0)}" width="{n(devW)}" height="{n(y1 - y0)}" rx="4"/>')
             o.append(f'<text x="{n(devX + 10)}" y="{n(y0 + 16)}">{esc(name)}</text><text class="s" x="{n(devX + devW - 10)}" y="{n(y0 + 16)}" text-anchor="end">{esc(sub)}</text>')
             if dev == "wbo":
-                for k, t in enumerate(["Exhaust, ≥ 1 m from the head.", "LSU 4.9 pins: Vs 6, Ip 1, Rcal 2, VGND 5,",
+                for k, t in enumerate(["Exhaust, ≥ 1 m from the head.", "LSU 4.9 pins: Vs 6, Ip 1, Rcal 5, VGND 2,",
                                        "heater − 3 (to G19), heater + 4 (kill bus).", "Twist Vs/Ip/Rcal/VGND; keep away from coils."]):
                     o.append(f'<text class="s" x="{n(devX + 10)}" y="{n(y0 + 36 + k * 15)}">{t}</text>')
             mid = (y0 + y1) / 2
@@ -301,7 +301,7 @@ def schematic_svg():
     o.append(f'<line class="w gdw" x1="{n(px)}" y1="{n(yG)}" x2="{n(emuX)}" y2="{n(yG)}"/>')
     o.append(f'<text class="s" x="{n(px)}" y="{n(yG - 6)}">Grounds → engine block star point, 16 AWG</text>')
     o.append(f'<line class="w cnw" x1="{n(px)}" y1="{n(yC)}" x2="{n(emuX)}" y2="{n(yC)}" stroke-width="2.5"/>')
-    o.append(f'<text class="s" x="{n(px)}" y="{n(yC - 6)}">CAN 2.0 → RL, RR, FR, FL → dash MCU. 120 Ω at EMU and dash.</text>')
+    o.append(f'<text class="s" x="{n(px)}" y="{n(yC - 6)}">CAN stub → junction: front FL → FR → dash, rear RR → RL. 120 Ω at dash and RL.</text>')
 
     # legend
     lg = [["tbdbox", "Dashed box: part to be selected"], ["pw", "Battery / switched +12 V"], ["kl", "Kill bus +12 V"],
@@ -331,9 +331,9 @@ def fuel_system_svg():
     o.append('<text class="z" x="24" y="88">COCKPIT SIDE: UNDER THE SEAT, MAIN HOOP, DASH</text>')
     o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE BAY: BEHIND THE FIREWALL (TANK, PUMP, RAIL)</text>')
     o.append('<text class="h" x="6" y="28">BR27 fuel system: how it connects (EMU Black, 2012 CBR600RR)</text>')
-    o.append('<text class="s" x="6" y="48">Proposal, rev D, 2026-10-30. Same pins and refs as the harness schematic and wire list. Dashed boxes are parts still to be selected. Pink band = fuel line (plumbing, for context).</text>')
+    o.append('<text class="s" x="6" y="48">Proposal, rev E, 2026-10-31. Same pins and refs as the harness schematic and wire list. Dashed boxes are parts still to be selected. Pink band = fuel line (plumbing, for context).</text>')
     o.append(f'<line x1="{n(fwX)}" y1="64" x2="{n(fwX)}" y2="{n(H - 8)}" stroke="var(--k3)" stroke-width="3" class="dash"/>')
-    o.append(f'<text class="s" x="{n(fwX + 6)}" y="112">Firewall: signals via bulkhead BH1,</text><text class="s" x="{n(fwX + 6)}" y="126">pump power via grommet GR1 (T.1.8.6)</text>')
+    o.append(f'<text class="s" x="{n(fwX + 6)}" y="112">Firewall: all wires through</text><text class="s" x="{n(fwX + 6)}" y="126">sealed grommet GR1 (T.1.8.6)</text>')
 
     def blk(x, yy, w, h, t, lines=None, tbd=False):
         o.append(f'<rect class="box{" tbd" if tbd else ""}" x="{n(x)}" y="{n(yy)}" width="{n(w)}" height="{n(h)}" rx="4"/><text x="{n(x + 10)}" y="{n(yy + 18)}">{esc(t)}</text>')
@@ -474,8 +474,7 @@ CONNECTORS = [
     ["K1", "Kill relay (30/85/86/87)", "Fuse box", 4],
     ["K2", "Fuel pump relay (30/85/86/87)", "Fuse box", 4],
     ["K3", "Fan relay (30/85/86/87)", "Fuse box", 4],
-    ["BH1", "Firewall bulkhead connector, panel mount with sealing gasket (sealed pass-through, T.1.8.6)", "Firewall", ""],
-    ["GR1", "Firewall grommet, sealed (T.1.8.6.d), for the pump and fan +12 V wires", "Firewall", ""],
+    ["GR1", "Firewall grommet(s), sealed (T.1.8.6.d): the whole powertrain harness passes through here (rev E, no bulkhead connector). Use split grommets or pin the connectors after passing the wires through", "Firewall", ""],
     ["GR2", "Grommets at every other panel pass-through: battery and charging cables, corner node and dash runs, sidepod (count set when routing is final)", "Various", ""],
     ["S1", "+5 V ref splice", "Engine bay", ""],
     ["S2", "Sensor ground splice", "Engine bay", ""],
@@ -492,7 +491,7 @@ CONNECTORS = [
     ["INJ3", "Injector cyl 3", "Throttle body", 2], ["INJ4", "Injector cyl 4", "Throttle body", 2],
     ["IGN1", "Coil cyl 1", "Head", 2], ["IGN2", "Coil cyl 2", "Head", 2], ["IGN3", "Coil cyl 3", "Head", 2], ["IGN4", "Coil cyl 4", "Head", 2],
     ["PUMP", "Fuel pump", "Tank", 2], ["FAN", "Radiator fan", "Sidepod", 2],
-    ["CAN", "CAN bus to node RL (rest of the bus)", "Under seat", 2],
+    ["CAN", "CAN junction in the electrical box: EMU stub (< 0.3 m) joins the front chain (FL, FR, dash) and rear chain (RR, RL)", "Electrical box", 2],
 ]
 
 
@@ -521,19 +520,13 @@ def team_color(sig):
 
 def wire_list():
     w = []
-    bh = [0]
-
-    # [from, fromPin, to, toPin, signal, awg, color, mm, group, bulkhead?]
-    # Colors follow the team code in the BR27 Master Timeline (rev D): black ground, red power,
+    # [from, fromPin, to, toPin, signal, awg, color, mm, group, through firewall?]
+    # Colors follow the team code in the BR27 Master Timeline (rev D on): black ground, red power,
     # yellow signal, blue 5 V, CAN black = low / white = high. team_color() overrides the rev C
     # per-wire suggestions still passed as col; heat-shrink labels carry the wire ID.
     def add(f, fp, t, tp, sig, awg, col, mm, grp="", thru=False):
-        via = ""
-        if thru:
-            bh[0] += 1
-            via = "BH1-" + str(bh[0])
         w.append({"from": f, "fromPin": n(fp), "to": t, "toPin": n(tp), "signal": sig, "awg": awg, "color": team_color(sig), "mm": mm,
-                  "group": grp or "", "via": via})
+                  "group": grp or "", "via": "GR1" if thru else ""})
 
     def E(c, pin):
         return ["EMU-B", pin] if c == "B" else ["EMU-G", pin]
@@ -558,9 +551,9 @@ def wire_list():
     add("EMU-B", 39, "S2", "IN", "SGND", 22, "Brown", 900, "", True)
     for d in ["TPS", "ECT", "IAT", "OILP", "FUELP", "OILT"]:
         add("S2", "OUT", d, "GND", "SGND", 22, "Brown", 400)
-    # wideband
-    for c, pin, lp, sig, col in [["B", 6, 6, "WBO_VS", "Black"], ["B", 19, 1, "WBO_IP", "Red"], ["B", 22, 2, "WBO_RCAL", "Green"],
-                                 ["B", 33, 5, "WBO_VGND", "Yellow"], ["G", 19, 3, "WBO_HTR−", "White"]]:
+    # wideband, Bosch LSU 4.9 connector numbering (Rcal 5, VGND 2; the 4.2 swaps them). Fixed 2026-10-31.
+    for c, pin, lp, sig, col in [["B", 6, 6, "WBO_VS", "Black"], ["B", 19, 1, "WBO_IP", "Red"], ["B", 22, 5, "WBO_RCAL", "Green"],
+                                 ["B", 33, 2, "WBO_VGND", "Yellow"], ["G", 19, 3, "WBO_HTR−", "White"]]:
         htr = sig == "WBO_HTR−"
         add(*E(c, pin), "LSU", lp, sig, 18 if htr else 22, col, 1900, "" if htr else "TW1", True)
     # injectors and coils, low side from EMU, +12 V from kill splice
@@ -590,15 +583,15 @@ def wire_list():
     add("FB", "F1", "EMU-G", 18, "IGN_SENSE", 20, "Red/Yellow", 300)
     for c, pin, awg in [["B", 27, 16], ["B", 28, 18], ["G", 17, 16], ["G", 24, 16]]:
         add(*E(c, pin), "GS", "STUD", "ECU_GND", awg, "Black", 1200, "", True)
-    add("EMU-B", 12, "CAN", "H", "CAN_H", 22, "Yellow", 500, "TW2")
-    add("EMU-B", 25, "CAN", "L", "CAN_L", 22, "Green", 500, "TW2")
+    add("EMU-B", 12, "CAN", "H", "CAN_H", 22, "Yellow", 200, "TW2")
+    add("EMU-B", 25, "CAN", "L", "CAN_L", 22, "Green", 200, "TW2")
     # fuel level sender (rev C, appended so earlier wire IDs stay the same): EMU reads the
     # divider R1 (to +5 V) over the sender (to sensor ground). See the Fuel Level Sensor form.
     add("EMU-B", 35, "FLVL", "SIG", "FUEL_LVL", 22, "Grey", 1300, "", True)
     add("S1", "OUT", "R1", 1, "+5V_REF", 22, "Orange", 500)
     add("R1", 2, "FLVL", "SIG", "FUEL_LVL", 22, "Grey", 100)
     add("S2", "OUT", "FLVL", "GND", "SGND", 22, "Brown", 500)
-    # pump and fan +12 V cross the firewall through the sealed grommet GR1, not the bulkhead (their grounds stay on the engine side) (rev D)
+    # pump and fan +12 V also cross the firewall through grommet GR1 (their grounds stay on the engine side)
     for r in w:
         if re.match(r"^(PUMP|FAN)_12V$", r["signal"]):
             r["via"] = "GR1"

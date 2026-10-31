@@ -489,5 +489,34 @@
   [
    "BR-I02"
   ]
+ ],
+ "phy_emuterm": [
+  "canPhysical",
+  [
+   {
+    "emuTerm": true
+   },
+   "all"
+  ]
+ ],
+ "phy_emuterm_pt": [
+  "canPhysical",
+  [
+   {
+    "canLayout": "split",
+    "emuTerm": true
+   },
+   "pt"
+  ]
+ ],
+ "phy_emuterm_extra": [
+  "canPhysical",
+  [
+   {
+    "emuTerm": true,
+    "termExtra": true
+   },
+   "all"
+  ]
  ]
 }

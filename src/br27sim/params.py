@@ -110,6 +110,7 @@ DEFAULTS = {
     "termEnd1": True,
     "termEnd2": True,
     "termExtra": False,       # someone left a 120 ohm on a node
+    "emuTerm": False,         # EMU Black software-selectable 120 ohm; must stay OFF mid-bus [Tanner]
     "samplePoint": 0.80,
     "trxLoopNs": 180,         # transceiver loop delay [assumption, TJA1051 class]
 }

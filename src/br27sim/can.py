@@ -17,7 +17,7 @@ CAN_LAYOUTS = {
 BUS_INFO = {
     "pt": {"name": "Powertrain bus (classic CAN)", "ends": ["EMU Black", "Dash MCU"], "fd": False},
     "ch": {"name": "Chassis bus (CAN FD)", "ends": ["Dash MCU", "Node RL"], "fd": True},
-    "all": {"name": "Car bus", "ends": ["EMU Black", "Dash MCU"]},
+    "all": {"name": "Car bus", "ends": ["Dash MCU", "Node RL"]},
 }
 FD_SIZES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64]
 
@@ -295,7 +295,8 @@ def can_physical(params, bus=None):
     bus = default_bus(p, bus)
     fd = bus_is_fd(p, bus)
     trunk = p["trunkPtM"] if bus == "pt" else p["trunkChM"] if bus == "ch" else p["trunkAllM"]
-    terms = len([x for x in [p["termEnd1"], p["termEnd2"], p["termExtra"]] if x])
+    emu_term = bus not in ("pt", "ch") and p["emuTerm"]  # only on the single-bus layouts, where the EMU is mid-bus
+    terms = len([x for x in [p["termEnd1"], p["termEnd2"], p["termExtra"], emu_term] if x])
     r_total = 120 / terms if terms else INF
     tbit_ns = 1e9 / p["bitrate"]
     ns_per_m = 5
@@ -307,7 +308,7 @@ def can_physical(params, bus=None):
     def gam(r):
         return 1 if r == INF else (r - Z0) / (r + Z0)
 
-    g_near = gam((60 if p["termExtra"] else 120) if p["termEnd1"] else INF)
+    g_near = gam((60 if (p["termExtra"] or emu_term) else 120) if p["termEnd1"] else INF)
     g_far = gam(120 if p["termEnd2"] else INF)
     td = trunk * ns_per_m
     rise = 15 if fd else 40
@@ -341,7 +342,8 @@ def can_physical(params, bus=None):
         issues.append(f"{name}: no termination, the bus will not work." if terms == 0
                       else f"{name}: only one 120 Ω terminator, expect ringing and errors.")
     if terms > 2:
-        issues.append(f"{name}: three terminators (40 Ω). Remove the extra one.")
+        fix = "Switch off the EMU Black built-in terminator; the EMU is mid-bus." if emu_term else "Remove the extra one."
+        issues.append(f"{name}: {terms} terminators ({to_fixed(120 / terms, 0)} Ω). {fix}")
     if trunk > max_len:
         issues.append(f"{name}: {js_str(trunk)} m trunk is longer than the {to_fixed(max_len, 0)} m allowed at this bitrate.")
     if p["stubM"] > max_stub:

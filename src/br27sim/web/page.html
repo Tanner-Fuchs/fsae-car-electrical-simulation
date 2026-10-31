@@ -333,7 +333,7 @@ td.wrap { white-space: normal; min-width: 220px; }
 <section class="view" id="v-can" hidden>
   <div class="view-head">
     <h2>CAN bus and data logging</h2>
-    <p class="lede">One CAN 2.0 bus with the EMU Black at one end and the dash MCU at the other. The four corner nodes sit on short stubs along the way, and the dash MCU reads the IMU and GPS directly and logs them, so they stay off the bus. Every frame is simulated with real arbitration, using the rates from the sample-rate form. The CAN FD layouts stay in the menu as what-ifs.</p>
+    <p class="lede">One CAN 2.0 bus with the dash MCU at the front end and node RL at the rear end, 120 Ω at each. The EMU Black joins mid-bus on a short stub at the CAN junction in the electrical box, with its own terminator off. The other corner nodes sit on short stubs along the way, and the dash MCU reads the IMU and GPS directly and logs them, so they stay off the bus. Every frame is simulated with real arbitration, using the rates from the sample-rate form. The CAN FD layouts stay in the menu as what-ifs.</p>
   </div>
   <div class="split">
     <aside class="rail">
@@ -358,6 +358,7 @@ td.wrap { white-space: normal; min-width: 220px; }
       <label class="check"><input type="checkbox" id="p_termEnd1"> <span id="lblEnd1">120 Ω at end 1</span></label>
       <label class="check"><input type="checkbox" id="p_termEnd2"> <span id="lblEnd2">120 Ω at end 2</span></label>
       <label class="check"><input type="checkbox" id="p_termExtra"> Extra 120 Ω left on a node</label>
+      <label class="check"><input type="checkbox" id="p_emuTerm"> EMU Black built-in 120 Ω switched on (should be off)</label>
       <div class="field"><label for="p_stubM">Node stub length (m) <output id="o_p_stubM"></output></label><input type="range" id="p_stubM" min="0.05" max="1" step="0.05"></div>
       <h3>Aliasing check</h3>
       <div class="field"><label for="a_rate">Logged rate</label><select id="a_rate"><option value="500">500 Hz</option><option value="200" selected>200 Hz (wheel speed, brake)</option><option value="100">100 Hz</option></select></div>

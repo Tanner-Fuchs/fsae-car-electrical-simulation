@@ -103,6 +103,7 @@
    "termEnd1": true,
    "termEnd2": true,
    "termExtra": false,
+   "emuTerm": false,
    "samplePoint": 0.8,
    "trxLoopNs": 180
   },
@@ -605,6 +606,7 @@
    "termEnd1": true,
    "termEnd2": true,
    "termExtra": false,
+   "emuTerm": false,
    "samplePoint": 0.8,
    "trxLoopNs": 180
   },
@@ -1107,6 +1109,7 @@
    "termEnd1": true,
    "termEnd2": true,
    "termExtra": false,
+   "emuTerm": false,
    "samplePoint": 0.8,
    "trxLoopNs": 180
   },
@@ -1442,6 +1445,7 @@
    "termEnd1": true,
    "termEnd2": true,
    "termExtra": false,
+   "emuTerm": false,
    "samplePoint": 0.8,
    "trxLoopNs": 180
   },
@@ -1777,6 +1781,7 @@
    "termEnd1": true,
    "termEnd2": true,
    "termExtra": false,
+   "emuTerm": false,
    "samplePoint": 0.8,
    "trxLoopNs": 180
   },
@@ -2112,6 +2117,7 @@
    "termEnd1": true,
    "termEnd2": true,
    "termExtra": false,
+   "emuTerm": false,
    "samplePoint": 0.8,
    "trxLoopNs": 180
   },
@@ -2447,6 +2453,7 @@
    "termEnd1": true,
    "termEnd2": true,
    "termExtra": false,
+   "emuTerm": false,
    "samplePoint": 0.8,
    "trxLoopNs": 180
   },
@@ -2782,6 +2789,7 @@
    "termEnd1": true,
    "termEnd2": true,
    "termExtra": false,
+   "emuTerm": false,
    "samplePoint": 0.8,
    "trxLoopNs": 180
   },
@@ -3117,6 +3125,7 @@
    "termEnd1": true,
    "termEnd2": true,
    "termExtra": false,
+   "emuTerm": false,
    "samplePoint": 0.8,
    "trxLoopNs": 180
   },
@@ -3467,6 +3476,7 @@
    "termEnd1": true,
    "termEnd2": true,
    "termExtra": false,
+   "emuTerm": false,
    "samplePoint": 0.8,
    "trxLoopNs": 180
   },
@@ -4159,6 +4169,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180
    },
@@ -4167,8 +4178,8 @@
    "info": {
     "name": "Car bus",
     "ends": [
-     "EMU Black",
-     "Dash MCU"
+     "Dash MCU",
+     "Node RL"
     ]
    },
    "msgs": [
@@ -5070,6 +5081,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180
    },
@@ -5078,8 +5090,8 @@
    "info": {
     "name": "Car bus",
     "ends": [
-     "EMU Black",
-     "Dash MCU"
+     "Dash MCU",
+     "Node RL"
     ]
    },
    "msgs": [
@@ -5981,6 +5993,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180
    },
@@ -6439,6 +6452,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180
    },
@@ -7154,6 +7168,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180
    },
@@ -7162,8 +7177,8 @@
    "info": {
     "name": "Car bus",
     "ends": [
-     "EMU Black",
-     "Dash MCU"
+     "Dash MCU",
+     "Node RL"
     ]
    },
    "msgs": [
@@ -8121,6 +8136,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180
    },
@@ -8129,8 +8145,8 @@
    "info": {
     "name": "Car bus",
     "ends": [
-     "EMU Black",
-     "Dash MCU"
+     "Dash MCU",
+     "Node RL"
     ]
    },
    "msgs": [
@@ -9099,8 +9115,8 @@
   "bus": "all",
   "fd": false,
   "ends": [
-   "EMU Black",
-   "Dash MCU"
+   "Dash MCU",
+   "Node RL"
   ],
   "trunk": 6,
   "terms": 2,
@@ -9134,8 +9150,8 @@
   "bus": "all",
   "fd": false,
   "ends": [
-   "EMU Black",
-   "Dash MCU"
+   "Dash MCU",
+   "Node RL"
   ],
   "trunk": 7.5,
   "terms": 1,
@@ -9198,7 +9214,7 @@
    }
   },
   "issues": [
-   "Chassis bus (CAN FD): three terminators (40 Ω). Remove the extra one.",
+   "Chassis bus (CAN FD): 3 terminators (40 Ω). Remove the extra one.",
    "Chassis bus (CAN FD): 0.3 m stubs exceed the 0.12 m guideline at 5 Mbps."
   ],
   "propNs": 25,
@@ -9209,8 +9225,8 @@
   "bus": "all",
   "fd": false,
   "ends": [
-   "EMU Black",
-   "Dash MCU"
+   "Dash MCU",
+   "Node RL"
   ],
   "trunk": 60,
   "terms": 0,
@@ -9611,6 +9627,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180,
     "sporadic": [
@@ -9636,8 +9653,8 @@
    "info": {
     "name": "Car bus",
     "ends": [
-     "EMU Black",
-     "Dash MCU"
+     "Dash MCU",
+     "Node RL"
     ]
    },
    "msgs": [
@@ -10696,6 +10713,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180,
     "sporadic": [
@@ -10721,8 +10739,8 @@
    "info": {
     "name": "Car bus",
     "ends": [
-     "EMU Black",
-     "Dash MCU"
+     "Dash MCU",
+     "Node RL"
     ]
    },
    "msgs": [
@@ -12006,6 +12024,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180,
     "sporadic": [
@@ -12028,8 +12047,8 @@
    "info": {
     "name": "Car bus",
     "ends": [
-     "EMU Black",
-     "Dash MCU"
+     "Dash MCU",
+     "Node RL"
     ]
    },
    "msgs": [
@@ -13070,6 +13089,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180,
     "sporadic": [
@@ -13092,8 +13112,8 @@
    "info": {
     "name": "Car bus",
     "ends": [
-     "EMU Black",
-     "Dash MCU"
+     "Dash MCU",
+     "Node RL"
     ]
    },
    "msgs": [
@@ -14359,6 +14379,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180,
     "sporadic": [
@@ -15089,6 +15110,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180,
     "sporadic": [
@@ -15968,6 +15990,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180,
     "sporadic": [
@@ -16500,6 +16523,7 @@
     "termEnd1": true,
     "termEnd2": true,
     "termExtra": false,
+    "emuTerm": false,
     "samplePoint": 0.8,
     "trxLoopNs": 180,
     "sporadic": [
@@ -17280,6 +17304,7 @@
   "termEnd1": true,
   "termEnd2": true,
   "termExtra": false,
+  "emuTerm": false,
   "samplePoint": 0.8,
   "trxLoopNs": 180
  },
@@ -18220,5 +18245,114 @@
   },
   "dur": 11,
   "tRec": 6.5
+ },
+ "phy_emuterm": {
+  "bus": "all",
+  "fd": false,
+  "ends": [
+   "Dash MCU",
+   "Node RL"
+  ],
+  "trunk": 6,
+  "terms": 3,
+  "rTotal": 40,
+  "maxLen": 44,
+  "maxStub": 0.3,
+  "wave": {
+   "t": {
+    "n": 201,
+    "sum": 100500.0,
+    "min": 0,
+    "max": 1000,
+    "first": 0,
+    "last": 1000
+   },
+   "v": {
+    "n": 201,
+    "sum": 10.5,
+    "min": 0,
+    "max": 1,
+    "first": 1,
+    "last": 0
+   }
+  },
+  "issues": [
+   "Car bus: 3 terminators (40 Ω). Switch off the EMU Black built-in terminator; the EMU is mid-bus."
+  ],
+  "propNs": 30,
+  "samplePointNs": 800,
+  "bitNs": 1000
+ },
+ "phy_emuterm_pt": {
+  "bus": "pt",
+  "fd": false,
+  "ends": [
+   "EMU Black",
+   "Dash MCU"
+  ],
+  "trunk": 1.5,
+  "terms": 2,
+  "rTotal": 60,
+  "maxLen": 44,
+  "maxStub": 0.3,
+  "wave": {
+   "t": {
+    "n": 201,
+    "sum": 100500.0,
+    "min": 0,
+    "max": 1000,
+    "first": 0,
+    "last": 1000
+   },
+   "v": {
+    "n": 201,
+    "sum": 6.0,
+    "min": 0,
+    "max": 1,
+    "first": 1,
+    "last": 0
+   }
+  },
+  "issues": [],
+  "propNs": 7.5,
+  "samplePointNs": 800,
+  "bitNs": 1000
+ },
+ "phy_emuterm_extra": {
+  "bus": "all",
+  "fd": false,
+  "ends": [
+   "Dash MCU",
+   "Node RL"
+  ],
+  "trunk": 6,
+  "terms": 4,
+  "rTotal": 30,
+  "maxLen": 44,
+  "maxStub": 0.3,
+  "wave": {
+   "t": {
+    "n": 201,
+    "sum": 100500.0,
+    "min": 0,
+    "max": 1000,
+    "first": 0,
+    "last": 1000
+   },
+   "v": {
+    "n": 201,
+    "sum": 10.5,
+    "min": 0,
+    "max": 1,
+    "first": 1,
+    "last": 0
+   }
+  },
+  "issues": [
+   "Car bus: 4 terminators (30 Ω). Switch off the EMU Black built-in terminator; the EMU is mid-bus."
+  ],
+  "propNs": 30,
+  "samplePointNs": 800,
+  "bitNs": 1000
  }
 }
