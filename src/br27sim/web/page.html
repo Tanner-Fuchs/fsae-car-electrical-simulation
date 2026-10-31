@@ -333,7 +333,7 @@ td.wrap { white-space: normal; min-width: 220px; }
 <section class="view" id="v-can" hidden>
   <div class="view-head">
     <h2>CAN bus and data logging</h2>
-    <p class="lede">One CAN 2.0 bus with the dash MCU at the front end and node RL at the rear end, 120 Ω at each. The EMU Black joins mid-bus on a short stub at the CAN junction in the electrical box, with its own terminator off. The other corner nodes sit on short stubs along the way, and the dash MCU reads the IMU and GPS directly and logs them, so they stay off the bus. Every frame is simulated with real arbitration, using the rates from the sample-rate form. The CAN FD layouts stay in the menu as what-ifs.</p>
+    <p class="lede">One CAN 2.0 bus with the dash MCU at the front end and node RL at the rear end, 120 Ω at each. The chain runs dash → electrical box → FR → FL → a splice beside the EMU → RR → RL; the EMU joins on a ~0.1 m stub with its own terminator off. The other corner nodes sit on short stubs along the way, and the dash MCU reads the IMU and GPS directly and logs them, so they stay off the bus. Every frame is simulated with real arbitration, using the rates from the sample-rate form. The CAN FD layouts stay in the menu as what-ifs.</p>
   </div>
   <div class="split">
     <aside class="rail">

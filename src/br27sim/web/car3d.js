@@ -28,10 +28,9 @@
   // Chassis bus (CAN FD): dash MCU (end) -> FL -> FR -> RR -> RL (end)
   const CH_ROUTE = [P.dash, [0.55, 0.40, -0.10], [0.72, 0.24, -0.22], P.nodeFL, [0.82, 0.16, 0], P.nodeFR,
     [0.45, 0.12, 0.27], [-0.35, 0.11, 0.29], P.nodeRR, [-0.80, 0.18, 0], P.nodeRL];
-  // Single-bus layout: dash (end) <- FR <- FL <- junction (EMU stub) -> RR -> RL (end)
-  // Single-bus layout (Tanner 2026-10-31): dash (end) <- FR <- FL <- CAN junction in the
-  // electrical box under the seat (EMU on a short stub) -> RR -> RL (end)
-  const ALL_ROUTE = [P.dash, [0.60, 0.35, 0.10], P.nodeFR, [0.82, 0.16, 0], P.nodeFL, [0.45, 0.12, -0.27],
+  // Single-bus layout (Tanner 2026-10-31): dash (end) -> electrical box behind the dash ->
+  // FR -> FL -> CAN splice beside the EMU under the seat (EMU on a ~0.1 m stub) -> RR -> RL (end)
+  const ALL_ROUTE = [P.dash, [0.34, 0.42, 0.04], [0.60, 0.30, 0.12], P.nodeFR, [0.82, 0.16, 0], P.nodeFL, [0.45, 0.12, -0.27],
     [0.05, 0.07, -0.14], P.ecu, [-0.40, 0.08, 0.20], P.nodeRR, [-0.80, 0.18, 0], P.nodeRL];
   const POWER_ROUTE = [P.battery, [-0.22, 0.10, 0.24], [-0.30, 0.40, 0.31], P.breaker, [-0.34, 0.66, 0.31], P.pms];
 
