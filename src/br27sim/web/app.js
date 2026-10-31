@@ -619,24 +619,52 @@
     teeth: v => `${v}`, ringMM: v => `${v} mm`, gapMM: v => `${(+v).toFixed(1)} mm`, rateHz: v => `${v} Hz`, needKmh: v => `${v} km/h`,
     timeoutMs: v => `${v} ms`, pitchErrPct: v => `${(+v).toFixed(1)} %`, vrThreshMV: v => `${v} mV`, vrNoiseMV: v => `${v} mV`
   };
+  const IR = Object.assign({}, S.IR_DEFAULTS), ST = Object.assign({}, S.STEER_DEFAULTS);
+  const I_UNITS = {
+    widthMM: v => `${v} mm`, tempC: v => `${v} °C`, gradC: v => `${v} °C`, bgC: v => `${v} °C`, emis: v => (+v).toFixed(2),
+    fovDeg: v => `${v}°`, distMM: v => `${v} mm`, offsetMM: v => `${v} mm`, emisSet: v => (+v).toFixed(2)
+  };
+  const S_UNITS = {
+    lockDeg: v => `±${v}°`, potDeg: v => `${v}°`, gear: v => (+v).toFixed(2), cFactorMM: v => `${v} mm`, potMM: v => `${v} mm`,
+    linPct: v => `${(+v).toFixed(2)} %`, backlashDeg: v => `${(+v).toFixed(1)}°`, adcBits: v => `${v} bit`, noiseLsb: v => `${v} counts`, supplyPct: v => `${v} %`
+  };
+  function setTarget(t) { const d = S.IR_TARGETS[t]; IR.target = t; for (const k of ['widthMM', 'emis', 'tempC', 'gradC', 'bgC']) IR[k] = d[k]; IR.emisSet = d.emis; }
+  setTarget(IR.target);
   let wTimer = null;
-  function bindComponents() {
-    document.querySelectorAll('[id^="w_"]').forEach(el => {
+  function bindGroup(prefix, obj, units, reset) {
+    const els = [...document.querySelectorAll(`[id^="${prefix}_"]`)].filter(el => el.id.slice(2) in obj);
+    const sync = () => els.forEach(el => {
+      const key = el.id.slice(2), out = $('o_' + el.id);
+      if (el.type === 'checkbox') el.checked = !!obj[key]; else el.value = obj[key];
+      if (out) out.textContent = units[key](el.value);
+    });
+    els.forEach(el => {
       const key = el.id.slice(2);
-      if (!(key in W)) return;
-      const out = $('o_' + el.id);
-      const show = () => { if (out) out.textContent = W_UNITS[key](el.value); };
-      el.value = W[key]; show();
       el.addEventListener('input', () => {
-        W[key] = el.type === 'range' ? +el.value : el.value;
-        show();
+        obj[key] = el.type === 'checkbox' ? el.checked : el.type === 'range' || key === 'spots' ? +el.value : el.value;
+        if (prefix === 'i' && key === 'target') sync();
+        const out = $('o_' + el.id); if (out) out.textContent = units[key] ? units[key](el.value) : '';
         clearTimeout(wTimer); wTimer = setTimeout(() => renderView('components'), 120);
       });
     });
-    $('w_reset').addEventListener('click', () => { Object.assign(W, S.WHEEL_DEFAULTS); document.querySelectorAll('[id^="w_"]').forEach(el => { const k = el.id.slice(2); if (k in W) { el.value = W[k]; el.dispatchEvent(new Event('input')); } }); });
+    $(prefix + '_reset').addEventListener('click', () => { reset(); sync(); renderView('components'); });
+    sync();
+    return sync;
+  }
+  function bindComponents() {
+    bindGroup('w', W, W_UNITS, () => Object.assign(W, S.WHEEL_DEFAULTS));
+    const syncIr = bindGroup('i', IR, I_UNITS, () => { Object.assign(IR, S.IR_DEFAULTS); setTarget(IR.target); });
+    $('i_target').addEventListener('input', () => { setTarget($('i_target').value); syncIr(); });
+    bindGroup('s', ST, S_UNITS, () => Object.assign(ST, S.STEER_DEFAULTS));
+    $('w_component').addEventListener('input', () => renderView('components'));
+  }
+  function renderComponents() {
+    const c = $('w_component').value;
+    document.querySelectorAll('#v-components .cgroup').forEach(g => { g.hidden = g.dataset.comp !== c; });
+    ({ wheel: renderWheel, ir: renderIr, steer: renderSteer })[c]();
   }
   const kmhTxt = v => (v == null || !isFinite(v) ? 'never' : `${fmt(v, 1)} km/h`);
-  function renderComponents() {
+  function renderWheel() {
     const r = S.simulateWheelSpeed(params, W, R.lap), w = r.w;
     const pick = w.sensor === 'hall' ? 'Hall effect' : 'VR';
     $('wsNote').textContent = `${w.teeth} teeth · ${fmt(r.toothMM, 1)} mm wide · ${fmt(r.tireD * 1000, 0)} mm tire`;
@@ -695,6 +723,88 @@
       { xTitle: 'Speed (km/h)', yMin: 0 });
     $('wsNoiseFoot').textContent = `With ±${fmt(w.pitchErrPct, 1)} % uneven tooth spacing, timing the period between teeth. More teeth per CAN sample average it out. Timer resolution adds only ${fmt(r.resPeriod20, 3)} km/h at 20 km/h.`;
   }
+  function renderIr() {
+    const r = S.simulateIr(IR), o = r.o;
+    $('i_targetNote').textContent = r.target.note;
+    $('irNote').textContent = `${o.fovDeg}° field of view at ${o.distMM} mm · spot ${fmt(r.spotMM, 0)} mm`;
+    // top view of the target with each sensor's spot
+    const span = Math.max(o.widthMM * 1.5, ...r.spots.map(p => Math.abs(p.centre) * 2 + r.spotMM * 1.15));
+    const k = Math.min(820 / span, 225 / r.spotMM), cx = 450, cy = 120, H = 170;
+    const X = mm => cx + mm * k;
+    const ink2 = 'var(--ink-2)';
+    let g = `<defs><linearGradient id="irGrad" x1="0" x2="1"><stop offset="0" stop-color="var(--s2)" stop-opacity="${o.gradC ? 0.75 : 0.5}"/><stop offset="1" stop-color="var(--s2)" stop-opacity="0.35"/></linearGradient></defs>`;
+    g += `<rect x="0" y="${cy - H / 2}" width="900" height="${H}" fill="var(--bg)"/>`;
+    g += `<rect x="${X(-o.widthMM / 2)}" y="${cy - H / 2}" width="${o.widthMM * k}" height="${H}" fill="url(#irGrad)" stroke="var(--s2)"/>`;
+    g += `<text x="${X(-o.widthMM / 2) + 6}" y="${cy - H / 2 + 16}" font-size="12" fill="${ink2}">${o.target === 'tire' ? 'inner edge' : 'inner'}</text>`;
+    g += `<text x="${X(o.widthMM / 2) - 6}" y="${cy - H / 2 + 16}" font-size="12" text-anchor="end" fill="${ink2}">${o.target === 'tire' ? 'outer edge' : 'outer'}</text>`;
+    g += `<text x="12" y="${cy - H / 2 + 16}" font-size="12" fill="${ink2}">background ${o.bgC} °C</text>`;
+    r.spots.forEach((p, n) => {
+      const bad = p.fill < 0.98;
+      g += `<circle cx="${X(p.centre)}" cy="${cy}" r="${(r.spotMM / 2) * k}" fill="var(--panel)" fill-opacity="0.25" stroke="${bad ? 'var(--crit-ink)' : 'var(--s1)'}" stroke-width="2" ${n ? '' : ''}/>`;
+      g += `<circle cx="${X(p.centre)}" cy="${cy}" r="3" fill="var(--ink)"/>`;
+      const lx = cx + (n - (r.spots.length - 1) / 2) * 280, ly = cy + H / 2 + 62;
+      g += `<line x1="${X(p.centre)}" y1="${cy}" x2="${lx}" y2="${ly - 16}" stroke="var(--ink-3)" stroke-dasharray="3 3"/>`;
+      g += `<text x="${lx}" y="${ly}" font-size="14" text-anchor="middle" fill="var(--ink)" font-family="var(--f-mono)">${r.spots.length > 1 ? ['inner', 'middle', 'outer'][n] + ' ' : ''}${fmt(p.meas, 1)} °C</text>`;
+      g += `<text x="${lx}" y="${ly + 16}" font-size="11.5" text-anchor="middle" fill="var(--ink-2)">true ${fmt(p.true, 1)} · ${fmt(p.fill * 100, 0)} % on target</text>`;
+    });
+    g += `<line x1="${X(-o.widthMM / 2)}" x2="${X(o.widthMM / 2)}" y1="${cy + H / 2 + 12}" y2="${cy + H / 2 + 12}" stroke="${ink2}"/><text x="${X(o.widthMM / 2) + 6}" y="${cy + H / 2 + 16}" font-size="12" fill="${ink2}">${o.widthMM} mm ${o.target === 'tire' ? 'tread' : 'friction band'}</text>`;
+    $('irSvg').innerHTML = g;
+    const worst = r.spots.reduce((a, p) => Math.max(a, Math.abs(p.meas - p.true)), 0);
+    kv('irKv', [
+      ['Spot diameter', `${fmt(r.spotMM, 0)} mm`, r.spotMM > r.zoneMM ? 'bad' : 'ok'],
+      ['Width per sensor', `${fmt(r.zoneMM, 0)} mm`],
+      ['Farthest distance that fits', `${fmt(r.fitDistMM, 0)} mm`],
+      ['Worst reading error', `${fmt(worst, 1)} °C`, worst > 5 ? 'bad' : worst > 2 ? 'meh' : 'ok']
+    ]);
+    const f = [];
+    if (r.spotMM > r.zoneMM) f.push(['crit', `The ${fmt(r.spotMM, 0)} mm spot is wider than the ${fmt(r.zoneMM, 0)} mm each sensor should cover, so it reads part ${r.spots.length > 1 ? 'of the next zone or ' : ''}the background. Move it within ${fmt(r.fitDistMM, 0)} mm or use a narrower field of view.`]);
+    if (Math.abs(o.emisSet - o.emis) > 0.02) f.push(['warn', `The sensor is set to emissivity ${o.emisSet.toFixed(2)} but the target is ${o.emis.toFixed(2)}, so even a perfect aim reads wrong. ${o.target === 'rotor' ? 'Bare rotors change emissivity as they wear and blue; a strip of high-temperature paint on the band gives a known value.' : ''}`]);
+    if (r.spots.length === 1 && o.gradC > 5) f.push(['warn', `One sensor gives one average. The ${o.gradC} °C inner to outer difference that shows camber needs three sensors (or a multi-zone sensor).`]);
+    if (r.fitDistMM < 30) f.push(['warn', `It has to sit within ${fmt(r.fitDistMM, 0)} mm, very close to the ${o.target === 'tire' ? 'tire (stones, tire growth at speed)' : 'rotor (heat)'}. A narrower field of view lets it sit farther back.`]);
+    if (!f.length) f.push(['good', `Each spot stays on its target with ${fmt(r.fitDistMM - o.distMM, 0)} mm of distance to spare, and the readings are within ${fmt(worst, 1)} °C.`]);
+    flags('irFlags', f);
+    const cols = { 5: '--s1', 10: '--s3', 35: '--s2', 90: '--s7' };
+    const fovs = r.fovs, col = fv => cols[fv] || '--s5';
+    C.legend('irDistLegend', fovs.map(fv => [`${fv}°`, col(fv)]));
+    const atD = { xTitle: 'Distance (mm)', vrefs: [{ x: o.distMM, label: 'now' }] };
+    C.draw('c_irDist', fovs.map(fv => ({ label: `${fv}°`, data: r.byDist[fv].map(p => ({ x: p.d, y: p.meas })), color: col(fv), width: fv === o.fovDeg ? 3 : 1.5 })),
+      Object.assign({ refs: [{ y: r.spots[Math.floor(r.spots.length / 2)].true, label: 'true' }] }, atD));
+    C.draw('c_irSpot', fovs.map(fv => ({ label: `${fv}°`, data: r.byDist[fv].map(p => ({ x: p.d, y: p.spot })), color: col(fv), width: fv === o.fovDeg ? 3 : 1.5 })),
+      Object.assign({ yMin: 0, yMax: Math.max(r.zoneMM * 2.5, 60), refs: [{ y: r.zoneMM, label: 'width per sensor' }] }, atD));
+    C.draw('c_irOff', [{ label: '°C', data: r.byOff.map(p => ({ x: p.off, y: p.meas })), color: '--s2' }],
+      { xTitle: 'Aim off centre (mm)', vrefs: [{ x: o.offsetMM, label: 'now' }] });
+  }
+
+  function renderSteer() {
+    const r = S.simulateSteering(ST), s = r.s;
+    document.querySelectorAll('#v-components [data-mount]').forEach(el => { el.hidden = el.dataset.mount !== s.mount; });
+    $('stNote').textContent = `±${s.lockDeg}° at the wheel uses ${fmt(r.usedPct, 0)} % of the pot`;
+    kv('stKv', [
+      ['Pot range used', `${fmt(r.usedPct, 0)} %`, r.clips ? 'bad' : r.usedPct < 50 ? 'meh' : 'ok'],
+      ['Resolution', `${fmt(r.lsbDeg, 3)}° per count`],
+      ['Noise', `±${fmt(r.noiseDeg, 2)}°`],
+      ['Linearity', `±${fmt(r.linDeg, 2)}°`, r.linDeg > 2 ? 'meh' : ''],
+      ['Supply', s.ratiometric ? 'cancels' : `±${fmt(r.supplyDeg, 2)}° at lock`, s.ratiometric ? 'ok' : 'meh'],
+      ['Total (1σ)', `±${fmt(r.budgetDeg, 2)}°`, r.budgetDeg > 2 ? 'meh' : 'ok'],
+      ['Worst in the test', `${fmt(r.maxErr, 2)}°`]
+    ]);
+    const f = [];
+    if (r.clips) f.push(['crit', `Full lock needs ${fmt(r.usedPct, 0)} % of the pot's travel, so the reading sticks at the end of the track near lock${s.mount === 'column' ? ' and the wiper can hit the end stop' : ''}. ${s.mount === 'column' ? `Use a gear of ${fmt(r.good.gear, 2)} or a pot with more travel.` : `Use a pot with at least ${fmt(r.good.potMM, 0)} mm stroke.`}`]);
+    else if (r.usedPct < 50) f.push(['warn', `Lock to lock uses only ${fmt(r.usedPct, 0)} % of the pot, which wastes resolution. ${s.mount === 'column' ? `Gearing it ${fmt(r.good.gear, 2)} : 1 would use 80 %.` : `A ${fmt(r.good.potMM, 0)} mm pot would use 80 %.`}`]);
+    if (r.linDeg > 1) f.push(['warn', `Linearity (±${fmt(r.linDeg, 1)}°) is the biggest error. Calibrate at centre and both locks in the node or logger, or use a conductive plastic pot (about 0.25 %).`]);
+    if (!s.ratiometric) f.push(['warn', `The pot is fed from a different supply than the ADC reference, so a ${s.supplyPct} % rail change moves the angle by up to ${fmt(r.supplyDeg, 1)}°. Feed the pot from the ADC's reference.`]);
+    if (s.backlashDeg > 1) f.push(['warn', `${s.backlashDeg}° of free play shows up as a flat step every time the driver reverses. Use a clamped or keyed coupling.`]);
+    if (!r.clips && r.usedPct >= 50) f.unshift(['good', `Range is fine: lock to lock uses ${fmt(r.usedPct, 0)} % of the pot and the ADC resolves ${fmt(r.lsbDeg, 2)}° steps.`]);
+    flags('stFlags', f);
+    const tr = r.trace;
+    C.legend('stLegend', [['True', '--ink-3', true], ['Logged', '--s1']]);
+    C.draw('c_stTrace', [
+      { label: 'True', data: xy(tr.t, tr.truth), color: '--ink-3', dash: [5, 4], width: 1.5 },
+      { label: 'Logged', data: xy(tr.t, tr.meas), color: '--s1', width: 1.75 }
+    ], { xTitle: 'Time (s)', yTitle: 'Steering wheel angle (°)', refs: [{ y: s.lockDeg, label: 'lock' }, { y: -s.lockDeg }] });
+    C.draw('c_stErr', [{ label: 'Error', data: xy(tr.t, tr.err), color: '--s2', width: 1.5 }], { xTitle: 'Time (s)', refs: [{ y: 0 }] });
+  }
+
 
   // ------------------------------------------------------------ inputs view
   const META = [

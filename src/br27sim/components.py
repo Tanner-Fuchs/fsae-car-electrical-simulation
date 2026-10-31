@@ -282,3 +282,188 @@ def simulate_wheel_speed(params=None, w=None, lap=None):
         "sweep": sweep, "byTeeth": by_teeth, "rec": rec,
         "bestVr": {"teeth": best_vr["teeth"], "kmh": best_vr["minVr"]},
     }
+
+
+# ---------------------------------------------------------------- IR temperature sensors
+# Single-pixel thermopile (MLX90614 class) aimed at the tire tread or the brake rotor.
+# The sensor averages the infrared from everything inside its field of view: if the
+# spot is bigger than the target it also sees the background and reads low.
+
+IR_TARGETS = {
+    "tire": {"label": "Tire tread", "widthMM": 152, "emis": 0.95, "tempC": 70, "gradC": 12, "bgC": 35,
+             "note": "Hoosier 10 in tire, about 6 in of tread [assumption]; the background is track and air"},
+    "rotor": {"label": "Brake rotor face", "widthMM": 32, "emis": 0.5, "tempC": 350, "gradC": 0, "bgC": 80,
+              "note": "Rotor friction band [assumption]; the background is the wheel and upright. Bare steel and iron emissivity changes with wear and bluing"},
+}
+
+IR_DEFAULTS = {
+    "target": "tire",
+    "fovDeg": 35,          # full cone angle [assumption: MLX90614xCI]; 90, 35, 10 and 5 degree versions exist
+    "distMM": 100,         # lens to target
+    "offsetMM": 0,         # spot centre off the target centreline (camber, steer, mounting)
+    "spots": 1,            # sensors across the target (1, or 3 for inner/middle/outer)
+    "lensMM": 4,           # spot size at the lens [assumption]
+    "emisSet": 0.95,       # emissivity set in the sensor
+    "widthMM": None, "emis": None, "tempC": None, "gradC": None, "bgC": None,  # None = from the target
+}
+
+
+def ir_defaults(o=None):
+    out = dict(IR_DEFAULTS)
+    out.update({k: v for k, v in (o or {}).items() if v is not None or k not in out})
+    t = IR_TARGETS.get(out["target"], IR_TARGETS["tire"])
+    for k in ("widthMM", "emis", "tempC", "gradC", "bgC"):
+        if out.get(k) is None:
+            out[k] = t[k]
+    return out
+
+
+def ir_spot_mm(o, dist=None):
+    d = o["distMM"] if dist is None else dist
+    return o["lensMM"] + 2 * d * math.tan(math.radians(o["fovDeg"]) / 2)
+
+
+def _ir_read(o, centre, dist=None, n=200):
+    """What one sensor reads (degC) with its spot centred `centre` mm across the target.
+    The target is a band across x, so the spot is summed in strips of x weighted by chord length."""
+    K = 273.15
+    D = ir_spot_mm(o, dist)
+    w = o["widthMM"]
+    bg4 = (o["bgC"] + K) ** 4
+    sig = on = tot = 0.0
+    for i in range(n):
+        x = (i + 0.5) / n * 2 - 1
+        h = math.sqrt(1 - x * x)  # chord length weight
+        tot += h
+        px = centre + x * D / 2
+        if abs(px) <= w / 2:
+            on += h
+            # temperature across the tread: inner edge (negative x) hotter by gradC
+            t = o["tempC"] - o["gradC"] * px / (w / 2) / 2 + K
+            sig += h * (o["emis"] * t ** 4 + (1 - o["emis"]) * bg4)
+        else:
+            sig += h * bg4
+    sig /= tot
+    e = o["emisSet"]
+    t4 = (sig - (1 - e) * bg4) / e
+    return max(t4, 0) ** 0.25 - K, on / tot
+
+
+def _spot_centres(o):
+    n = int(o["spots"])
+    w = o["widthMM"]
+    return [o["offsetMM"] + (k + 0.5) / n * w - w / 2 for k in range(n)]
+
+
+def simulate_ir(o=None):
+    o = ir_defaults(o)
+    w = o["widthMM"]
+    centres = _spot_centres(o)
+    spots = []
+    for c in centres:
+        meas, fill = _ir_read(o, c)
+        # the true temperature under the middle of this spot
+        true = o["tempC"] - o["gradC"] * max(-1, min(1, c / (w / 2))) / 2
+        spots.append({"centre": c, "meas": meas, "fill": fill, "true": true})
+    D = ir_spot_mm(o)
+    zone = w / int(o["spots"])
+    # distance at which the spot just fits its zone
+    fit = (zone - o["lensMM"]) / (2 * math.tan(math.radians(o["fovDeg"]) / 2)) if zone > o["lensMM"] else 0
+    dists = list(range(20, 401, 10))
+    fovs = [5, 10, 35, 90]
+    by_dist = {f: [{"d": d, "meas": _ir_read(dict(o, fovDeg=f), centres[len(centres) // 2], d)[0],
+                    "spot": ir_spot_mm(dict(o, fovDeg=f), d)} for d in dists] for f in fovs}
+    if o["fovDeg"] not in fovs:
+        by_dist[o["fovDeg"]] = [{"d": d, "meas": _ir_read(o, centres[len(centres) // 2], d)[0], "spot": ir_spot_mm(o, d)} for d in dists]
+    offs = [x - 60 for x in range(0, 121, 4)]
+    by_off = [{"off": x, "meas": _ir_read(dict(o, offsetMM=x), _spot_centres(dict(o, offsetMM=x))[len(centres) // 2])[0]} for x in offs]
+    return {"o": o, "target": IR_TARGETS.get(o["target"], IR_TARGETS["tire"]), "spotMM": D, "zoneMM": zone, "fitDistMM": fit,
+            "spots": spots, "byDist": by_dist, "byOff": by_off, "fovs": sorted(by_dist)}
+
+
+# ---------------------------------------------------------------- steering angle potentiometer
+
+STEER_DEFAULTS = {
+    "mount": "column",      # column (rotary pot on the steering shaft) | rack (linear pot on the rack)
+    "lockDeg": 110,         # steering wheel angle at full lock, each way [assumption]
+    "cFactorMM": 90,        # rack travel per steering wheel turn [assumption]
+    "potDeg": 340,          # rotary pot electrical travel [assumption: 340 degree single-turn]
+    "potMM": 75,            # linear pot electrical travel [assumption]
+    "gear": 1.0,            # pot turns per steering shaft turn (gear or belt between them)
+    "adcBits": 12,          # STM32G431 ADC
+    "noiseLsb": 2.0,        # ADC + wiring noise, rms counts [assumption]
+    "linPct": 1.0,          # pot linearity, % of full scale [assumption: carbon track; conductive plastic is ~0.25 %]
+    "ratiometric": True,    # pot fed from the ADC reference, so supply changes cancel
+    "supplyPct": 2.0,       # 5 V rail change if not ratiometric [assumption]
+    "backlashDeg": 0.5,     # free play in the coupling, at the steering wheel [assumption]
+    "rateHz": 200,          # steering angle CAN rate [form: Sample Rates per Channel]
+}
+
+
+def steer_defaults(s=None):
+    out = dict(STEER_DEFAULTS)
+    out.update(s or {})
+    return out
+
+
+def _steer_frac(s, deg):
+    """Steering wheel angle -> position along the pot's electrical travel (0..1), unclipped."""
+    if s["mount"] == "rack":
+        mm = deg / 360 * s["cFactorMM"]
+        return 0.5 + mm / s["potMM"]
+    return 0.5 + deg * s["gear"] / s["potDeg"]
+
+
+def steer_span_deg(s):
+    """Steering wheel degrees across the pot's whole electrical travel."""
+    return 360 * s["potMM"] / s["cFactorMM"] if s["mount"] == "rack" else s["potDeg"] / s["gear"]
+
+
+def simulate_steering(s=None):
+    s = steer_defaults(s)
+    span = steer_span_deg(s)
+    counts = 2 ** s["adcBits"]
+    used = 2 * s["lockDeg"] / span           # fraction of the pot used lock to lock
+    lsb_deg = span / counts                  # steering degrees per ADC count
+    noise_deg = s["noiseLsb"] * lsb_deg
+    lin_deg = s["linPct"] / 100 * span
+    sup_deg = 0 if s["ratiometric"] else s["supplyPct"] / 100 * s["lockDeg"]  # worst at full lock
+    budget = math.sqrt((lsb_deg / math.sqrt(12)) ** 2 + noise_deg ** 2 + lin_deg ** 2 + sup_deg ** 2 + (s["backlashDeg"] / 2) ** 2)
+    clips = used > 1
+    # gear that would use 80 % of the pot lock to lock
+    if s["mount"] == "rack":
+        good = {"potMM": 2 * s["lockDeg"] / 360 * s["cFactorMM"] / 0.8}
+    else:
+        good = {"gear": 0.8 * s["potDeg"] / (2 * s["lockDeg"])}
+
+    # a slalom then a quick correction, measured by the node
+    rnd = mulberry32(11)
+    T = 1 / s["rateHz"]
+    t, truth, meas = [], [], []
+    held = 0.0
+    sup = 1.0
+    for k in range(int(4 / T)):
+        tk = k * T
+        a = 0.85 * s["lockDeg"] * math.sin(2 * math.pi * 0.6 * tk) + (0.5 * s["lockDeg"] if 2.6 < tk < 2.9 else 0)
+        a = max(-s["lockDeg"] * 1.05, min(s["lockDeg"] * 1.05, a))
+        # backlash: the pot only moves once the free play is taken up
+        if a - held > s["backlashDeg"] / 2:
+            held = a - s["backlashDeg"] / 2
+        elif held - a > s["backlashDeg"] / 2:
+            held = a + s["backlashDeg"] / 2
+        f = _steer_frac(s, held)
+        f = f + s["linPct"] / 100 * math.sin(2 * math.pi * f) * 0.9  # S-shaped linearity error
+        if not s["ratiometric"]:
+            sup = 1 + s["supplyPct"] / 100 * math.sin(2 * math.pi * 1.7 * tk)
+            f *= sup
+        f = max(0.0, min(1.0, f))
+        code = max(0, min(counts - 1, round(f * (counts - 1) + s["noiseLsb"] * _gauss(rnd))))
+        frac = code / (counts - 1)
+        back = (frac - 0.5) * (360 * s["potMM"] / s["cFactorMM"] if s["mount"] == "rack" else s["potDeg"] / s["gear"])
+        t.append(tk)
+        truth.append(a)
+        meas.append(back)
+    err = [m - a for m, a in zip(meas, truth)]
+    return {"s": s, "spanDeg": span, "usedPct": used * 100, "lsbDeg": lsb_deg, "noiseDeg": noise_deg, "linDeg": lin_deg,
+            "supplyDeg": sup_deg, "budgetDeg": budget, "clips": clips, "good": good,
+            "maxErr": max(abs(e) for e in err), "trace": {"t": t, "truth": truth, "meas": meas, "err": err}}

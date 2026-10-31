@@ -45,3 +45,43 @@ def test_rollout_traces():
     # stopped at the end
     assert ro["hall"]["v"][-1] == 0 and ro["vr"]["v"][-1] == 0
     assert r["rec"] and r["rec"]["lo"] <= 30 <= r["rec"]["hi"]
+
+
+from br27sim.components import ir_spot_mm, ir_defaults, simulate_ir, simulate_steering  # noqa: E402
+
+
+def test_ir_spot_grows_with_distance_and_fov():
+    o = ir_defaults()
+    assert ir_spot_mm(o, 200) > ir_spot_mm(o, 100)
+    assert ir_spot_mm(dict(o, fovDeg=90), 100) > ir_spot_mm(dict(o, fovDeg=10), 100)
+
+
+def test_ir_reads_true_when_spot_fits_and_low_when_it_does_not():
+    near = simulate_ir({"fovDeg": 10, "distMM": 100, "gradC": 0})["spots"][0]
+    assert abs(near["meas"] - 70) < 0.1 and near["fill"] == 1
+    far = simulate_ir({"fovDeg": 90, "distMM": 300, "gradC": 0})["spots"][0]
+    assert far["meas"] < 55  # sees the 35 C track around the tire
+
+
+def test_ir_wrong_emissivity_reads_low_on_rotor():
+    r = simulate_ir({"target": "rotor", "fovDeg": 5, "distMM": 50, "emisSet": 0.95})
+    assert r["spots"][0]["meas"] < 300  # rotor is 350 C with emissivity 0.5
+
+
+def test_ir_three_spots_see_camber():
+    s = simulate_ir({"spots": 3, "fovDeg": 10})["spots"]
+    assert s[0]["meas"] > s[1]["meas"] > s[2]["meas"]
+
+
+def test_steering_range_and_clipping():
+    assert not simulate_steering({})["clips"]
+    r = simulate_steering({"lockDeg": 250})  # 500 degrees on a 340 degree pot
+    assert r["clips"] and r["usedPct"] > 100
+    assert r["maxErr"] > 20
+
+
+def test_steering_errors_follow_their_causes():
+    base = simulate_steering({})
+    assert simulate_steering({"linPct": 0.25})["budgetDeg"] < base["budgetDeg"]
+    assert simulate_steering({"ratiometric": False, "supplyPct": 5})["supplyDeg"] > 0
+    assert simulate_steering({"adcBits": 16})["lsbDeg"] < base["lsbDeg"]

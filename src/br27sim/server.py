@@ -49,6 +49,7 @@ def constants():
         "SHUTDOWN_SWITCHES": shutdown.SHUTDOWN_SWITCHES, "FIRING_ORDER": engine.FIRING_ORDER,
         "CAN_LAYOUTS": can.CAN_LAYOUTS, "BUS_INFO": can.BUS_INFO,
         "FAULTS": fault_list, "FAULT_BANDS": faults.FAULT_BANDS, "WHEEL_DEFAULTS": components.WHEEL_DEFAULTS,
+        "IR_DEFAULTS": components.IR_DEFAULTS, "IR_TARGETS": components.IR_TARGETS, "STEER_DEFAULTS": components.STEER_DEFAULTS,
         "FUNCTIONS": sorted(JS_API),
     }
 

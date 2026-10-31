@@ -134,7 +134,7 @@ print(lap["stats"]["lapTime"], power["stats"]["endSoc"])
 | Fault codes, debounce times, CAN fault bands | `src/br27sim/faults.py` |
 | Aliasing demo | `src/br27sim/daq.py` |
 | EMU Black pinout, fuses, part status, wire list, harness drawings | `src/br27sim/wiring.py` |
-| Component simulations (wheel speed sensor: Hall vs VR, tooth count) | `src/br27sim/components.py` |
+| Component simulations (wheel speed sensor, IR temperature sensor, steering angle pot) | `src/br27sim/components.py` |
 | The page itself (layout, charts, 3D car, text) | `src/br27sim/web/` (HTML and JavaScript) |
 | STL import, CAD axes and part positions | `src/br27sim/cad.py` (server side), `web/car3d.js` (drawing) |
 | The launchers | `launcher/` |
@@ -172,7 +172,7 @@ pytest
   dead regulator drains the battery, and so on).
 - `tests/test_wiring.py` checks the wire list (every used EMU pin has a wire) and the exports.
 - `tests/test_server.py` checks the local server answers the page correctly.
-- `tests/test_components.py` checks the wheel speed sensor model (Hall reads slower than VR, counting teeth is coarse, and so on).
+- `tests/test_components.py` checks the component models (wheel speed, IR field of view, steering pot).
 - `tests/test_cad.py` checks STL reading, the CAD axis settings and part positions.
 
 GitHub Actions runs the tests on every push (Windows and Linux, Python 3.9 and 3.12).

@@ -107,6 +107,7 @@ button.ghost { background: transparent; color: var(--accent); }
 .kv span { font-size: 11.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
 .kv b { font-family: var(--f-mono); font-weight: 500; font-size: 16px; font-variant-numeric: tabular-nums; }
 .kv b.bad { color: var(--crit-ink); } .kv b.ok { color: var(--good-ink); } .kv b.meh { color: var(--warn-ink); }
+.cgroup { display: grid; gap: 12px; } .cgroup[hidden] { display: none; } .stack > .cgroup { gap: 18px; min-width: 0; }
 #wsCompare td.bad { color: var(--crit-ink); font-weight: 600; } #wsCompare td.ok { color: var(--good-ink); font-weight: 600; } #wsCompare td:first-child { color: var(--ink-2); white-space: nowrap; }
 .flags { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .flags li { display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 13.5px; align-items: start; }
@@ -445,11 +446,12 @@ td.wrap { white-space: normal; min-width: 220px; }
 <section class="view" id="v-components" hidden>
   <div class="view-head">
     <h2>Component simulations</h2>
-    <p class="lede">Try a part before buying it. The wheel speed sensor reads a toothed ring on the hub; the corner node turns its edges into a speed and sends it on CAN. Compare a Hall effect sensor with a VR (variable reluctance) sensor, and see what the number of teeth does to the slowest speed you can read, how often the value updates and how noisy it is.</p>
+    <p class="lede">Try a part before buying it. Pick a component on the left: the wheel speed sensor (Hall effect vs VR, and how many teeth on the ring), an IR temperature sensor (field of view and distance to the tire or rotor), or the steering angle pot (range, gearing and accuracy). Every number marked as an assumption in the source is a typical datasheet value until the team picks a part.</p>
   </div>
   <div class="split">
     <aside class="rail">
-      <div class="field"><label for="w_component">Component</label><select id="w_component"><option value="wheel">Wheel speed sensor</option></select></div>
+      <div class="field"><label for="w_component">Component</label><select id="w_component"><option value="wheel">Wheel speed sensor</option><option value="ir">IR temperature sensor</option><option value="steer">Steering angle pot</option></select></div>
+      <div class="cgroup" data-comp="wheel">
       <h3>Sensor</h3>
       <div class="field"><label for="w_sensor">Type</label><select id="w_sensor"><option value="hall">Hall effect (powered, digital)</option><option value="vr">VR (passive coil, AC)</option></select></div>
       <div class="field"><label for="w_teeth">Teeth on the ring <output id="o_w_teeth"></output></label><input type="range" id="w_teeth" min="4" max="100" step="1"><span class="src">30 is the team guideline in the sensor mounting form</span></div>
@@ -465,8 +467,43 @@ td.wrap { white-space: normal; min-width: 220px; }
       <div class="field"><label for="w_vrThreshMV">Arming threshold <output id="o_w_vrThreshMV"></output></label><input type="range" id="w_vrThreshMV" min="10" max="200" step="5"></div>
       <div class="field"><label for="w_vrNoiseMV">Ignition noise <output id="o_w_vrNoiseMV"></output></label><input type="range" id="w_vrNoiseMV" min="0" max="150" step="5"><span class="src">Shielded twisted pair keeps this low</span></div>
       <button class="btn ghost" id="w_reset" type="button">Reset to defaults</button>
+      </div>
+      <div class="cgroup" data-comp="ir" hidden>
+      <h3>Target</h3>
+      <div class="field"><label for="i_target">Aimed at</label><select id="i_target"><option value="tire">Tire tread</option><option value="rotor">Brake rotor face</option></select><span class="src" id="i_targetNote"></span></div>
+      <div class="field"><label for="i_widthMM">Target width <output id="o_i_widthMM"></output></label><input type="range" id="i_widthMM" min="10" max="250" step="2"></div>
+      <div class="field"><label for="i_tempC">Target temperature <output id="o_i_tempC"></output></label><input type="range" id="i_tempC" min="20" max="600" step="5"></div>
+      <div class="field"><label for="i_gradC">Inner to outer difference <output id="o_i_gradC"></output></label><input type="range" id="i_gradC" min="0" max="40" step="1"><span class="src">Camber makes the inner edge hotter</span></div>
+      <div class="field"><label for="i_bgC">Background around it <output id="o_i_bgC"></output></label><input type="range" id="i_bgC" min="0" max="200" step="5"></div>
+      <div class="field"><label for="i_emis">Target emissivity <output id="o_i_emis"></output></label><input type="range" id="i_emis" min="0.1" max="1" step="0.01"><span class="src">Rubber about 0.95; bare iron and steel 0.3 to 0.7</span></div>
+      <h3>Sensor</h3>
+      <div class="field"><label for="i_fovDeg">Field of view <output id="o_i_fovDeg"></output></label><input type="range" id="i_fovDeg" min="5" max="90" step="1"><span class="src">MLX90614 comes in 90°, 35°, 10° and 5° versions</span></div>
+      <div class="field"><label for="i_distMM">Distance to target <output id="o_i_distMM"></output></label><input type="range" id="i_distMM" min="10" max="400" step="5"></div>
+      <div class="field"><label for="i_offsetMM">Aim off centre <output id="o_i_offsetMM"></output></label><input type="range" id="i_offsetMM" min="-60" max="60" step="1"><span class="src">Steer, camber change or a bent bracket</span></div>
+      <div class="field"><label for="i_spots">Sensors across the target</label><select id="i_spots"><option value="1">1 (one average)</option><option value="3">3 (inner, middle, outer)</option></select></div>
+      <div class="field"><label for="i_emisSet">Emissivity set in the sensor <output id="o_i_emisSet"></output></label><input type="range" id="i_emisSet" min="0.1" max="1" step="0.01"></div>
+      <button class="btn ghost" id="i_reset" type="button">Reset to defaults</button>
+      </div>
+      <div class="cgroup" data-comp="steer" hidden>
+      <h3>Steering</h3>
+      <div class="field"><label for="s_lockDeg">Steering wheel at full lock <output id="o_s_lockDeg"></output></label><input type="range" id="s_lockDeg" min="60" max="270" step="5"><span class="src">Each way from centre</span></div>
+      <div class="field"><label for="s_mount">Pot</label><select id="s_mount"><option value="column">Rotary pot on the steering shaft</option><option value="rack">Linear pot on the rack</option></select></div>
+      <div class="field" data-mount="column"><label for="s_potDeg">Pot electrical travel <output id="o_s_potDeg"></output></label><input type="range" id="s_potDeg" min="90" max="360" step="5"></div>
+      <div class="field" data-mount="column"><label for="s_gear">Pot turns per shaft turn <output id="o_s_gear"></output></label><input type="range" id="s_gear" min="0.5" max="3" step="0.05"><span class="src">1.00 means the pot is on the shaft directly</span></div>
+      <div class="field" data-mount="rack"><label for="s_cFactorMM">Rack travel per wheel turn <output id="o_s_cFactorMM"></output></label><input type="range" id="s_cFactorMM" min="40" max="150" step="1"></div>
+      <div class="field" data-mount="rack"><label for="s_potMM">Pot stroke <output id="o_s_potMM"></output></label><input type="range" id="s_potMM" min="25" max="150" step="5"></div>
+      <h3>Pot and node</h3>
+      <div class="field"><label for="s_linPct">Pot linearity <output id="o_s_linPct"></output></label><input type="range" id="s_linPct" min="0.1" max="3" step="0.05"><span class="src">Carbon track about 1 %, conductive plastic about 0.25 %</span></div>
+      <div class="field"><label for="s_backlashDeg">Coupling free play <output id="o_s_backlashDeg"></output></label><input type="range" id="s_backlashDeg" min="0" max="5" step="0.1"></div>
+      <div class="field"><label for="s_adcBits">ADC <output id="o_s_adcBits"></output></label><input type="range" id="s_adcBits" min="8" max="16" step="1"></div>
+      <div class="field"><label for="s_noiseLsb">Noise <output id="o_s_noiseLsb"></output></label><input type="range" id="s_noiseLsb" min="0" max="20" step="0.5"></div>
+      <label class="chk"><input type="checkbox" id="s_ratiometric"> Pot fed from the ADC reference (ratiometric)</label>
+      <div class="field"><label for="s_supplyPct">Supply wander if not <output id="o_s_supplyPct"></output></label><input type="range" id="s_supplyPct" min="0" max="10" step="0.5"></div>
+      <button class="btn ghost" id="s_reset" type="button">Reset to defaults</button>
+      </div>
     </aside>
     <div class="stack">
+      <div class="cgroup" data-comp="wheel">
       <div class="card">
         <div class="card-head"><h3>Hall effect vs VR with this ring</h3><span class="note" id="wsNote"></span></div>
         <div class="scroll"><table id="wsCompare"></table></div>
@@ -490,6 +527,29 @@ td.wrap { white-space: normal; min-width: 220px; }
       <div class="grid2">
         <div class="card"><h3>VR signal vs speed (mV peak)</h3><div class="plot"><canvas id="c_wsVr"></canvas></div><p class="foot">A VR coil's output grows with speed. Below the threshold plus noise the conditioning chip misses teeth, then sees none. A Hall sensor gives the same 0 to 5 V square wave at any speed.</p></div>
         <div class="card"><h3>Speed noise from tooth spacing (km/h, 1σ)</h3><div class="plot"><canvas id="c_wsNoise"></canvas></div><p class="foot" id="wsNoiseFoot"></p></div>
+      </div>
+      </div>
+      <div class="cgroup" data-comp="ir" hidden>
+      <div class="card">
+        <div class="card-head"><h3>Where the sensor looks</h3><span class="note" id="irNote"></span></div>
+        <div class="scroll"><svg id="irSvg" viewBox="0 0 900 300" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="Sensor spot on the target"></svg></div>
+        <div class="kv" id="irKv"></div>
+        <ul class="flags" id="irFlags"></ul>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="card-head"><h3>Reading vs distance (°C)</h3><div class="legend" id="irDistLegend"></div></div><div class="plot"><canvas id="c_irDist"></canvas></div><p class="foot">Each field of view, middle sensor. Past the distance where the spot outgrows the target the reading falls toward the background.</p></div>
+        <div class="card"><h3>Spot size vs distance (mm)</h3><div class="plot"><canvas id="c_irSpot"></canvas></div><p class="foot">Spot diameter for each field of view against the width each sensor has to stay inside.</p></div>
+      </div>
+      <div class="card"><h3>Reading as the aim moves off centre (°C)</h3><div class="plot short"><canvas id="c_irOff"></canvas></div><p class="foot">Middle sensor. Steering, camber and bump move the tire under a chassis-mounted sensor; mounting on the upright keeps the aim fixed.</p></div>
+      </div>
+      <div class="cgroup" data-comp="steer" hidden>
+      <div class="card">
+        <div class="card-head"><h3>Steering angle accuracy</h3><span class="note" id="stNote"></span></div>
+        <div class="kv" id="stKv"></div>
+        <ul class="flags" id="stFlags"></ul>
+      </div>
+      <div class="card"><div class="card-head"><h3>Slalom and a quick correction</h3><div class="legend" id="stLegend"></div></div><div class="plot"><canvas id="c_stTrace"></canvas></div></div>
+      <div class="card"><h3>Measured minus true (degrees at the steering wheel)</h3><div class="plot short"><canvas id="c_stErr"></canvas></div><p class="foot">The slow S-shaped part is the pot's linearity, which a calibration at centre and both locks mostly removes. The fuzz is ADC noise; the steps at each reversal are free play.</p></div>
       </div>
     </div>
   </div>
