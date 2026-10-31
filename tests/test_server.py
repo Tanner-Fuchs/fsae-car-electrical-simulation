@@ -55,6 +55,14 @@ def test_lap_then_power(url):
     assert power["laps"] >= 2 and power["stats"]["endSoc"] > 50
 
 
+def test_wheel_speed_call(url):
+    p = call(url, "withDefaults", {})
+    lap = call(url, "simulateLap", p)
+    r = call(url, "simulateWheelSpeed", p, {"sensor": "vr", "teeth": 40}, {"__lap__": lap["p"]})
+    assert r["w"]["teeth"] == 40 and r["minVr"] > r["minHall"]
+    assert json.loads(get(url + "/api/constants"))["WHEEL_DEFAULTS"]["teeth"] == 30
+
+
 def test_infinity_becomes_null(url):
     phy = call(url, "canPhysical", {"termEnd1": False, "termEnd2": False}, "all")
     assert phy["rTotal"] is None

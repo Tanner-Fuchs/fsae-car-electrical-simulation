@@ -91,7 +91,7 @@
   }
 
   // ------------------------------------------------------------ routing
-  const VIEWS = ['car', 'engine', 'power', 'shutdown', 'can', 'faults', 'wiring', 'inputs'];
+  const VIEWS = ['car', 'engine', 'power', 'shutdown', 'can', 'faults', 'wiring', 'components', 'inputs'];
   let currentView = 'car';
   function route() {
     const h = location.hash.replace('#', '');
@@ -107,7 +107,7 @@
     try { renderViewInner(v); } catch (e) { console.error(e); window.BRShowError && window.BRShowError('the ' + v + ' tab', e); }
   }
   function renderViewInner(v) {
-    ({ car: renderCar, engine: renderEngine, power: renderPower, shutdown: renderShutdown, can: renderCan, faults: renderFaults, wiring: renderWiring, inputs: renderInputs })[v]();
+    ({ car: renderCar, engine: renderEngine, power: renderPower, shutdown: renderShutdown, can: renderCan, faults: renderFaults, wiring: renderWiring, components: renderComponents, inputs: renderInputs })[v]();
   }
 
   const kv = (id, items) => { $(id).innerHTML = items.map(([k, v, cls]) => `<div><span>${k}</span><b class="${cls || ''}">${v}</b></div>`).join(''); };
@@ -612,6 +612,90 @@
   }
   $('faultTable').addEventListener('click', e => { const tr = e.target.closest('tr[data-code]'); if (tr) { faultCode = tr.dataset.code; renderFaults(); window.scrollTo({ top: 0, behavior: 'smooth' }); } });
 
+
+  // ------------------------------------------------------------ components view
+  const W = Object.assign({}, S.WHEEL_DEFAULTS);
+  const W_UNITS = {
+    teeth: v => `${v}`, ringMM: v => `${v} mm`, gapMM: v => `${(+v).toFixed(1)} mm`, rateHz: v => `${v} Hz`, needKmh: v => `${v} km/h`,
+    timeoutMs: v => `${v} ms`, pitchErrPct: v => `${(+v).toFixed(1)} %`, vrThreshMV: v => `${v} mV`, vrNoiseMV: v => `${v} mV`
+  };
+  let wTimer = null;
+  function bindComponents() {
+    document.querySelectorAll('[id^="w_"]').forEach(el => {
+      const key = el.id.slice(2);
+      if (!(key in W)) return;
+      const out = $('o_' + el.id);
+      const show = () => { if (out) out.textContent = W_UNITS[key](el.value); };
+      el.value = W[key]; show();
+      el.addEventListener('input', () => {
+        W[key] = el.type === 'range' ? +el.value : el.value;
+        show();
+        clearTimeout(wTimer); wTimer = setTimeout(() => renderView('components'), 120);
+      });
+    });
+    $('w_reset').addEventListener('click', () => { Object.assign(W, S.WHEEL_DEFAULTS); document.querySelectorAll('[id^="w_"]').forEach(el => { const k = el.id.slice(2); if (k in W) { el.value = W[k]; el.dispatchEvent(new Event('input')); } }); });
+  }
+  const kmhTxt = v => (v == null || !isFinite(v) ? 'never' : `${fmt(v, 1)} km/h`);
+  function renderComponents() {
+    const r = S.simulateWheelSpeed(params, W, R.lap), w = r.w;
+    const pick = w.sensor === 'hall' ? 'Hall effect' : 'VR';
+    $('wsNote').textContent = `${w.teeth} teeth · ${fmt(r.toothMM, 1)} mm wide · ${fmt(r.tireD * 1000, 0)} mm tire`;
+    const row = (k, h, v, hb, vb) => `<tr><td>${k}</td><td class="${hb || ''}">${h}</td><td class="${vb || ''}">${v}</td></tr>`;
+    const hallDead = !!r.hallProblem;
+    $('wsCompare').innerHTML = `<thead><tr><th></th><th>Hall effect</th><th>VR</th></tr></thead><tbody>` +
+      row('Reads down to', hallDead ? 'does not read' : kmhTxt(r.minHall), kmhTxt(r.minVr), hallDead || r.minHall > w.needKmh ? 'bad' : 'ok', r.minVr > w.needKmh ? 'bad' : 'ok') +
+      row('Signal', hallDead ? r.hallProblem : '0–5 V square wave at any speed', `${fmt(r.vrMvAt5, 0)} mV at 5 km/h, ${fmt(r.vrMvTop / 1000, 2)} V at ${fmt(r.topKmh, 0)} km/h (needs ${fmt(r.detectMv, 0)} mV)`) +
+      row('Wires', '3: 5 V, ground, signal', '2, twisted and shielded') +
+      row('Power', `about ${w.hallMA} mA from the node's 5 V`, 'none') +
+      row('Extra parts on the node', 'pull-up resistor', 'VR conditioning chip (MAX9926 class) or the input clamps') +
+      row('Air gap it tolerates', `up to about ${fmt(w.hallMaxGapMM, 1)} mm`, 'larger, but signal drops fast with gap') +
+      row('Tooth width it needs', `at least ${fmt(w.hallMinToothMM, 1)} mm`, `about the ${fmt(w.vrPoleMM, 0)} mm pole size (${fmt(r.vrGeo * 100, 0)} % signal now)`) +
+      '</tbody>';
+    const f = [];
+    if (hallDead) f.push(['crit', `A Hall sensor can't read this ring: ${r.hallProblem}.`]);
+    if (r.minVr > w.needKmh) f.push([w.sensor === 'vr' ? 'crit' : 'warn', `VR: the car reads 0 km/h below ${kmhTxt(r.minVr)}, so launch, pit lane and a stopped wheel locking under braking are lost. The best tooth count for VR here is ${r.bestVr.teeth} (${kmhTxt(r.bestVr.kmh)}). A smaller gap or a quieter harness helps more than teeth.`]);
+    if (w.method === 'count') f.push(['crit', `Counting teeth per ${fmt(1000 / w.rateHz, 0)} ms CAN sample gives steps of ${fmt(r.resCount, 1)} km/h. Time the period between teeth instead: the node's timer capture gives ${fmt(r.resPeriod20, 3)} km/h steps at 20 km/h.`]);
+    if (r.fullRateKmh > r.cornerMinKmh) f.push(['warn', `Below ${kmhTxt(r.fullRateKmh)} fewer than one tooth passes per CAN sample, so the value updates slower than ${w.rateHz} Hz. The slowest corner on the test lap is ${kmhTxt(r.cornerMinKmh)}. More teeth fix this.`]);
+    if (r.rec) f.push(['good', `For a ${pick} sensor, ${r.rec.lo} to ${r.rec.hi} teeth on a ${w.ringMM} mm ring read down to ${w.needKmh} km/h and update at the full CAN rate through every corner. Pick the low end for wider, sturdier teeth that tolerate more gap.`]);
+    else f.push(['warn', `No tooth count on a ${w.ringMM} mm ring meets both goals for a ${pick} sensor. Change the ring size, the gap, or the sensor.`]);
+    flags('wsFlags', f);
+
+    const ro = r.rollout;
+    C.legend('wsRollLegend', [['True speed', '--ink-3', true], ['Hall effect', '--s1'], ['VR', '--s2']]);
+    C.draw('c_wsRoll', [
+      { label: 'True', data: xy(ro.truthT, ro.truthV), color: '--ink-3', width: 1.5, dash: [5, 4] },
+      { label: 'Hall', data: xy(ro.hall.t, ro.hall.v), color: '--s1', stepped: true, width: 1.75 },
+      { label: 'VR', data: xy(ro.vr.t, ro.vr.v), color: '--s2', stepped: true, width: 1.75 }
+    ], { xTitle: 'Time (s)', yTitle: 'km/h', xMin: 0, xMax: ro.truthT[ro.truthT.length - 1], yMin: 0, refs: [{ y: w.needKmh, label: `must read ${w.needKmh} km/h` }] });
+
+    const T = r.byTeeth, at = { vrefs: [{ x: w.teeth, label: `${w.teeth} teeth` }], xTitle: 'Teeth on the ring' };
+    $('wsTeethNote').textContent = r.rec ? `${pick}: ${r.rec.lo} to ${r.rec.hi} teeth meet both goals` : `${pick}: no tooth count meets both goals`;
+    kv('wsTeethKv', [
+      ['Reads down to', w.sensor === 'hall' ? (hallDead ? 'does not read' : kmhTxt(r.minHall)) : kmhTxt(r.minVr), (w.sensor === 'hall' ? hallDead || r.minHall > w.needKmh : r.minVr > w.needKmh) ? 'bad' : 'ok'],
+      ['Full-rate updates above', kmhTxt(r.fullRateKmh), r.fullRateKmh > r.cornerMinKmh ? 'meh' : 'ok'],
+      ['Tooth width', `${fmt(r.toothMM, 1)} mm`, w.sensor === 'hall' && r.toothMM < w.hallMinToothMM ? 'bad' : ''],
+      ['Tooth rate at top speed', `${fmt(r.hzTop, 0)} Hz`],
+      ['Noise at 20 km/h', `±${fmt(r.noise20, 2)} km/h`], ['Noise at top speed', `±${fmt(r.noiseTop, 2)} km/h`]
+    ]);
+    const lim = v => (isFinite(v) ? Math.min(v, 60) : 60);
+    C.draw('c_wsMin', [
+      { label: 'Hall', data: T.map(t => ({ x: t.teeth, y: t.hallOk ? lim(t.minHall) : null })), color: '--s1' },
+      { label: 'VR', data: T.map(t => ({ x: t.teeth, y: lim(t.minVr) })), color: '--s2' }
+    ], Object.assign({ yMin: 0, refs: [{ y: w.needKmh, label: 'must read' }] }, at));
+    C.draw('c_wsFull', [{ label: 'km/h', data: T.map(t => ({ x: t.teeth, y: Math.min(t.fullRateKmh, 150) })), color: '--s3' }],
+      Object.assign({ yMin: 0, refs: [{ y: r.cornerMinKmh, label: 'slowest corner' }] }, at));
+    C.draw('c_wsTooth', [{ label: 'mm', data: T.map(t => ({ x: t.teeth, y: t.toothMM })), color: '--s5' }],
+      Object.assign({ yMin: 0, ySugMax: 20, yMax: Math.max(20, r.toothMM * 1.2), refs: [{ y: w.hallMinToothMM, label: 'Hall minimum' }, { y: w.vrPoleMM, label: 'VR pole' }] }, at));
+    C.draw('c_wsHz', [{ label: 'Hz', data: T.map(t => ({ x: t.teeth, y: t.hzTop })), color: '--s7' }], Object.assign({ yMin: 0 }, at));
+
+    const sw = r.sweep;
+    C.draw('c_wsVr', [{ label: 'VR mV', data: sw.map(s => ({ x: s.kmh, y: Math.min(s.vrMv, 1500) })), color: '--s2' }],
+      { xTitle: 'Speed (km/h)', yMin: 0, refs: [{ y: w.vrThreshMV }, { y: r.detectMv, label: `threshold + noise ${fmt(r.detectMv, 0)} mV` }] });
+    C.draw('c_wsNoise', [{ label: 'noise', data: sw.filter(s => s.noise != null && s.kmh >= 4).map(s => ({ x: s.kmh, y: s.noise })), color: '--s1' }],
+      { xTitle: 'Speed (km/h)', yMin: 0 });
+    $('wsNoiseFoot').textContent = `With ±${fmt(w.pitchErrPct, 1)} % uneven tooth spacing, timing the period between teeth. More teeth per CAN sample average it out. Timer resolution adds only ${fmt(r.resPeriod20, 3)} km/h at 20 km/h.`;
+  }
+
   // ------------------------------------------------------------ inputs view
   const META = [
     ['Vehicle', 'massKg', 'Car + driver mass', 'kg', 'assumption'], ['Vehicle', 'tireD', 'Loaded tire diameter', 'm', 'Sample Rates form'],
@@ -770,6 +854,7 @@
   new MutationObserver(retheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
   bindInputs();
+  bindComponents();
   window.addEventListener('hashchange', route);
   if (window.Chart) { Chart.defaults.font.family = C.css('--f-body'); }
   runModel();

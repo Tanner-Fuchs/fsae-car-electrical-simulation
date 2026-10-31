@@ -12,7 +12,7 @@ from pathlib import Path
 
 import urllib.parse
 
-from . import JS_API, cad, can, engine, faults, params, shutdown, wiring
+from . import JS_API, cad, can, components, engine, faults, params, shutdown, wiring
 from .jsonio import dumps
 
 WEB = Path(__file__).resolve().parent / "web"
@@ -48,7 +48,7 @@ def constants():
         "DEFAULTS": params.DEFAULTS, "BATTERIES": params.BATTERIES, "TRACK": params.TRACK,
         "SHUTDOWN_SWITCHES": shutdown.SHUTDOWN_SWITCHES, "FIRING_ORDER": engine.FIRING_ORDER,
         "CAN_LAYOUTS": can.CAN_LAYOUTS, "BUS_INFO": can.BUS_INFO,
-        "FAULTS": fault_list, "FAULT_BANDS": faults.FAULT_BANDS,
+        "FAULTS": fault_list, "FAULT_BANDS": faults.FAULT_BANDS, "WHEEL_DEFAULTS": components.WHEEL_DEFAULTS,
         "FUNCTIONS": sorted(JS_API),
     }
 

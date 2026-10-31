@@ -1,12 +1,14 @@
 """BR27 electrical system simulator (Bobcat Racing, FSAE 2027).
 
 Models the 2012 CBR600RR + EMU Black, the 12 V system through an endurance run,
-the IC.9 shutdown circuit, the CAN bus and the DAQ, plus the powertrain harness.
+the IC.9 shutdown circuit, the CAN bus and the DAQ, the powertrain harness, and
+component choices such as the wheel speed sensor.
 
     import br27sim
     lap = br27sim.simulate_lap({"finalDrive": 3.5})
     print(lap["stats"]["lapTime"])
 """
+from .components import WHEEL_DEFAULTS, simulate_wheel_speed
 from .can import (BUS_INFO, CAN_LAYOUTS, arbitrate, can_messages, can_physical, frame_bits, frame_time,
                   simulate_can, simulate_can_all)
 from .daq import alias_demo
@@ -37,4 +39,5 @@ JS_API = {
     "faultLogic": fault_logic,
     "simulateFault": simulate_fault,
     "arbitrate": arbitrate,
+    "simulateWheelSpeed": simulate_wheel_speed,
 }
