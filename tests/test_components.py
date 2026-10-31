@@ -85,3 +85,13 @@ def test_steering_errors_follow_their_causes():
     assert simulate_steering({"linPct": 0.25})["budgetDeg"] < base["budgetDeg"]
     assert simulate_steering({"ratiometric": False, "supplyPct": 5})["supplyDeg"] > 0
     assert simulate_steering({"adcBits": 16})["lsbDeg"] < base["lsbDeg"]
+
+
+def test_ir_front_steer_moves_chassis_aim_only():
+    o = {"fovDeg": 10, "distMM": 100, "gradC": 0}
+    c = simulate_ir(dict(o, mount="chassis", steerDeg=28, aimFwdMM=200))["spots"][0]
+    u = simulate_ir(dict(o, mount="upright", steerDeg=28, aimFwdMM=200))["spots"][0]
+    assert c["fill"] < 1 and c["meas"] < u["meas"]
+    assert abs(u["meas"] - 70) < 0.1
+    r = simulate_ir(dict(o, mount="chassis", aimFwdMM=200))
+    assert 0 < r["loseDeg"] < 25

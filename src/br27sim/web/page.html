@@ -140,6 +140,7 @@ td.wrap { white-space: normal; min-width: 220px; }
 .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
 #faultTable tbody tr { cursor: pointer; } #faultTable tbody tr[aria-selected="true"] td { background: var(--bg); }
 .sev { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; } .sev::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--c); }
+.units { margin-left: auto; font-size: 12.5px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; } .units select { width: auto; padding: 3px 6px; font-size: 13px; }
 .foot { font-size: 12.5px; color: var(--ink-3); max-width: 80ch; }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
 </style>
@@ -149,6 +150,7 @@ td.wrap { white-space: normal; min-width: 220px; }
     <div class="brand">
       <h1>BR27 Electrical Simulator</h1>
       <span class="sub">Bobcat Racing · FSAE 2027 · EMU Black on CBR600RR · 12 V LV · CAN 2.0</span>
+      <label class="units">Speeds in <select id="speedUnit"><option value="mph">mph</option><option value="kmh">km/h</option></select></label>
     </div>
     <div class="chips" id="chips"></div>
     <nav class="tabs" aria-label="Subsystems">
@@ -241,7 +243,7 @@ td.wrap { white-space: normal; min-width: 220px; }
         <div class="card-head"><h3>One endurance-style lap</h3><span class="note" id="lapNote"></span></div>
         <div class="kv" id="lapKv"></div>
         <div class="grid2">
-          <div><p class="foot">Car speed (km/h)</p><div class="plot short"><canvas id="c_speed"></canvas></div></div>
+          <div><p class="foot">Car speed (<span class="su">mph</span>)</p><div class="plot short"><canvas id="c_speed"></canvas></div></div>
           <div><p class="foot">Engine speed (rpm)</p><div class="plot short"><canvas id="c_rpm"></canvas></div></div>
           <div><p class="foot">Throttle position (%)</p><div class="plot short"><canvas id="c_tps"></canvas></div></div>
           <div><p class="foot">Manifold pressure (kPa)</p><div class="plot short"><canvas id="c_map"></canvas></div></div>
@@ -460,7 +462,7 @@ td.wrap { white-space: normal; min-width: 220px; }
       <h3>Node and CAN</h3>
       <div class="field"><label for="w_method">Speed from edges by</label><select id="w_method"><option value="period">Timing the period between teeth</option><option value="count">Counting teeth per CAN sample</option></select></div>
       <div class="field"><label for="w_rateHz">CAN rate <output id="o_w_rateHz"></output></label><input type="range" id="w_rateHz" min="20" max="500" step="10"><span class="src">200 Hz in the sample rates form</span></div>
-      <div class="field"><label for="w_needKmh">Must read down to <output id="o_w_needKmh"></output></label><input type="range" id="w_needKmh" min="1" max="20" step="1"><span class="src">Pit lane, launch and spins</span></div>
+      <div class="field"><label for="w_needKmh">Must read down to <output id="o_w_needKmh"></output></label><input type="range" id="w_needKmh" min="1.609344" max="19.312128" step="1.609344"><span class="src">Pit lane, launch and spins</span></div>
       <div class="field"><label for="w_timeoutMs">Zero-speed timeout <output id="o_w_timeoutMs"></output></label><input type="range" id="w_timeoutMs" min="20" max="500" step="10"></div>
       <div class="field"><label for="w_pitchErrPct">Tooth spacing error <output id="o_w_pitchErrPct"></output></label><input type="range" id="w_pitchErrPct" min="0" max="3" step="0.1"><span class="src">How evenly the ring is cut</span></div>
       <h3>VR conditioning</h3>
@@ -480,6 +482,10 @@ td.wrap { white-space: normal; min-width: 220px; }
       <div class="field"><label for="i_fovDeg">Field of view <output id="o_i_fovDeg"></output></label><input type="range" id="i_fovDeg" min="5" max="90" step="1"><span class="src">MLX90614 comes in 90°, 35°, 10° and 5° versions</span></div>
       <div class="field"><label for="i_distMM">Distance to target <output id="o_i_distMM"></output></label><input type="range" id="i_distMM" min="10" max="400" step="5"></div>
       <div class="field"><label for="i_offsetMM">Aim off centre <output id="o_i_offsetMM"></output></label><input type="range" id="i_offsetMM" min="-60" max="60" step="1"><span class="src">Steer, camber change or a bent bracket</span></div>
+      <h3>Front tire steer</h3>
+      <div class="field"><label for="i_mount">Sensor mounted on</label><select id="i_mount"><option value="chassis">Chassis (tire turns under it)</option><option value="upright">Upright (turns with the wheel)</option></select></div>
+      <div class="field"><label for="i_steerDeg">Front wheel steer <output id="o_i_steerDeg"></output></label><input type="range" id="i_steerDeg" min="-30" max="30" step="1"><span class="src">About 25° in a tight hairpin</span></div>
+      <div class="field"><label for="i_aimFwdMM">Spot ahead of the steering axis <output id="o_i_aimFwdMM"></output></label><input type="range" id="i_aimFwdMM" min="0" max="250" step="5"><span class="src">0 when the sensor looks straight down at the top of the tire; about the tire radius when it looks at the front</span></div>
       <div class="field"><label for="i_spots">Sensors across the target</label><select id="i_spots"><option value="1">1 (one average)</option><option value="3">3 (inner, middle, outer)</option></select></div>
       <div class="field"><label for="i_emisSet">Emissivity set in the sensor <output id="o_i_emisSet"></output></label><input type="range" id="i_emisSet" min="0.1" max="1" step="0.01"></div>
       <button class="btn ghost" id="i_reset" type="button">Reset to defaults</button>
@@ -518,15 +524,15 @@ td.wrap { white-space: normal; min-width: 220px; }
         <div class="card-head"><h3>How many teeth</h3><span class="note" id="wsTeethNote"></span></div>
         <div class="kv" id="wsTeethKv"></div>
         <div class="grid2">
-          <div><p class="foot">Slowest speed that reads (km/h)</p><div class="plot short"><canvas id="c_wsMin"></canvas></div></div>
-          <div><p class="foot">Below this speed the value updates slower than CAN (km/h)</p><div class="plot short"><canvas id="c_wsFull"></canvas></div></div>
+          <div><p class="foot">Slowest speed that reads (<span class="su">mph</span>)</p><div class="plot short"><canvas id="c_wsMin"></canvas></div></div>
+          <div><p class="foot">Below this speed the value updates slower than CAN (<span class="su">mph</span>)</p><div class="plot short"><canvas id="c_wsFull"></canvas></div></div>
           <div><p class="foot">Tooth width on the ring (mm)</p><div class="plot short"><canvas id="c_wsTooth"></canvas></div></div>
           <div><p class="foot">Tooth rate at top speed (Hz)</p><div class="plot short"><canvas id="c_wsHz"></canvas></div></div>
         </div>
       </div>
       <div class="grid2">
         <div class="card"><h3>VR signal vs speed (mV peak)</h3><div class="plot"><canvas id="c_wsVr"></canvas></div><p class="foot">A VR coil's output grows with speed. Below the threshold plus noise the conditioning chip misses teeth, then sees none. A Hall sensor gives the same 0 to 5 V square wave at any speed.</p></div>
-        <div class="card"><h3>Speed noise from tooth spacing (km/h, 1σ)</h3><div class="plot"><canvas id="c_wsNoise"></canvas></div><p class="foot" id="wsNoiseFoot"></p></div>
+        <div class="card"><h3>Speed noise from tooth spacing (<span class="su">mph</span>, 1σ)</h3><div class="plot"><canvas id="c_wsNoise"></canvas></div><p class="foot" id="wsNoiseFoot"></p></div>
       </div>
       </div>
       <div class="cgroup" data-comp="ir" hidden>
@@ -540,6 +546,7 @@ td.wrap { white-space: normal; min-width: 220px; }
         <div class="card"><div class="card-head"><h3>Reading vs distance (°C)</h3><div class="legend" id="irDistLegend"></div></div><div class="plot"><canvas id="c_irDist"></canvas></div><p class="foot">Each field of view, middle sensor. Past the distance where the spot outgrows the target the reading falls toward the background.</p></div>
         <div class="card"><h3>Spot size vs distance (mm)</h3><div class="plot"><canvas id="c_irSpot"></canvas></div><p class="foot">Spot diameter for each field of view against the width each sensor has to stay inside.</p></div>
       </div>
+      <div class="card"><div class="card-head"><h3>Reading as the front wheel steers (°C)</h3><div class="legend" id="irSteerLegend"></div></div><div class="plot short"><canvas id="c_irSteer"></canvas></div><p class="foot" id="irSteerFoot"></p></div>
       <div class="card"><h3>Reading as the aim moves off centre (°C)</h3><div class="plot short"><canvas id="c_irOff"></canvas></div><p class="foot">Middle sensor. Steering, camber and bump move the tire under a chassis-mounted sensor; mounting on the upright keeps the aim fixed.</p></div>
       </div>
       <div class="cgroup" data-comp="steer" hidden>

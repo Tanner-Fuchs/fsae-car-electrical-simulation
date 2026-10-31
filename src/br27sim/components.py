@@ -29,7 +29,7 @@ WHEEL_DEFAULTS = {
     "gapMM": 1.0,           # air gap, sensor face to tooth tip [assumption]
     "rateHz": 200,          # wheel speed CAN rate [form: Sample Rates per Channel]
     "method": "period",     # period | count
-    "needKmh": 3,           # slowest speed that must read (pit lane, launch) [assumption]
+    "needKmh": 3.218688,    # 2 mph, slowest speed that must read (pit lane, launch) [assumption]
     "timerMHz": 1.0,        # input capture timer tick [assumption, STM32 timer prescaled]
     "timeoutMs": 100,       # no edge for this long reads 0 km/h [assumption]
     "pitchErrPct": 0.5,     # tooth-to-tooth spacing error of the ring, 1 sigma [assumption, laser cut]
@@ -302,6 +302,9 @@ IR_DEFAULTS = {
     "fovDeg": 35,          # full cone angle [assumption: MLX90614xCI]; 90, 35, 10 and 5 degree versions exist
     "distMM": 100,         # lens to target
     "offsetMM": 0,         # spot centre off the target centreline (camber, steer, mounting)
+    "mount": "chassis",    # chassis (front tire steers under the sensor) | upright (sensor turns with the wheel)
+    "steerDeg": 0,         # front road wheel angle; FSAE hairpins need about 25 degrees [assumption]
+    "aimFwdMM": 150,       # how far ahead of (or behind) the steering axis the spot lands on the tread [assumption]
     "spots": 1,            # sensors across the target (1, or 3 for inner/middle/outer)
     "lensMM": 4,           # spot size at the lens [assumption]
     "emisSet": 0.95,       # emissivity set in the sensor
@@ -350,10 +353,20 @@ def _ir_read(o, centre, dist=None, n=200):
     return max(t4, 0) ** 0.25 - K, on / tot
 
 
-def _spot_centres(o):
+def ir_steer_shift_mm(o, steer=None):
+    """How far the tread slides across under a chassis-mounted sensor when the front wheel steers.
+    The tread turns about the steering axis, so a spot `aimFwdMM` ahead of it moves sideways by aimFwd * tan(steer)."""
+    if o.get("mount") != "chassis":
+        return 0.0
+    d = o["steerDeg"] if steer is None else steer
+    return o["aimFwdMM"] * math.tan(math.radians(d))
+
+
+def _spot_centres(o, steer=None):
     n = int(o["spots"])
     w = o["widthMM"]
-    return [o["offsetMM"] + (k + 0.5) / n * w - w / 2 for k in range(n)]
+    off = o["offsetMM"] + ir_steer_shift_mm(o, steer)
+    return [off + (k + 0.5) / n * w - w / 2 for k in range(n)]
 
 
 def simulate_ir(o=None):
@@ -378,7 +391,17 @@ def simulate_ir(o=None):
         by_dist[o["fovDeg"]] = [{"d": d, "meas": _ir_read(o, centres[len(centres) // 2], d)[0], "spot": ir_spot_mm(o, d)} for d in dists]
     offs = [x - 60 for x in range(0, 121, 4)]
     by_off = [{"off": x, "meas": _ir_read(dict(o, offsetMM=x), _spot_centres(dict(o, offsetMM=x))[len(centres) // 2])[0]} for x in offs]
-    return {"o": o, "target": IR_TARGETS.get(o["target"], IR_TARGETS["tire"]), "spotMM": D, "zoneMM": zone, "fitDistMM": fit,
+    # front wheel steer: chassis mount vs upright mount, middle sensor
+    mid = len(centres) // 2
+    steers = list(range(-30, 31, 2))
+    by_steer = [{"deg": d,
+                 "chassis": _ir_read(o, _spot_centres(dict(o, mount="chassis"), d)[mid])[0],
+                 "upright": _ir_read(o, _spot_centres(dict(o, mount="upright"), d)[mid])[0]} for d in steers]
+    # steer at which the chassis-mounted middle spot starts to leave the target
+    half = (w - D) / 2
+    lose = math.degrees(math.atan(max(0.0, half - abs(o["offsetMM"])) / o["aimFwdMM"])) if o["aimFwdMM"] > 0 else 90.0
+    return {"o": o, "target": IR_TARGETS.get(o["target"], IR_TARGETS["tire"]), "spotMM": D,
+            "steerShiftMM": ir_steer_shift_mm(o), "bySteer": by_steer, "loseDeg": lose if D < w else 0.0, "zoneMM": zone, "fitDistMM": fit,
             "spots": spots, "byDist": by_dist, "byOff": by_off, "fovs": sorted(by_dist)}
 
 

@@ -9,6 +9,13 @@
     return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${a})`;
   }
   const fmt = (x, d) => (x == null || !isFinite(x) ? '–' : Number(x).toFixed(d == null ? 1 : d));
+  // Speeds: the model works in km/h; the page shows mph or km/h
+  let SPD = 'mph';
+  try { SPD = localStorage.getItem('br27.speedUnit') || 'mph'; } catch (e) { /* storage blocked */ }
+  const spK = () => (SPD === 'mph' ? 1 / 1.609344 : 1);
+  const SU = () => (SPD === 'mph' ? 'mph' : 'km/h');
+  const spv = kmh => (kmh == null ? kmh : kmh * spK());          // number in the shown unit
+  const sp = (kmh, d) => `${fmt(spv(kmh), d)} ${SU()}`;           // text with unit
   const params = S.withDefaults({});
   const ROUTE_ALLOWANCE = 1.25; // harness routing on top of the 3D path [assumption]
   const RM = window.BRCar.routeM;
@@ -236,14 +243,14 @@
     const { lap } = R, s = lap.series, st = lap.stats;
     $('lapNote').textContent = `${fmt(st.lapLen, 0)} m generic lap · ${fmt(st.lapTime, 1)} s · not the competition track`;
     kv('lapKv', [
-      ['Lap time', `${fmt(st.lapTime, 1)} s`], ['Average speed', `${fmt(st.avgKmh, 0)} km/h`], ['Top speed', `${fmt(st.maxKmh, 0)} km/h`],
+      ['Lap time', `${fmt(st.lapTime, 1)} s`], ['Average speed', sp(st.avgKmh, 0)], ['Top speed', sp(st.maxKmh, 0)],
       ['Peak power', `${fmt(st.peakHp, 0)} hp @ ${st.peakRpm}`], ['Full throttle', `${fmt(st.wotPct, 0)} % of lap`],
       ['Fuel per lap', `${fmt(st.fuelPerLapL * 1000, 0)} mL`], ['Max injector duty', `${fmt(st.maxDuty, 0)} %`, st.maxDuty > 85 ? 'bad' : 'ok'],
       ['Max tooth rate', `${fmt(st.toothHzMax / 1000, 2)} kHz`]
     ]);
     const step = 5;
     const o = { xTitle: 'Time (s)', xMin: 0, xMax: st.lapTime };
-    C.draw('c_speed', [{ label: 'Speed', data: xy(s.t, s.v, step), color: '--s1' }], o);
+    C.draw('c_speed', [{ label: 'Speed', data: xy(s.t, s.v.map(spv), step), color: '--s1' }], o);
     C.draw('c_rpm', [{ label: 'RPM', data: xy(s.t, s.rpm, step), color: '--s2' }], Object.assign({ refs: [{ y: params.shiftRpm, label: 'shift' }] }, o));
     C.draw('c_tps', [{ label: 'TPS', data: xy(s.t, s.tps, step), color: '--s3' }], Object.assign({ yMin: 0, yMax: 100 }, o));
     C.draw('c_map', [{ label: 'MAP', data: xy(s.t, s.map, step), color: '--s7' }], Object.assign({ yMin: 0, yMax: 105 }, o));
@@ -616,13 +623,14 @@
   // ------------------------------------------------------------ components view
   const W = Object.assign({}, S.WHEEL_DEFAULTS);
   const W_UNITS = {
-    teeth: v => `${v}`, ringMM: v => `${v} mm`, gapMM: v => `${(+v).toFixed(1)} mm`, rateHz: v => `${v} Hz`, needKmh: v => `${v} km/h`,
+    teeth: v => `${v}`, ringMM: v => `${v} mm`, gapMM: v => `${(+v).toFixed(1)} mm`, rateHz: v => `${v} Hz`, needKmh: v => sp(+v, SPD === 'mph' ? 0 : 1),
     timeoutMs: v => `${v} ms`, pitchErrPct: v => `${(+v).toFixed(1)} %`, vrThreshMV: v => `${v} mV`, vrNoiseMV: v => `${v} mV`
   };
   const IR = Object.assign({}, S.IR_DEFAULTS), ST = Object.assign({}, S.STEER_DEFAULTS);
   const I_UNITS = {
     widthMM: v => `${v} mm`, tempC: v => `${v} °C`, gradC: v => `${v} °C`, bgC: v => `${v} °C`, emis: v => (+v).toFixed(2),
-    fovDeg: v => `${v}°`, distMM: v => `${v} mm`, offsetMM: v => `${v} mm`, emisSet: v => (+v).toFixed(2)
+    fovDeg: v => `${v}°`, distMM: v => `${v} mm`, offsetMM: v => `${v} mm`, emisSet: v => (+v).toFixed(2),
+    steerDeg: v => `${v}°`, aimFwdMM: v => `${v} mm`
   };
   const S_UNITS = {
     lockDeg: v => `±${v}°`, potDeg: v => `${v}°`, gear: v => (+v).toFixed(2), cFactorMM: v => `${v} mm`, potMM: v => `${v} mm`,
@@ -663,7 +671,7 @@
     document.querySelectorAll('#v-components .cgroup').forEach(g => { g.hidden = g.dataset.comp !== c; });
     ({ wheel: renderWheel, ir: renderIr, steer: renderSteer })[c]();
   }
-  const kmhTxt = v => (v == null || !isFinite(v) ? 'never' : `${fmt(v, 1)} km/h`);
+  const kmhTxt = v => (v == null || !isFinite(v) ? 'never' : sp(v, 1));
   function renderWheel() {
     const r = S.simulateWheelSpeed(params, W, R.lap), w = r.w;
     const pick = w.sensor === 'hall' ? 'Hall effect' : 'VR';
@@ -672,7 +680,7 @@
     const hallDead = !!r.hallProblem;
     $('wsCompare').innerHTML = `<thead><tr><th></th><th>Hall effect</th><th>VR</th></tr></thead><tbody>` +
       row('Reads down to', hallDead ? 'does not read' : kmhTxt(r.minHall), kmhTxt(r.minVr), hallDead || r.minHall > w.needKmh ? 'bad' : 'ok', r.minVr > w.needKmh ? 'bad' : 'ok') +
-      row('Signal', hallDead ? r.hallProblem : '0–5 V square wave at any speed', `${fmt(r.vrMvAt5, 0)} mV at 5 km/h, ${fmt(r.vrMvTop / 1000, 2)} V at ${fmt(r.topKmh, 0)} km/h (needs ${fmt(r.detectMv, 0)} mV)`) +
+      row('Signal', hallDead ? r.hallProblem : '0–5 V square wave at any speed', `${fmt(r.vrMvAt5, 0)} mV at ${sp(5, 0)}, ${fmt(r.vrMvTop / 1000, 2)} V at ${sp(r.topKmh, 0)} (needs ${fmt(r.detectMv, 0)} mV)`) +
       row('Wires', '3: 5 V, ground, signal', '2, twisted and shielded') +
       row('Power', `about ${w.hallMA} mA from the node's 5 V`, 'none') +
       row('Extra parts on the node', 'pull-up resistor', 'VR conditioning chip (MAX9926 class) or the input clamps') +
@@ -681,20 +689,20 @@
       '</tbody>';
     const f = [];
     if (hallDead) f.push(['crit', `A Hall sensor can't read this ring: ${r.hallProblem}.`]);
-    if (r.minVr > w.needKmh) f.push([w.sensor === 'vr' ? 'crit' : 'warn', `VR: the car reads 0 km/h below ${kmhTxt(r.minVr)}, so launch, pit lane and a stopped wheel locking under braking are lost. The best tooth count for VR here is ${r.bestVr.teeth} (${kmhTxt(r.bestVr.kmh)}). A smaller gap or a quieter harness helps more than teeth.`]);
-    if (w.method === 'count') f.push(['crit', `Counting teeth per ${fmt(1000 / w.rateHz, 0)} ms CAN sample gives steps of ${fmt(r.resCount, 1)} km/h. Time the period between teeth instead: the node's timer capture gives ${fmt(r.resPeriod20, 3)} km/h steps at 20 km/h.`]);
+    if (r.minVr > w.needKmh) f.push([w.sensor === 'vr' ? 'crit' : 'warn', `VR: the car reads 0 below ${kmhTxt(r.minVr)}, so launch, pit lane and a stopped wheel locking under braking are lost. The best tooth count for VR here is ${r.bestVr.teeth} (${kmhTxt(r.bestVr.kmh)}). A smaller gap or a quieter harness helps more than teeth.`]);
+    if (w.method === 'count') f.push(['crit', `Counting teeth per ${fmt(1000 / w.rateHz, 0)} ms CAN sample gives steps of ${sp(r.resCount, 1)}. Time the period between teeth instead: the node's timer capture gives ${sp(r.resPeriod20, 3)} steps at ${sp(20, 0)}.`]);
     if (r.fullRateKmh > r.cornerMinKmh) f.push(['warn', `Below ${kmhTxt(r.fullRateKmh)} fewer than one tooth passes per CAN sample, so the value updates slower than ${w.rateHz} Hz. The slowest corner on the test lap is ${kmhTxt(r.cornerMinKmh)}. More teeth fix this.`]);
-    if (r.rec) f.push(['good', `For a ${pick} sensor, ${r.rec.lo} to ${r.rec.hi} teeth on a ${w.ringMM} mm ring read down to ${w.needKmh} km/h and update at the full CAN rate through every corner. Pick the low end for wider, sturdier teeth that tolerate more gap.`]);
+    if (r.rec) f.push(['good', `For a ${pick} sensor, ${r.rec.lo} to ${r.rec.hi} teeth on a ${w.ringMM} mm ring read down to ${sp(w.needKmh, 0)} and update at the full CAN rate through every corner. Pick the low end for wider, sturdier teeth that tolerate more gap.`]);
     else f.push(['warn', `No tooth count on a ${w.ringMM} mm ring meets both goals for a ${pick} sensor. Change the ring size, the gap, or the sensor.`]);
     flags('wsFlags', f);
 
     const ro = r.rollout;
     C.legend('wsRollLegend', [['True speed', '--ink-3', true], ['Hall effect', '--s1'], ['VR', '--s2']]);
     C.draw('c_wsRoll', [
-      { label: 'True', data: xy(ro.truthT, ro.truthV), color: '--ink-3', width: 1.5, dash: [5, 4] },
-      { label: 'Hall', data: xy(ro.hall.t, ro.hall.v), color: '--s1', stepped: true, width: 1.75 },
-      { label: 'VR', data: xy(ro.vr.t, ro.vr.v), color: '--s2', stepped: true, width: 1.75 }
-    ], { xTitle: 'Time (s)', yTitle: 'km/h', xMin: 0, xMax: ro.truthT[ro.truthT.length - 1], yMin: 0, refs: [{ y: w.needKmh, label: `must read ${w.needKmh} km/h` }] });
+      { label: 'True', data: xy(ro.truthT, ro.truthV.map(spv)), color: '--ink-3', width: 1.5, dash: [5, 4] },
+      { label: 'Hall', data: xy(ro.hall.t, ro.hall.v.map(spv)), color: '--s1', stepped: true, width: 1.75 },
+      { label: 'VR', data: xy(ro.vr.t, ro.vr.v.map(spv)), color: '--s2', stepped: true, width: 1.75 }
+    ], { xTitle: 'Time (s)', yTitle: SU(), xMin: 0, xMax: ro.truthT[ro.truthT.length - 1], yMin: 0, refs: [{ y: spv(w.needKmh), label: `must read ${sp(w.needKmh, 0)}` }] });
 
     const T = r.byTeeth, at = { vrefs: [{ x: w.teeth, label: `${w.teeth} teeth` }], xTitle: 'Teeth on the ring' };
     $('wsTeethNote').textContent = r.rec ? `${pick}: ${r.rec.lo} to ${r.rec.hi} teeth meet both goals` : `${pick}: no tooth count meets both goals`;
@@ -703,25 +711,25 @@
       ['Full-rate updates above', kmhTxt(r.fullRateKmh), r.fullRateKmh > r.cornerMinKmh ? 'meh' : 'ok'],
       ['Tooth width', `${fmt(r.toothMM, 1)} mm`, w.sensor === 'hall' && r.toothMM < w.hallMinToothMM ? 'bad' : ''],
       ['Tooth rate at top speed', `${fmt(r.hzTop, 0)} Hz`],
-      ['Noise at 20 km/h', `±${fmt(r.noise20, 2)} km/h`], ['Noise at top speed', `±${fmt(r.noiseTop, 2)} km/h`]
+      [`Noise at ${sp(20, 0)}`, `±${sp(r.noise20, 2)}`], ['Noise at top speed', `±${sp(r.noiseTop, 2)}`]
     ]);
-    const lim = v => (isFinite(v) ? Math.min(v, 60) : 60);
+    const lim = v => spv(isFinite(v) ? Math.min(v, 60) : 60);
     C.draw('c_wsMin', [
       { label: 'Hall', data: T.map(t => ({ x: t.teeth, y: t.hallOk ? lim(t.minHall) : null })), color: '--s1' },
       { label: 'VR', data: T.map(t => ({ x: t.teeth, y: lim(t.minVr) })), color: '--s2' }
-    ], Object.assign({ yMin: 0, refs: [{ y: w.needKmh, label: 'must read' }] }, at));
-    C.draw('c_wsFull', [{ label: 'km/h', data: T.map(t => ({ x: t.teeth, y: Math.min(t.fullRateKmh, 150) })), color: '--s3' }],
-      Object.assign({ yMin: 0, refs: [{ y: r.cornerMinKmh, label: 'slowest corner' }] }, at));
+    ], Object.assign({ yMin: 0, refs: [{ y: spv(w.needKmh), label: 'must read' }] }, at));
+    C.draw('c_wsFull', [{ label: SU(), data: T.map(t => ({ x: t.teeth, y: spv(Math.min(t.fullRateKmh, 150)) })), color: '--s3' }],
+      Object.assign({ yMin: 0, refs: [{ y: spv(r.cornerMinKmh), label: 'slowest corner' }] }, at));
     C.draw('c_wsTooth', [{ label: 'mm', data: T.map(t => ({ x: t.teeth, y: t.toothMM })), color: '--s5' }],
       Object.assign({ yMin: 0, ySugMax: 20, yMax: Math.max(20, r.toothMM * 1.2), refs: [{ y: w.hallMinToothMM, label: 'Hall minimum' }, { y: w.vrPoleMM, label: 'VR pole' }] }, at));
     C.draw('c_wsHz', [{ label: 'Hz', data: T.map(t => ({ x: t.teeth, y: t.hzTop })), color: '--s7' }], Object.assign({ yMin: 0 }, at));
 
     const sw = r.sweep;
-    C.draw('c_wsVr', [{ label: 'VR mV', data: sw.map(s => ({ x: s.kmh, y: Math.min(s.vrMv, 1500) })), color: '--s2' }],
-      { xTitle: 'Speed (km/h)', yMin: 0, refs: [{ y: w.vrThreshMV }, { y: r.detectMv, label: `threshold + noise ${fmt(r.detectMv, 0)} mV` }] });
-    C.draw('c_wsNoise', [{ label: 'noise', data: sw.filter(s => s.noise != null && s.kmh >= 4).map(s => ({ x: s.kmh, y: s.noise })), color: '--s1' }],
-      { xTitle: 'Speed (km/h)', yMin: 0 });
-    $('wsNoiseFoot').textContent = `With ±${fmt(w.pitchErrPct, 1)} % uneven tooth spacing, timing the period between teeth. More teeth per CAN sample average it out. Timer resolution adds only ${fmt(r.resPeriod20, 3)} km/h at 20 km/h.`;
+    C.draw('c_wsVr', [{ label: 'VR mV', data: sw.map(s => ({ x: spv(s.kmh), y: Math.min(s.vrMv, 1500) })), color: '--s2' }],
+      { xTitle: `Speed (${SU()})`, yMin: 0, refs: [{ y: w.vrThreshMV }, { y: r.detectMv, label: `threshold + noise ${fmt(r.detectMv, 0)} mV` }] });
+    C.draw('c_wsNoise', [{ label: 'noise', data: sw.filter(s => s.noise != null && s.kmh >= 4).map(s => ({ x: spv(s.kmh), y: spv(s.noise) })), color: '--s1' }],
+      { xTitle: `Speed (${SU()})`, yMin: 0 });
+    $('wsNoiseFoot').textContent = `With ±${fmt(w.pitchErrPct, 1)} % uneven tooth spacing, timing the period between teeth. More teeth per CAN sample average it out. Timer resolution adds only ${sp(r.resPeriod20, 3)} at ${sp(20, 0)}.`;
   }
   function renderIr() {
     const r = S.simulateIr(IR), o = r.o;
@@ -760,6 +768,7 @@
     if (r.spotMM > r.zoneMM) f.push(['crit', `The ${fmt(r.spotMM, 0)} mm spot is wider than the ${fmt(r.zoneMM, 0)} mm each sensor should cover, so it reads part ${r.spots.length > 1 ? 'of the next zone or ' : ''}the background. Move it within ${fmt(r.fitDistMM, 0)} mm or use a narrower field of view.`]);
     if (Math.abs(o.emisSet - o.emis) > 0.02) f.push(['warn', `The sensor is set to emissivity ${o.emisSet.toFixed(2)} but the target is ${o.emis.toFixed(2)}, so even a perfect aim reads wrong. ${o.target === 'rotor' ? 'Bare rotors change emissivity as they wear and blue; a strip of high-temperature paint on the band gives a known value.' : ''}`]);
     if (r.spots.length === 1 && o.gradC > 5) f.push(['warn', `One sensor gives one average. The ${o.gradC} °C inner to outer difference that shows camber needs three sensors (or a multi-zone sensor).`]);
+    if (o.mount === 'chassis' && o.target === 'tire' && r.loseDeg < 25) f.push(['warn', `On the chassis, the spot runs off the tread past about ${fmt(r.loseDeg, 0)}° of front wheel steer, so hairpin readings (about 25°) mix in the track. Mount it on the upright, or aim it nearer the top of the tire.`]);
     if (r.fitDistMM < 30) f.push(['warn', `It has to sit within ${fmt(r.fitDistMM, 0)} mm, very close to the ${o.target === 'tire' ? 'tire (stones, tire growth at speed)' : 'rotor (heat)'}. A narrower field of view lets it sit farther back.`]);
     if (!f.length) f.push(['good', `Each spot stays on its target with ${fmt(r.fitDistMM - o.distMM, 0)} mm of distance to spare, and the readings are within ${fmt(worst, 1)} °C.`]);
     flags('irFlags', f);
@@ -771,6 +780,14 @@
       Object.assign({ refs: [{ y: r.spots[Math.floor(r.spots.length / 2)].true, label: 'true' }] }, atD));
     C.draw('c_irSpot', fovs.map(fv => ({ label: `${fv}°`, data: r.byDist[fv].map(p => ({ x: p.d, y: p.spot })), color: col(fv), width: fv === o.fovDeg ? 3 : 1.5 })),
       Object.assign({ yMin: 0, yMax: Math.max(r.zoneMM * 2.5, 60), refs: [{ y: r.zoneMM, label: 'width per sensor' }] }, atD));
+    C.legend('irSteerLegend', [['On the chassis', '--s2'], ['On the upright', '--s1'], ['True (middle)', '--ink-3', true]]);
+    C.draw('c_irSteer', [
+      { label: 'Chassis', data: r.bySteer.map(p => ({ x: p.deg, y: p.chassis })), color: '--s2', width: o.mount === 'chassis' ? 3 : 1.5 },
+      { label: 'Upright', data: r.bySteer.map(p => ({ x: p.deg, y: p.upright })), color: '--s1', width: o.mount === 'upright' ? 3 : 1.5 }
+    ], { xTitle: 'Front wheel steer (°, + = spot moves outward)', vrefs: [{ x: o.steerDeg, label: 'now' }], refs: [{ y: r.spots[Math.floor(r.spots.length / 2)].true, label: 'true' }] });
+    $('irSteerFoot').textContent = o.mount === 'chassis'
+      ? `A chassis-mounted sensor aimed ${o.aimFwdMM} mm ahead of the steering axis sees the tread slide ${fmt(r.steerShiftMM, 0)} mm sideways at ${o.steerDeg}° of steer${r.loseDeg < 30 ? `, and its spot starts to run off the tread past about ${fmt(r.loseDeg, 0)}°` : ''}. Aiming at the top of the tire (close to the steering axis) or mounting on the upright fixes it.`
+      : 'Mounted on the upright, the sensor turns with the wheel, so steering does not move its aim. Only camber and tire deflection do.';
     C.draw('c_irOff', [{ label: '°C', data: r.byOff.map(p => ({ x: p.off, y: p.meas })), color: '--s2' }],
       { xTitle: 'Aim off centre (mm)', vrefs: [{ x: o.offsetMM, label: 'now' }] });
   }
@@ -965,6 +982,18 @@
 
   bindInputs();
   bindComponents();
+  function showUnits() {
+    document.querySelectorAll('.su').forEach(e => { e.textContent = SU(); });
+    $('speedUnit').value = SPD;
+    $('o_w_needKmh').textContent = W_UNITS.needKmh(W.needKmh);
+  }
+  $('speedUnit').addEventListener('input', () => {
+    SPD = $('speedUnit').value;
+    try { localStorage.setItem('br27.speedUnit', SPD); } catch (e) { /* storage blocked */ }
+    showUnits();
+    renderView(currentView);
+  });
+  showUnits();
   window.addEventListener('hashchange', route);
   if (window.Chart) { Chart.defaults.font.family = C.css('--f-body'); }
   runModel();

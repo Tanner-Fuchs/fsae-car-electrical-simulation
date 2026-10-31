@@ -13,7 +13,7 @@ def report(params):
 
     lap = simulate_lap(params)
     s = lap["stats"]
-    print(f"Lap        {f(s['lapTime'], 2)} s over {f(s['lapLen'], 0)} m, avg {f(s['avgKmh'], 1)} km/h, max {f(s['maxKmh'], 1)} km/h")
+    print(f"Lap        {f(s['lapTime'], 2)} s over {f(s['lapLen'], 0)} m, avg {f(s['avgKmh'] / 1.609344, 1)} mph, max {f(s['maxKmh'] / 1.609344, 1)} mph")
     print(f"Engine     peak {f(s['peakHp'], 1)} hp at {s['peakRpm']} rpm, restrictor chokes at {f(lap['chokeGs'], 1)} g/s, "
           f"max injector duty {f(s['maxDuty'], 1)} %, fuel {f(s['fuelPerLapL'], 3)} L/lap")
     pw = simulate_power(params, lap)
