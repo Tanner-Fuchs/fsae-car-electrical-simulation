@@ -232,8 +232,9 @@ def simulate_wheel_speed(params=None, w=None, lap=None):
         edges, pitch = _edges(p, w, ts, vs, sensor, mulberry32(7))
         mt, mv = _measure(w, edges, pitch, ts[-1], method)
         traces[sensor] = {"t": mt, "v": mv}
-    true_t = ts[::20]
-    true_v = vs[::20]
+    # true speed at the same instants as the CAN samples, so the traces line up point for point
+    true_t = traces["hall"]["t"]
+    true_v = [vs[min(len(vs) - 1, round(t / (ts[1] - ts[0])))] for t in true_t]
 
     # sweep over speed at the chosen tooth count
     speeds = [x * 1.0 for x in range(0, 131, 2)]
