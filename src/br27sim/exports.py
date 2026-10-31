@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import wiring as W
 
-NAME = "BR27-Powertrain-Harness-RevD"
+NAME = "BR27-Powertrain-Harness-RevF"
 
 PRINT_CSS = """@page { size: 17in 11in; margin: 0.35in; }
 body { font: 11px/1.35 Helvetica, Arial, sans-serif; color: #12161d; margin: 0; }
@@ -40,7 +40,7 @@ def print_html():
     return f"""<!doctype html><html><head><meta charset="utf-8"><title>{NAME}</title><style>{PRINT_CSS}</style></head><body>
 <div class="p">{W.schematic_svg()}</div>
 <div class="p">{W.fuel_system_svg()}</div>
-<div class="p"><h2>EMU Black pinout and BR27 assignment, rev D (2026-10-30)</h2>
+<div class="p"><h2>EMU Black pinout and BR27 assignment, rev F (2026-10-31)</h2>
 <p class="note">Pin functions copied from the label on the team's EMU Black. BR27 use is a proposal for the 2012 CBR600RR with cable throttle. Grey rows are unused. Check every pin against the EMU Black manual and assign the outputs in the EMU client before powering up.</p>
 <div class="cols">{_pin_table('Black 39-pin connector (B)', W.BLACK)}<div>{_pin_table('Grey 24-pin connector (G)', W.GREY)}
 <h3>Fuses (fuse and relay box under the seat)</h3><table><tbody>{fuses}</tbody></table>
@@ -51,8 +51,8 @@ def print_html():
 <li>Coil 4 is on the black connector (B14), not the grey one.</li>
 <li>Fuel level (rev C): float sender in the tank to Analog #5 (B35). R1 470 Ω from +5 V to the signal, sender return to sensor ground (not the tank or chassis). Reads about 0.33 V full to 1.69 V empty; open circuit reads 5 V. Scale it in the EMU client and send it to the dash over CAN. See the Fuel Level Sensor Selection form.</li>
 <li>Fuel pump: +12 V from the kill bus through F3 and the pump relay (EMU AUX 2, G13, low side), so the CMS, BOTS or inertia switch stops the pump (IC.9.2.2).</li>
-<li>Bring all powertrain wires through one bulkhead connector in the firewall (about {W.bulkhead_count()} circuits). Pump and fan +12 V pass through a sealed grommet (GR1). Every wiring pass-through in the firewall or any panel gets a grommet or sealed bulkhead (T.1.8.6.d).</li>
-<li>CAN: EMU end of the bus, 120 Ω across B12/B25 at the EMU, the other 120 Ω at the dash MCU.</li>
+<li>Firewall (rev F): the firewall is L-shaped (back panel plus seat pan). The battery, EMU and electrical box sit under the seat pan on the engine side, so no powertrain wire crosses it. Sealed seat-closeout grommet GR1 carries only the cockpit-side runs: front CAN chain to FL, FR and the dash, dash power, and the CMS and BOTS kill loop. Every other panel pass-through gets a grommet (GR2).</li>
+<li>CAN (2026-10-31): the EMU sits mid-bus on a short stub (under 0.3 m, about 200 mm) to the CAN junction in the electrical box. Front chain: box, FL, FR, dash (120 Ω at the dash MCU). Rear chain: box, RR, RL (120 Ω at node RL). Turn the EMU's built-in selectable terminator OFF in the EMU client.</li>
 </ul></div></div></div>
 <div class="p"><h2>Powertrain electrical components and selection status</h2>
 <p class="note">"Stock CBR600RR (assumed)" means the part is assumed to stay as it comes on the 2012 engine; confirm it. "To be selected" parts are shown generically in the schematic (dashed boxes) and their pinouts, connectors and wire counts may change once chosen. The full from-to wire list is in {NAME}.xlsx.</p>
@@ -93,7 +93,7 @@ def write_xlsx(path):
     wires = [[w["id"], w["signal"], w["from"], w["fromPin"], w["to"], w["toPin"], w["awg"], w["color"], w["mm"], w["group"], w["via"],
               "To be selected" if "To be selected" in (status.get(w["from"], ""), status.get(w["to"], "")) else ""] for w in W.wire_list()]
     sheet(wb, "Wires", ["Wire ID", "Signal", "From connector", "From pin", "To connector", "To pin", "Gauge (AWG)", "Color (suggested)",
-                        "Length est. (mm)", "Twist/shield group", "Through bulkhead", "Part status"],
+                        "Length est. (mm)", "Twist/shield group", "Firewall pass-through", "Part status"],
           wires, [9, 16, 15, 9, 14, 8, 11, 16, 14, 16, 15, 15], tbd_col=11)
     sheet(wb, "Connectors", ["Ref", "Description", "Location", "Pin count", "Status"],
           [[c["ref"], c["desc"], c["loc"], c["pins"], c["status"]] for c in W.components()] +
@@ -107,7 +107,7 @@ def write_xlsx(path):
     sheet(wb, "Fuses", ["Fuse", "Rating", "Feeds"], W.FUSES, [8, 10, 60])
     ws = wb.create_sheet("Notes")
     for line in [
-        "BR27 powertrain harness, rev D, 2026-10-30 (team wire color code from the BR27 Master Timeline; rev C added the fuel level sender, W068-W071). Proposal: check every pin against the EMU Black manual before building.",
+        "BR27 powertrain harness, rev F, 2026-10-31 (L-shaped firewall: EMU, box and battery under the seat pan on the engine side, so no wire in this list crosses it; GR1 is the seat-closeout grommet for cockpit-side wiring only; rev E grommets instead of a bulkhead connector; rev D team wire color code; rev C fuel level sender W068-W071). Proposal: check every pin against the EMU Black manual before building.",
         "Wires sheet is a from-to list, one row per wire. Map its columns to your harness tool's import fields (connector, pin, gauge, color, length).",
         "Device pin names (SIG, +5V, GND, +, -) are functions until the mating connectors are chosen; LSU and relay pins use their real numbers.",
         "Rows shaded yellow touch a part that is still to be selected; their pins and wire counts may change.",

@@ -81,7 +81,7 @@ GREY = [
 # Fuses and relays in the under-seat fuse/relay box. Sizes are proposals.
 FUSES = [
   ['F1', '5 A', 'EMU Black (B13, G18)'],
-  ['F2', '20 A', 'Kill relay contacts → injectors, coils, wideband heater, and the pump via F3 (~8 A + pump; recheck when the pump is chosen)'],
+  ['F2', '20 A', 'Kill relay → injectors, coils, WBO heater, pump via F3 (recheck with pump)'],
   ['F3', '10 A', 'Fuel pump (through pump relay, fed from kill bus)'],
   ['F4', '15 A', 'Radiator fan (through fan relay)'],
   ['F5', '5 A', 'Dash MCU and corner nodes']
@@ -187,18 +187,14 @@ def schematic_svg():
     # zones and title
     o.append(f'<rect class="zone" x="4" y="64" width="{n(fwX - 12)}" height="{n(H - 72)}" rx="8"/>')
     o.append(f'<rect class="zone" x="{n(fwX + 8)}" y="64" width="{n(W - fwX - 12)}" height="{n(H - 72)}" rx="8"/>')
-    o.append('<text class="z" x="24" y="88">COCKPIT SIDE: UNDER THE SEAT, MAIN HOOP, DASH</text>')
-    o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE BAY: BEHIND THE FIREWALL</text>')
+    o.append('<text class="z" x="24" y="88">UNDER THE SEAT PAN: ENGINE SIDE OF THE L-SHAPED FIREWALL</text>')
+    o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE BAY (SAME SIDE, NO FIREWALL CROSSING)</text>')
     o.append('<text class="h" x="6" y="28">BR27 powertrain harness, EMU Black on 2012 CBR600RR</text>')
-    o.append('<text class="s" x="6" y="48">Proposal, rev E, 2026-10-31 (firewall grommets instead of a bulkhead connector; rev D team wire colors; rev C fuel level sender). Dashed boxes are parts still to be selected. Pins from the EMU Black label (B = black 39-pin, G = grey 24-pin). Fuse sizes and gauges are proposals; check against the EMU Black manual before building.</text>')
+    o.append('<text class="s" x="6" y="48">Proposal, rev F, 2026-10-31 (L-shaped firewall: EMU, box and battery under the seat pan on the engine side, so no powertrain wire crosses it; rev E grommets; rev D team colors; rev C fuel level). Dashed boxes are parts still to be selected. Pins from the EMU Black label (B = black 39-pin, G = grey 24-pin). Fuse sizes and gauges are proposals; check against the EMU Black manual before building.</text>')
 
-    # firewall + grommet pass-through (rev E: grommets, no bulkhead connector)
-    bhTop, bhBot = y(0) - 12, ySig(len(ROWS) - 1) + 12
-    o.append(f'<line x1="{n(fwX)}" y1="64" x2="{n(fwX)}" y2="{n(H - 8)}" stroke="var(--k3)" stroke-width="3" class="dash"/>')
-    o.append(f'<rect class="box tbd" x="{n(fwX - 14)}" y="{n(bhTop)}" width="28" height="{n(bhBot - bhTop)}" rx="4"/>')
-    o.append(f'<rect x="{n(fwX - 62)}" y="{n(bhTop - 36)}" width="124" height="32" fill="var(--pn)"/>')
-    o.append(f'<text class="s" x="{n(fwX)}" y="{n(bhTop - 22)}" text-anchor="middle">Firewall</text>')
-    o.append(f'<text class="s" x="{n(fwX)}" y="{n(bhTop - 8)}" text-anchor="middle">grommet GR1 (TBD)</text>')
+    # rev F: the firewall is L-shaped (back panel + seat pan) and the EMU, box and battery sit
+    # under the seat pan on the engine side, so nothing in this sheet crosses it. Only the
+    # cockpit-side runs (kill switch loop, front CAN chain to the dash) pass grommet GR1.
 
     # EMU block
     emuTop, emuBot = y(0) - 16, y(nRows - 1) + 16
@@ -286,7 +282,7 @@ def schematic_svg():
     o.append(f'<text class="s" x="{n(px + bw / 2 + 8)}" y="{n(by + 204)}">switched bus</text>')
     krY = fbY + fbH + 30
     blk(px, krY, 410, 64, "Kill relay (fuse box), TBD", "coil loop: CMS (dash) → BOTS (pedal box) → inertia switch", True)
-    o.append(f'<text class="s" x="{n(px + 10)}" y="{n(krY + 52)}">Contacts F2 → kill bus. Any switch opens it: injectors, coils, pump lose +12 V.</text>')
+    o.append(f'<text class="s" x="{n(px + 10)}" y="{n(krY + 52)}">Contacts F2 → kill bus. CMS and BOTS loop wires cross the firewall at GR1.</text>')
     # kill bus run: out of the relay's left side, down, along the bottom, up to the engine bay rail
     kRunY = H - 26
     o.append(f'<polyline class="w kl" stroke-width="3" points="{n(px)},{n(krY + 32)} {n(px - 14)},{n(krY + 32)} {n(px - 14)},{n(kRunY)} {n(killX + 30)},{n(kRunY)} {n(killX + 30)},{n(kTop - 14)} {n(killX)},{n(kTop - 14)} {n(killX)},{n(kTop)}"/>')
@@ -301,7 +297,8 @@ def schematic_svg():
     o.append(f'<line class="w gdw" x1="{n(px)}" y1="{n(yG)}" x2="{n(emuX)}" y2="{n(yG)}"/>')
     o.append(f'<text class="s" x="{n(px)}" y="{n(yG - 6)}">Grounds → engine block star point, 16 AWG</text>')
     o.append(f'<line class="w cnw" x1="{n(px)}" y1="{n(yC)}" x2="{n(emuX)}" y2="{n(yC)}" stroke-width="2.5"/>')
-    o.append(f'<text class="s" x="{n(px)}" y="{n(yC - 6)}">CAN stub → junction: front FL → FR → dash, rear RR → RL. 120 Ω at dash and RL.</text>')
+    o.append(f'<text class="s" x="{n(px)}" y="{n(yC - 6)}">CAN stub → junction: rear RR → RL (120 Ω at RL)</text>')
+    o.append(f'<text class="s" x="{n(px)}" y="{n(yC + 16)}">front FL → FR → dash via firewall grommet GR1 (120 Ω at dash)</text>')
 
     # legend
     lg = [["tbdbox", "Dashed box: part to be selected"], ["pw", "Battery / switched +12 V"], ["kl", "Kill bus +12 V"],
@@ -328,12 +325,11 @@ def fuel_system_svg():
     o.append("<style>.br-wiring .fl{stroke:var(--s5,#e87ba4);stroke-width:6;stroke-opacity:.55;fill:none;stroke-linecap:round}</style>")
     o.append(f'<rect class="zone" x="4" y="64" width="{n(fwX - 12)}" height="{n(H - 72)}" rx="8"/>')
     o.append(f'<rect class="zone" x="{n(fwX + 8)}" y="64" width="{n(W - fwX - 12)}" height="{n(H - 72)}" rx="8"/>')
-    o.append('<text class="z" x="24" y="88">COCKPIT SIDE: UNDER THE SEAT, MAIN HOOP, DASH</text>')
-    o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE BAY: BEHIND THE FIREWALL (TANK, PUMP, RAIL)</text>')
+    o.append('<text class="z" x="24" y="88">UNDER THE SEAT PAN: ENGINE SIDE OF THE L-SHAPED FIREWALL</text>')
+    o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE BAY: TANK, PUMP, RAIL (NO FIREWALL CROSSING)</text>')
     o.append('<text class="h" x="6" y="28">BR27 fuel system: how it connects (EMU Black, 2012 CBR600RR)</text>')
-    o.append('<text class="s" x="6" y="48">Proposal, rev E, 2026-10-31. Same pins and refs as the harness schematic and wire list. Dashed boxes are parts still to be selected. Pink band = fuel line (plumbing, for context).</text>')
-    o.append(f'<line x1="{n(fwX)}" y1="64" x2="{n(fwX)}" y2="{n(H - 8)}" stroke="var(--k3)" stroke-width="3" class="dash"/>')
-    o.append(f'<text class="s" x="{n(fwX + 6)}" y="112">Firewall: all wires through</text><text class="s" x="{n(fwX + 6)}" y="126">sealed grommet GR1 (T.1.8.6)</text>')
+    o.append('<text class="s" x="6" y="48">Proposal, rev F, 2026-10-31. Same pins and refs as the harness schematic and wire list. Dashed boxes are parts still to be selected. Pink band = fuel line (plumbing, for context).</text>')
+    o.append(f'<text class="s" x="{n(fwX + 6)}" y="112">EMU, box and engine are all on the</text><text class="s" x="{n(fwX + 6)}" y="126">engine side; only the dash CAN run crosses (GR1)</text>')
 
     def blk(x, yy, w, h, t, lines=None, tbd=False):
         o.append(f'<rect class="box{" tbd" if tbd else ""}" x="{n(x)}" y="{n(yy)}" width="{n(w)}" height="{n(h)}" rx="4"/><text x="{n(x + 10)}" y="{n(yy + 18)}">{esc(t)}</text>')
@@ -373,7 +369,7 @@ def fuel_system_svg():
     lab(560, 856, "PUMP_12V, 16 AWG")
 
     # dash MCU
-    blk(30, 560, 210, 120, "Dash MCU (front)", ["fuel %, litres, laps left", "IMU slosh gate + fuel-used blend", "BR-W10 low fuel (< 1.0 L)", "BR-W11 sender open/short", "logs FUEL_LVL raw volts"], True)
+    blk(30, 560, 210, 120, "Dash MCU (cockpit, via GR1)", ["fuel %, litres, laps left", "IMU slosh gate + fuel-used blend", "BR-W10 low fuel (< 1.0 L)", "BR-W11 sender open/short", "logs FUEL_LVL raw volts"], True)
 
     # EMU block
     ex, ew = 520, 200
@@ -474,7 +470,7 @@ CONNECTORS = [
     ["K1", "Kill relay (30/85/86/87)", "Fuse box", 4],
     ["K2", "Fuel pump relay (30/85/86/87)", "Fuse box", 4],
     ["K3", "Fan relay (30/85/86/87)", "Fuse box", 4],
-    ["GR1", "Firewall grommet(s), sealed (T.1.8.6.d): the whole powertrain harness passes through here (rev E, no bulkhead connector). Use split grommets or pin the connectors after passing the wires through", "Firewall", ""],
+    ["GR1", "Seat-closeout firewall grommet, sealed (T.1.8.6.d), rev F: cockpit-side wiring only (front CAN chain to FL, FR and dash; dash power; CMS and BOTS kill loop; PMS leads if routed inside). The powertrain harness stays on the engine side. Use split grommets or pin the connectors after passing the wires through", "Firewall", ""],
     ["GR2", "Grommets at every other panel pass-through: battery and charging cables, corner node and dash runs, sidepod (count set when routing is final)", "Various", ""],
     ["S1", "+5 V ref splice", "Engine bay", ""],
     ["S2", "Sensor ground splice", "Engine bay", ""],
@@ -525,8 +521,9 @@ def wire_list():
     # yellow signal, blue 5 V, CAN black = low / white = high. team_color() overrides the rev C
     # per-wire suggestions still passed as col; heat-shrink labels carry the wire ID.
     def add(f, fp, t, tp, sig, awg, col, mm, grp="", thru=False):
+        # rev F: EMU, box and engine are all on the engine side of the L-shaped firewall, so no wire here passes GR1 (thru kept for the call sites)
         w.append({"from": f, "fromPin": n(fp), "to": t, "toPin": n(tp), "signal": sig, "awg": awg, "color": team_color(sig), "mm": mm,
-                  "group": grp or "", "via": "GR1" if thru else ""})
+                  "group": grp or "", "via": ""})
 
     def E(c, pin):
         return ["EMU-B", pin] if c == "B" else ["EMU-G", pin]
@@ -591,10 +588,6 @@ def wire_list():
     add("S1", "OUT", "R1", 1, "+5V_REF", 22, "Orange", 500)
     add("R1", 2, "FLVL", "SIG", "FUEL_LVL", 22, "Grey", 100)
     add("S2", "OUT", "FLVL", "GND", "SGND", 22, "Brown", 500)
-    # pump and fan +12 V also cross the firewall through grommet GR1 (their grounds stay on the engine side)
-    for r in w:
-        if re.match(r"^(PUMP|FAN)_12V$", r["signal"]):
-            r["via"] = "GR1"
     return [{"id": "W" + str(i + 1).zfill(3), **r} for i, r in enumerate(w)]
 
 

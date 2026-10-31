@@ -190,9 +190,9 @@
     kv('routeKv', items);
     const bat = R.power.bat;
     const f = [];
-    if (bat.chem !== 'agm') f.push(['warn', 'A lithium battery under the seat is inside the driver compartment. T.1.8.1 needs a firewall between the driver and any lithium battery, and T.1.8.4 needs that face to be grounded aluminum. Plan an aluminum box or tray under the seat, or move the battery behind the main hoop firewall.']);
+    if (bat.chem !== 'agm') f.push(['info', 'The lithium battery sits under the seat pan on the engine side of the L-shaped firewall, so the firewall is between it and the driver (T.1.8.1). T.1.8.4 needs the seat-pan face toward the driver to be grounded aluminum.']);
     f.push(['info', 'Battery must sit below the shoulder belt mount height and be mounted to structure strong enough for suspension loads (T.9.2.1). Under the seat meets the height part.']);
-    f.push(['info', 'The EMU Black under the seat is close to the CG and away from engine heat, but its harness to the injectors, coils and crank sensor passes through the firewall: use grommets (T.1.8).']);
+    f.push(['good', 'The EMU Black and electrical box sit under the seat pan on the engine side of the firewall, close to the CG, so the powertrain harness never crosses the firewall. Only cockpit-side runs (front CAN chain, dash, CMS and BOTS) pass seat-closeout grommet GR1 (T.1.8).']);
     f.push(['warn', 'The IMU by the dash sits well ahead of the CG. The sensor mounting form wanted it within 150 mm of the CG. Either mount it near the CG on its own wire or correct the lever arm in post-processing.']);
     f.push(['info', 'Corner nodes sit inboard of each wheel, so sensor leads to the wheel speed sensor stay under 1 m (sensor mounting form guideline).']);
     const placed = CAD ? Object.keys(CAD.positions).length : 0;
@@ -944,7 +944,7 @@
       ['good', 'The EMU is fed from F1 ahead of the kill relay, so it keeps logging after a shutdown. Everything it fires (injectors, coils, wideband heater, pump relay) gets +12 V from the kill bus.'],
       ['warn', 'Coil 4 is on the black connector (B14), not the grey one. Easy to miss when building the harness.'],
       ['info', 'Crank and cam VR sensors: shielded twisted pair, shield grounded at the EMU sensor ground only.'],
-      ['info', `Run all engine-bay wires through sealed firewall grommet GR1, about ${Wr.bulkheadCount()} circuits.`],
+      ['info', 'Firewall (rev F): it is L-shaped and the EMU, box and battery sit under the seat pan on the engine side, so no powertrain wire crosses it. Grommet GR1 in the seat closeout carries only cockpit-side wiring: front CAN chain to FL, FR and the dash, dash power, and the CMS and BOTS kill loop.'],
       ['info', 'Fuel system: the pump relay (G13) and the injectors take +12 V from the kill bus, so any shutdown switch stops fuel. The float fuel level sender reads on Analog #5 (B35) through a 470 Ω pull-up (R1) to +5 V, about 0.33 V full to 1.69 V empty; the EMU sends it to the dash over CAN.'],
       ['info', 'CAN: the EMU is mid-bus on a stub under 0.3 m to the CAN junction in the electrical box. Leave its software-selectable 120 Ω OFF. The bus ends are the dash MCU and node RL, 120 Ω at each.'],
       ['warn', 'Pin functions come from the label on the unit. The BR27 use column is a proposal; assign the outputs in the EMU client and check against the EMU Black manual before powering up.']
