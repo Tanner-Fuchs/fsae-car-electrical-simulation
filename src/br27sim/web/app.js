@@ -780,6 +780,8 @@
       Object.assign({ refs: [{ y: r.spots[Math.floor(r.spots.length / 2)].true, label: 'true' }] }, atD));
     C.draw('c_irSpot', fovs.map(fv => ({ label: `${fv}°`, data: r.byDist[fv].map(p => ({ x: p.d, y: p.spot })), color: col(fv), width: fv === o.fovDeg ? 3 : 1.5 })),
       Object.assign({ yMin: 0, yMax: Math.max(r.zoneMM * 2.5, 60), refs: [{ y: r.zoneMM, label: 'width per sensor' }] }, atD));
+    irLast = { r };
+    if (!irAnim) drawIrTop(o, r, o.steerDeg);
     C.legend('irSteerLegend', [['On the chassis', '--s2'], ['On the upright', '--s1'], ['True (middle)', '--ink-3', true]]);
     C.draw('c_irSteer', [
       { label: 'Chassis', data: r.bySteer.map(p => ({ x: p.deg, y: p.chassis })), color: '--s2', width: o.mount === 'chassis' ? 3 : 1.5 },
@@ -791,6 +793,84 @@
     C.draw('c_irOff', [{ label: '°C', data: r.byOff.map(p => ({ x: p.off, y: p.meas })), color: '--s2' }],
       { xTitle: 'Aim off centre (mm)', vrefs: [{ x: o.offsetMM, label: 'now' }] });
   }
+
+  // top view of the front tire as it steers; pure geometry, so the sweep animates without calling the model
+  let irLast = null, irAnim = null;
+  function irAt(r, deg, key) {
+    const t = r.bySteer, i = Math.max(0, Math.min(t.length - 2, Math.floor((deg - t[0].deg) / (t[1].deg - t[0].deg))));
+    const a = t[i], b = t[i + 1], u = Math.max(0, Math.min(1, (deg - a.deg) / (b.deg - a.deg)));
+    return a[key] + (b[key] - a[key]) * u;
+  }
+  function drawIrTop(o, r, deg) {
+    const R = r.tireD * 500, Wt = o.widthMM + 30;            // tire radius and section width (mm)
+    const k = 175 / R, cx = 330, cy = 235;
+    const P = (f, l) => [cx + l * k, cy - f * k];             // chassis frame (forward, outward) -> screen
+    const th = -deg * Math.PI / 180;                          // tire turns opposite to the spot's slide across the tread
+    const T = (f, l) => P(f * Math.cos(th) - l * Math.sin(th), f * Math.sin(th) + l * Math.cos(th));
+    const pts = a => a.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
+    const ang = th * 180 / Math.PI;
+    let g = `<defs><linearGradient id="irTread" x1="0" x2="1"><stop offset="0" stop-color="var(--s2)" stop-opacity="${o.gradC ? 0.85 : 0.55}"/><stop offset="1" stop-color="var(--s2)" stop-opacity="0.4"/></linearGradient>
+      <marker id="irArr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)"/></marker></defs>`;
+    // car frame references
+    const [lx] = P(0, -Wt / 2 - 130);
+    g += `<line x1="${lx}" y1="30" x2="${lx}" y2="440" stroke="var(--rule)" stroke-width="10" stroke-linecap="round"/>`;
+    g += `<text x="${lx}" y="458" font-size="11.5" text-anchor="middle" fill="var(--ink-3)">chassis</text>`;
+    g += `<line x1="40" y1="120" x2="40" y2="40" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#irArr)"/><text x="48" y="52" font-size="11.5" fill="var(--ink-3)">front</text>`;
+    // tire, drawn straight then rotated about the steering axis
+    const [x0, y0] = P(R, -Wt / 2), [tx, ty] = P(R, -o.widthMM / 2);
+    g += `<g transform="rotate(${ang.toFixed(2)} ${cx} ${cy})">`;
+    g += `<rect x="${x0}" y="${y0}" width="${Wt * k}" height="${2 * R * k}" rx="${22 * k}" fill="var(--ink-2)" fill-opacity="0.18" stroke="var(--ink-2)"/>`;
+    g += `<rect x="${tx}" y="${ty}" width="${o.widthMM * k}" height="${2 * R * k}" fill="url(#irTread)"/>`;
+    for (let f = -R + 30; f < R; f += 45) { const [a1, b1] = P(f, -Wt / 2), [a2] = P(f, Wt / 2); g += `<line x1="${a1}" y1="${b1}" x2="${a2}" y2="${b1}" stroke="var(--ink-2)" stroke-opacity="0.25"/>`; }
+    g += `<text x="${P(0, -o.widthMM / 2 + 6)[0]}" y="${cy - 4}" font-size="11" fill="var(--ink)">inner</text><text x="${P(0, o.widthMM / 2 - 6)[0]}" y="${cy - 4}" font-size="11" text-anchor="end" fill="var(--ink)">outer</text>`;
+    g += `</g>`;
+    g += `<circle cx="${cx}" cy="${cy}" r="4" fill="var(--ink)"/><text x="${cx + 8}" y="${cy + 16}" font-size="11" fill="var(--ink-3)">steering axis</text>`;
+    // sensor spot: fixed to the chassis, or turning with the upright
+    const mid = Math.floor(r.spots.length / 2);
+    const centres = r.spots.map(p => p.centre - (o.mount === 'chassis' ? r.steerShiftMM : 0));   // aim without the current steer
+    const spotAt = c => (o.mount === 'chassis' ? P(o.aimFwdMM, c) : T(o.aimFwdMM, c));
+    const read = irAt(r, deg, o.mount === 'chassis' ? 'chassis' : 'upright');
+    const fill = Math.abs(o.mount === 'chassis' ? o.aimFwdMM * Math.tan(deg * Math.PI / 180) + o.offsetMM : o.offsetMM) + r.spotMM / 2 <= o.widthMM / 2;
+    centres.forEach((c, n) => {
+      const [sx, sy] = spotAt(c);
+      const col = fill || r.spots.length > 1 ? 'var(--s1)' : 'var(--crit-ink)';
+      g += `<circle cx="${sx}" cy="${sy}" r="${(r.spotMM / 2) * k}" fill="${col}" fill-opacity="0.18" stroke="${col}" stroke-width="2"/>`;
+      g += `<rect x="${sx - 7}" y="${sy - 5}" width="14" height="10" rx="2" fill="var(--ink)"/>`;
+      if (n === mid) {
+        const [bx, by] = o.mount === 'chassis' ? [lx, sy] : [cx, cy];
+        g += `<line x1="${bx}" y1="${by}" x2="${sx}" y2="${sy}" stroke="var(--ink)" stroke-width="3" stroke-opacity="0.55"/>`;
+      }
+    });
+    g += `<text x="14" y="${470 - 16}" font-size="13" fill="var(--ink)" font-family="var(--f-mono)">steer ${deg >= 0 ? '+' : ''}${Math.round(deg)}°</text>`;
+    $('irTop').innerHTML = g;
+    $('irTopNote').textContent = `${o.mount === 'chassis' ? 'Sensor on the chassis' : 'Sensor on the upright'} · ${fmt(r.tireD * 1000, 0)} mm tire`;
+    kv('irTopKv', [
+      ['Steer', `${Math.round(deg)}°`],
+      ['Reading (middle)', `${fmt(read, 1)} °C`, Math.abs(read - r.spots[mid].true) > 5 ? 'bad' : Math.abs(read - r.spots[mid].true) > 2 ? 'meh' : 'ok'],
+      ['Tread slides under it', o.mount === 'chassis' ? `${fmt(o.aimFwdMM * Math.tan(deg * Math.PI / 180), 0)} mm` : '0 mm'],
+      ['Spot leaves the tread at', o.mount === 'chassis' ? (r.loseDeg < 30 ? `±${fmt(r.loseDeg, 0)}°` : 'past 30°') : 'never']
+    ]);
+  }
+  function stopIrAnim() {
+    if (!irAnim) return;
+    cancelAnimationFrame(irAnim); irAnim = null;
+    $('i_play').textContent = 'Play steering sweep';
+    renderView('components');
+  }
+  $('i_play').addEventListener('click', () => {
+    if (irAnim) return stopIrAnim();
+    if (!irLast) return;
+    $('i_play').textContent = 'Stop';
+    const t0 = performance.now();
+    const step = now => {
+      const deg = 25 * Math.sin((now - t0) / 1000 * Math.PI / 2);   // ±25° every 4 s
+      IR.steerDeg = Math.round(deg);
+      $('i_steerDeg').value = IR.steerDeg; $('o_i_steerDeg').textContent = `${IR.steerDeg}°`;
+      drawIrTop(irLast.r.o, irLast.r, deg);
+      irAnim = requestAnimationFrame(step);
+    };
+    irAnim = requestAnimationFrame(step);
+  });
 
   function renderSteer() {
     const r = S.simulateSteering(ST), s = r.s;

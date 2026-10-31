@@ -400,7 +400,7 @@ def simulate_ir(o=None):
     # steer at which the chassis-mounted middle spot starts to leave the target
     half = (w - D) / 2
     lose = math.degrees(math.atan(max(0.0, half - abs(o["offsetMM"])) / o["aimFwdMM"])) if o["aimFwdMM"] > 0 else 90.0
-    return {"o": o, "target": IR_TARGETS.get(o["target"], IR_TARGETS["tire"]), "spotMM": D,
+    return {"o": o, "target": IR_TARGETS.get(o["target"], IR_TARGETS["tire"]), "spotMM": D, "tireD": with_defaults()["tireD"],
             "steerShiftMM": ir_steer_shift_mm(o), "bySteer": by_steer, "loseDeg": lose if D < w else 0.0, "zoneMM": zone, "fitDistMM": fit,
             "spots": spots, "byDist": by_dist, "byOff": by_off, "fovs": sorted(by_dist)}
 
