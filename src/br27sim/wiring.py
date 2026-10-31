@@ -187,13 +187,13 @@ def schematic_svg():
     # zones and title
     o.append(f'<rect class="zone" x="4" y="64" width="440" height="{n(H - 72)}" rx="8"/>')
     o.append(f'<rect class="zone" x="460" y="64" width="{n(W - 464)}" height="{n(H - 72)}" rx="8"/>')
-    o.append('<text class="z" x="24" y="88">COCKPIT SIDE: ELECTRICAL BOX BEHIND THE DASH</text>')
-    o.append('<text class="z" x="480" y="88">ENGINE SIDE: EMU UNDER THE SEAT PAN, ENGINE BAY</text>')
+    o.append('<text class="z" x="24" y="88">COCKPIT SIDE: DASH UNIT (DASH MCU + FUSE/RELAY BOX)</text>')
+    o.append('<text class="z" x="480" y="88">ENGINE SIDE: EMU UNDER THE SLOPED FIREWALL LEG, ENGINE BAY</text>')
     o.append('<text class="h" x="6" y="28">BR27 powertrain harness, EMU Black on 2012 CBR600RR</text>')
-    o.append('<text class="s" x="6" y="48">Proposal, rev F, 2026-10-31 (L-shaped firewall: battery and EMU under the seat pan on the engine side, electrical box behind the dash; EMU-to-engine wires do not cross, box feeds cross at GR1; rev E grommets; rev D colors; rev C fuel level). Dashed boxes are parts still to be selected. Pins from the EMU Black label (B = black 39-pin, G = grey 24-pin). Fuse sizes and gauges are proposals; check against the EMU Black manual before building.</text>')
+    o.append('<text class="s" x="6" y="48">Proposal, rev F, 2026-10-31 (bent firewall: battery and EMU under its sloped lower leg on the engine side, fuse/relay box in the dash unit; EMU-to-engine wires do not cross, box feeds cross at GR1; rev E grommets; rev D colors; rev C fuel level). Dashed boxes are parts still to be selected. Pins from the EMU Black label (B = black 39-pin, G = grey 24-pin). Fuse sizes and gauges are proposals; check against the EMU Black manual before building.</text>')
 
-    # rev F: the firewall is L-shaped (back panel + seat pan). Battery and EMU sit under the seat
-    # pan on the engine side; the electrical box (fuses, relays) is behind the dash. The dashed
+    # rev F: the firewall is one sheet bent ~135° (back panel + sloped lower leg). Battery and EMU sit
+    # in the wedge under it on the engine side; the fuse/relay box is part of the dash unit. The dashed
     # line between the box column and the EMU is the firewall: feeds from the box, the relay
     # drive wires and the CAN chain cross it at grommet GR1. EMU-to-engine wires never cross.
     fwL = 452
@@ -280,7 +280,7 @@ def schematic_svg():
     blk(px + 210, by + 70, 200, 44, "Regulator (sidepod)", "TBD, output via PMS pole 2", True)
     o.append(f'<line class="w pw dash" x1="{n(px + 230)}" y1="{n(by + 114)}" x2="{n(px + 230)}" y2="{n(by + 150)}"/><line class="w pw dash" x1="{n(px + 230)}" y1="{n(by + 150)}" x2="{n(px + bw)}" y2="{n(by + 150)}"/>')
     fbY, fbH = by + 215, 30 + len(FUSES) * 22
-    blk(px, fbY, 410, fbH, "Electrical box behind the dash, TBD", "", True)
+    blk(px, fbY, 410, fbH, "Fuse/relay box in the dash unit, TBD", "", True)
     for i, (f, a, what) in enumerate(FUSES):
         o.append(f'<text class="m" x="{n(px + 12)}" y="{n(fbY + 42 + i * 22)}">{f} {a}</text><text class="s" x="{n(px + 92)}" y="{n(fbY + 42 + i * 22)}">{esc(what)}</text>')
     o.append(f'<line class="w pw" x1="{n(px + bw / 2)}" y1="{n(by + 184)}" x2="{n(px + bw / 2)}" y2="{n(fbY)}" stroke-width="3"/>')
@@ -302,7 +302,7 @@ def schematic_svg():
     o.append(f'<line class="w gdw" x1="{n(emuX + emuW)}" y1="{n(yG)}" x2="{n(devX - 40)}" y2="{n(yG)}"/>')
     o.append(f'<text class="s" x="{n(emuX + emuW + 10)}" y="{n(yG - 6)}">Grounds → engine block star point GS, 16 AWG</text>')
     o.append(f'<line class="w cnw" x1="{n(px)}" y1="{n(yC)}" x2="{n(emuX)}" y2="{n(yC)}" stroke-width="2.5"/>')
-    o.append(f'<text class="s" x="{n(px)}" y="{n(yC - 6)}">CAN: dash (120 Ω) → box → FR → FL → GR1 → splice</text>')
+    o.append(f'<text class="s" x="{n(px)}" y="{n(yC - 6)}">CAN: dash unit (120 Ω) → FR → FL → GR1 → splice</text>')
     o.append(f'<text class="s" x="{n(px)}" y="{n(yC + 16)}">beside EMU (0.1 m stub) → RR → RL (120 Ω)</text>')
 
     # legend
@@ -323,15 +323,15 @@ def fuel_system_svg():
     """One-page view of how the fuel system connects: power and shutdown path to the
     pump, EMU outputs and sensors, the float level sender, CAN to the dash, and the
     fuel plumbing for context. Same pins and refs as the harness schematic."""
-    W, H, fwX = 1600, 1010, 500  # rev F: firewall between the electrical box (behind the dash) and the EMU
+    W, H, fwX = 1600, 1010, 500  # rev F: firewall between the dash unit (fuse/relay box) and the EMU
     o = []
     o.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {n(W)} {n(H)}" class="br-wiring" role="img" aria-label="BR27 fuel system wiring" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif">')
     o.append(STYLE)
     o.append("<style>.br-wiring .fl{stroke:var(--s5,#e87ba4);stroke-width:6;stroke-opacity:.55;fill:none;stroke-linecap:round}</style>")
     o.append(f'<rect class="zone" x="4" y="64" width="{n(fwX - 12)}" height="{n(H - 72)}" rx="8"/>')
     o.append(f'<rect class="zone" x="{n(fwX + 8)}" y="64" width="{n(W - fwX - 12)}" height="{n(H - 72)}" rx="8"/>')
-    o.append('<text class="z" x="24" y="88">COCKPIT SIDE: BOX BEHIND THE DASH</text>')
-    o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE SIDE: EMU UNDER THE SEAT PAN, TANK, PUMP, RAIL</text>')
+    o.append('<text class="z" x="24" y="88">COCKPIT SIDE: DASH UNIT (FUSE/RELAY BOX)</text>')
+    o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE SIDE: EMU UNDER THE FIREWALL LEG, TANK, PUMP, RAIL</text>')
     o.append(f'<line x1="{n(fwX)}" y1="64" x2="{n(fwX)}" y2="{n(H - 8)}" stroke="var(--k3)" stroke-width="3" class="dash"/>')
     o.append('<text class="h" x="6" y="28">BR27 fuel system: how it connects (EMU Black, 2012 CBR600RR)</text>')
     o.append('<text class="s" x="6" y="48">Proposal, rev F, 2026-10-31. Same pins and refs as the harness schematic and wire list. Dashed boxes are parts still to be selected. Pink band = fuel line (plumbing, for context).</text>')
@@ -358,7 +358,7 @@ def fuel_system_svg():
     blk(30, 250, 200, 44, "PMS, 2-pole", ["TBD, main hoop (IC.9.3)"], True)
     ln("pw", [[130, 154], [130, 180]], 'stroke-width="3"'); ln("pw", [[130, 224], [130, 250]], 'stroke-width="3"')
     ln("pw", [[130, 294], [130, 330]], 'stroke-width="3"'); lab(138, 316, "switched bus")
-    blk(30, 330, 200, 104, "Electrical box FB (dash), TBD", ["F1 5 A → EMU Black", "F2 20 A → kill relay contacts", "F3 10 A → pump relay (kill bus)", "K1, K2 live in this box"], True)
+    blk(30, 330, 200, 104, "Fuse/relay box FB (dash unit), TBD", ["F1 5 A → EMU Black", "F2 20 A → kill relay contacts", "F3 10 A → pump relay (kill bus)", "K1, K2 live in this box"], True)
     blk(270, 330, 200, 104, "Kill relay K1", ["coil loop: CMS (dash) →", "BOTS (pedal box) → inertia sw.", "contacts: F2 → KILL BUS", "any switch open = no fuel, no spark"], True)
     ln("pw", [[230, 360], [270, 360]]); lab(238, 354, "F2")
     # kill bus
@@ -470,13 +470,13 @@ def bulkhead_count():
 # K3 fan relay, GS engine block ground star. Device pin names are functions until
 # the mating connectors are chosen. Lengths are rough estimates (EMU under seat).
 CONNECTORS = [
-    ["EMU-B", "EMU Black 39-pin black connector", "Under seat pan (engine side)", 39],
-    ["EMU-G", "EMU Black 24-pin grey connector", "Under seat pan (engine side)", 24],
-    ["FB", "Electrical box: fuses F1-F5, relays K1-K3, 5 V converters", "Behind the dash (cockpit side)", ""],
+    ["EMU-B", "EMU Black 39-pin black connector", "Under the sloped firewall leg (engine side)", 39],
+    ["EMU-G", "EMU Black 24-pin grey connector", "Under the sloped firewall leg (engine side)", 24],
+    ["FB", "Fuse/relay box in the dash unit: fuses F1-F5, relays K1-K3, 5 V converters", "Dash unit (cockpit side)", ""],
     ["K1", "Kill relay (30/85/86/87)", "Fuse box", 4],
     ["K2", "Fuel pump relay (30/85/86/87)", "Fuse box", 4],
     ["K3", "Fan relay (30/85/86/87)", "Fuse box", 4],
-    ["GR1", "Seat-closeout firewall grommet, sealed (T.1.8.6.d), rev F: cockpit-side wiring only (front CAN chain to FL, FR and dash; dash power; CMS and BOTS kill loop; PMS leads if routed inside). The powertrain harness stays on the engine side. Use split grommets or pin the connectors after passing the wires through", "Firewall", ""],
+    ["GR1", "Firewall grommet in the sloped lower leg, sealed (T.1.8.6.d), rev F: battery feed to the dash unit, F1 to the EMU, kill bus, pump and fan +12 V, EMU relay drives (G13, G5) and the CAN chain cross here. EMU-to-engine wires stay on the engine side. Use split grommets or pin the connectors after passing the wires through", "Firewall", ""],
     ["GR2", "Grommets at every other panel pass-through: battery and charging cables, corner node and dash runs, sidepod (count set when routing is final)", "Various", ""],
     ["S1", "+5 V ref splice", "Engine bay", ""],
     ["S2", "Sensor ground splice", "Engine bay", ""],
@@ -493,13 +493,13 @@ CONNECTORS = [
     ["INJ3", "Injector cyl 3", "Throttle body", 2], ["INJ4", "Injector cyl 4", "Throttle body", 2],
     ["IGN1", "Coil cyl 1", "Head", 2], ["IGN2", "Coil cyl 2", "Head", 2], ["IGN3", "Coil cyl 3", "Head", 2], ["IGN4", "Coil cyl 4", "Head", 2],
     ["PUMP", "Fuel pump", "Tank", 2], ["FAN", "Radiator fan", "Sidepod", 2],
-    ["CAN", "CAN splice beside the EMU: one chain dash (120 Ω) → box → FR → FL → splice → RR → RL (120 Ω); EMU on a ~0.1 m stub, terminator off", "Under seat pan, beside EMU", 2],
+    ["CAN", "CAN splice beside the EMU: one chain dash unit (120 Ω) → FR → FL → GR1 → splice → RR → RL (120 Ω); EMU on a ~0.1 m stub, terminator off", "Under the sloped firewall leg, beside EMU", 2],
 ]
 
 
 def components():
     """Every powertrain electrical part with its selection status (for the PDF and xlsx)."""
-    extra = [["BAT", "Battery: NOCO NLP14 (4 Ah LiFePO4)", "Under seat pan (engine side); feed crosses GR1 to the box", ""], ["BRK", "Main breaker, ~100 A manual reset (proposed)", "Next to PMS", ""],
+    extra = [["BAT", "Battery: NOCO NLP14 (4 Ah LiFePO4)", "Under the sloped firewall leg (engine side); feed crosses GR1 to the box", ""], ["BRK", "Main breaker, ~100 A manual reset (proposed)", "Next to PMS", ""],
              ["PMS", "Primary Master Switch, 2-pole (proposed)", "Main hoop, right side", ""], ["REG", "Regulator/rectifier, series MOSFET type (proposed)", "Sidepod", ""]]
     return [{"ref": ref, "desc": desc, "loc": loc, "pins": pins, "status": STATUS_LABEL.get(STATUS.get(ref)) or "Selected"}
             for ref, desc, loc, pins in extra + CONNECTORS if STATUS.get(ref) != ""]
@@ -527,7 +527,7 @@ def wire_list():
     # yellow signal, blue 5 V, CAN black = low / white = high. team_color() overrides the rev C
     # per-wire suggestions still passed as col; heat-shrink labels carry the wire ID.
     def add(f, fp, t, tp, sig, awg, col, mm, grp="", thru=False):
-        # rev F: EMU, box and engine are all on the engine side of the L-shaped firewall, so no wire here passes GR1 (thru kept for the call sites)
+        # rev F: via is set after the list is built (box-side vs engine-side ends); thru is kept for the call sites
         w.append({"from": f, "fromPin": n(fp), "to": t, "toPin": n(tp), "signal": sig, "awg": awg, "color": team_color(sig), "mm": mm,
                   "group": grp or "", "via": ""})
 
@@ -594,7 +594,7 @@ def wire_list():
     add("S1", "OUT", "R1", 1, "+5V_REF", 22, "Orange", 500)
     add("R1", 2, "FLVL", "SIG", "FUEL_LVL", 22, "Grey", 100)
     add("S2", "OUT", "FLVL", "GND", "SGND", 22, "Brown", 500)
-    # rev F: the electrical box (FB, K1-K3) is behind the dash on the cockpit side; everything else
+    # rev F: the fuse/relay box (FB, K1-K3) is part of the dash unit on the cockpit side; everything else
     # here is on the engine side. Wires with one end in the box cross the firewall at GR1 and run
     # about 1.4 m further than the old under-seat box position assumed.
     box = ["FB", "K1", "K2", "K3"]

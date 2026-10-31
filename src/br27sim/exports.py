@@ -51,8 +51,8 @@ def print_html():
 <li>Coil 4 is on the black connector (B14), not the grey one.</li>
 <li>Fuel level (rev C): float sender in the tank to Analog #5 (B35). R1 470 Ω from +5 V to the signal, sender return to sensor ground (not the tank or chassis). Reads about 0.33 V full to 1.69 V empty; open circuit reads 5 V. Scale it in the EMU client and send it to the dash over CAN. See the Fuel Level Sensor Selection form.</li>
 <li>Fuel pump: +12 V from the kill bus through F3 and the pump relay (EMU AUX 2, G13, low side), so the CMS, BOTS or inertia switch stops the pump (IC.9.2.2).</li>
-<li>Firewall (rev F): the firewall is L-shaped (back panel plus seat pan). The battery and EMU sit under the seat pan on the engine side; the electrical box (fuses, relays, 5 V converters) is behind the dash. EMU-to-engine wires never cross the firewall. What crosses at sealed grommet GR1: the battery feed to the box, F1 to the EMU, the kill bus, pump and fan +12 V, the EMU relay drive wires (G13, G5) and the CAN chain (wire list column "Firewall pass-through"). Every other panel pass-through gets a grommet (GR2).</li>
-<li>CAN (2026-10-31): one chain, dash MCU (120 Ω) → electrical box (pass-through) → FR → FL → CAN splice beside the EMU under the seat → RR → RL (120 Ω). The EMU joins on a ~0.1 m stub; turn its built-in selectable terminator OFF in the EMU client.</li>
+<li>Firewall (rev F): the firewall is one sheet bent about 135°: a vertical back panel and a lower leg sloping forward-down to the floor. The battery and EMU sit in the wedge under the sloped leg on the engine side; the fuse/relay box and 5 V converters are part of the dash unit at the front. EMU-to-engine wires never cross the firewall. What crosses at sealed grommet GR1: the battery feed to the dash unit, F1 to the EMU, the kill bus, pump and fan +12 V, the EMU relay drive wires (G13, G5) and the CAN chain (wire list column "Firewall pass-through"). Every other panel pass-through gets a grommet (GR2).</li>
+<li>CAN (2026-10-31): one chain, dash unit (120 Ω) → FR → FL → GR1 → CAN splice beside the EMU → RR → RL (120 Ω). The EMU joins on a ~0.1 m stub; turn its built-in selectable terminator OFF in the EMU client.</li>
 </ul></div></div></div>
 <div class="p"><h2>Powertrain electrical components and selection status</h2>
 <p class="note">"Stock CBR600RR (assumed)" means the part is assumed to stay as it comes on the 2012 engine; confirm it. "To be selected" parts are shown generically in the schematic (dashed boxes) and their pinouts, connectors and wire counts may change once chosen. The full from-to wire list is in {NAME}.xlsx.</p>
@@ -107,11 +107,11 @@ def write_xlsx(path):
     sheet(wb, "Fuses", ["Fuse", "Rating", "Feeds"], W.FUSES, [8, 10, 60])
     ws = wb.create_sheet("Notes")
     for line in [
-        "BR27 powertrain harness, rev F, 2026-10-31 (L-shaped firewall: battery and EMU under the seat pan on the engine side, electrical box behind the dash; wires from the box to the engine side cross at grommet GR1, see the Firewall pass-through column; rev E grommets instead of a bulkhead connector; rev D team wire color code; rev C fuel level sender W068-W071). Proposal: check every pin against the EMU Black manual before building.",
+        "BR27 powertrain harness, rev F, 2026-10-31 (bent firewall: battery and EMU under its sloped lower leg on the engine side, fuse/relay box in the dash unit; wires from the box to the engine side cross at grommet GR1, see the Firewall pass-through column; rev E grommets instead of a bulkhead connector; rev D team wire color code; rev C fuel level sender W068-W071). Proposal: check every pin against the EMU Black manual before building.",
         "Wires sheet is a from-to list, one row per wire. Map its columns to your harness tool's import fields (connector, pin, gauge, color, length).",
         "Device pin names (SIG, +5V, GND, +, -) are functions until the mating connectors are chosen; LSU and relay pins use their real numbers.",
         "Rows shaded yellow touch a part that is still to be selected; their pins and wire counts may change.",
-        "Lengths are rough estimates (EMU under the seat pan, electrical box behind the dash); replace them with CAD routing lengths.",
+        "Lengths are rough estimates (EMU under the sloped firewall leg, fuse/relay box in the dash unit); replace them with CAD routing lengths.",
         "Injectors, coils, wideband heater and pump relay coil take +12 V from the kill bus (S3); the EMU switches the low side.",
         "Crank and cam VR pairs (TSP1, TSP2) are shielded twisted pairs; ground shields at the EMU sensor ground only.",
     ]:

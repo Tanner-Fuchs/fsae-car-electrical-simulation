@@ -177,7 +177,7 @@
     if (params.canLayout === 'split') {
       $('routeText').textContent = 'Blue: the classic powertrain bus runs straight from the EMU Black under the seat to the dash MCU, with a terminator at each. Green: the CAN FD chassis bus starts at the dash MCU and visits FL, FR, RR and ends at RL, which carries its second terminator.';
     } else {
-      $('routeText').textContent = 'One chain: dash MCU (120 Ω) → electrical box behind the dash (pass-through) → FR → FL → through the firewall grommet → CAN splice beside the EMU under the seat (EMU on a ~0.1 m stub, terminator off) → RR → RL (120 Ω).';
+      $('routeText').textContent = 'One chain: dash unit (dash MCU + fuse/relay box, 120 Ω) → FR → FL → through firewall grommet GR1 → CAN splice beside the EMU under the sloped firewall leg (EMU on a ~0.1 m stub, terminator off) → RR → RL (120 Ω).';
     }
     const buses = S.CAN_LAYOUTS[params.canLayout].buses;
     const items = [];
@@ -190,9 +190,9 @@
     kv('routeKv', items);
     const bat = R.power.bat;
     const f = [];
-    if (bat.chem !== 'agm') f.push(['info', 'The lithium battery sits under the seat pan on the engine side of the L-shaped firewall, so the firewall is between it and the driver (T.1.8.1). T.1.8.4 needs the seat-pan face toward the driver to be grounded aluminum.']);
+    if (bat.chem !== 'agm') f.push(['info', 'The lithium battery sits in the wedge under the sloped lower leg of the bent firewall, on the engine side, so the firewall is between it and the driver (T.1.8.1). T.1.8.4 needs the face toward the driver to be grounded aluminum.']);
     f.push(['info', 'Battery must sit below the shoulder belt mount height and be mounted to structure strong enough for suspension loads (T.9.2.1). Under the seat meets the height part.']);
-    f.push(['info', 'The EMU Black sits under the seat pan on the engine side, close to the CG, so its wires to the engine never cross the firewall. The electrical box is behind the dash, so its feeds (F1, kill bus, pump and fan +12 V), the relay drive wires and the CAN chain cross at grommet GR1 (T.1.8).']);
+    f.push(['info', 'The EMU Black sits under the sloped firewall leg on the engine side, close to the CG, so its wires to the engine never cross the firewall. The fuse/relay box is part of the dash unit at the front, so its feeds (F1, kill bus, pump and fan +12 V), the relay drive wires and the CAN chain cross at grommet GR1 (T.1.8).']);
     f.push(['warn', 'The IMU by the dash sits well ahead of the CG. The sensor mounting form wanted it within 150 mm of the CG. Either mount it near the CG on its own wire or correct the lever arm in post-processing.']);
     f.push(['info', 'Corner nodes sit inboard of each wheel, so sensor leads to the wheel speed sensor stay under 1 m (sensor mounting form guideline).']);
     const placed = CAD ? Object.keys(CAD.positions).length : 0;
@@ -944,9 +944,9 @@
       ['good', 'The EMU is fed from F1 ahead of the kill relay, so it keeps logging after a shutdown. Everything it fires (injectors, coils, wideband heater, pump relay) gets +12 V from the kill bus.'],
       ['warn', 'Coil 4 is on the black connector (B14), not the grey one. Easy to miss when building the harness.'],
       ['info', 'Crank and cam VR sensors: shielded twisted pair, shield grounded at the EMU sensor ground only.'],
-      ['info', 'Firewall (rev F): it is L-shaped. The battery and EMU sit under the seat pan on the engine side and the electrical box is behind the dash. EMU-to-engine wires do not cross; the battery feed, the box feeds back to the EMU and engine (F1, kill bus, pump and fan +12 V), the EMU relay drive wires (G13, G5) and the CAN chain cross at grommet GR1.'],
+      ['info', 'Firewall (rev F): one sheet bent ~135° (back panel + sloped lower leg). The battery and EMU sit in the wedge under the sloped leg on the engine side; the fuse/relay box is part of the dash unit at the front. EMU-to-engine wires do not cross; the battery feed, the dash-unit feeds back to the EMU and engine (F1, kill bus, pump and fan +12 V), the EMU relay drive wires (G13, G5) and the CAN chain cross at grommet GR1.'],
       ['info', 'Fuel system: the pump relay (G13) and the injectors take +12 V from the kill bus, so any shutdown switch stops fuel. The float fuel level sender reads on Analog #5 (B35) through a 470 Ω pull-up (R1) to +5 V, about 0.33 V full to 1.69 V empty; the EMU sends it to the dash over CAN.'],
-      ['info', 'CAN: one chain, dash MCU (120 Ω) → box → FR → FL → splice beside the EMU → RR → RL (120 Ω). The EMU is on a ~0.1 m stub with its software-selectable 120 Ω OFF.'],
+      ['info', 'CAN: one chain, dash unit (120 Ω) → FR → FL → GR1 → splice beside the EMU → RR → RL (120 Ω). The EMU is on a ~0.1 m stub with its software-selectable 120 Ω OFF.'],
       ['warn', 'Pin functions come from the label on the unit. The BR27 use column is a proposal; assign the outputs in the EMU client and check against the EMU Black manual before powering up.']
     ]);
     wiringDone = true;
