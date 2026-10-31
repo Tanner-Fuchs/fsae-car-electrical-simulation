@@ -98,7 +98,7 @@
   }
 
   // ------------------------------------------------------------ routing
-  const VIEWS = ['car', 'engine', 'power', 'shutdown', 'can', 'faults', 'wiring', 'components', 'inputs'];
+  const VIEWS = ['car', 'engine', 'power', 'shutdown', 'can', 'faults', 'wiring', 'harness', 'components', 'inputs'];
   let currentView = 'car';
   function route() {
     const h = location.hash.replace('#', '');
@@ -107,6 +107,7 @@
     document.querySelectorAll('nav.tabs a').forEach(a => a.setAttribute('aria-current', a.getAttribute('href') === '#' + currentView ? 'page' : 'false'));
     if (currentView === 'engine') startEngineAnim(); else stopEngineAnim();
     if (car) { if (currentView === 'car') car.resume(); else car.pause(); }
+    if (harness3d) { if (currentView === 'harness') harness3d.resume(); else harness3d.pause(); }
     renderView(currentView);
   }
   function renderView(v) {
@@ -114,12 +115,19 @@
     try { renderViewInner(v); } catch (e) { console.error(e); window.BRShowError && window.BRShowError('the ' + v + ' tab', e); }
   }
   function renderViewInner(v) {
-    ({ car: renderCar, engine: renderEngine, power: renderPower, shutdown: renderShutdown, can: renderCan, faults: renderFaults, wiring: renderWiring, components: renderComponents, inputs: renderInputs })[v]();
+    ({ car: renderCar, engine: renderEngine, power: renderPower, shutdown: renderShutdown, can: renderCan, faults: renderFaults, wiring: renderWiring, harness: renderHarness, components: renderComponents, inputs: renderInputs })[v]();
   }
 
   const kv = (id, items) => { $(id).innerHTML = items.map(([k, v, cls]) => `<div><span>${k}</span><b class="${cls || ''}">${v}</b></div>`).join(''); };
   const flags = (id, items) => { $(id).innerHTML = items.map(([lvl, t]) => `<li class="${lvl}">${t}</li>`).join(''); };
   const xy = (xs, ys, step) => { const o = []; step = step || 1; for (let i = 0; i < xs.length; i += step) o.push({ x: xs[i], y: ys[i] }); return o; };
+
+  // ------------------------------------------------------------ harness 3D view (built the first time it opens)
+  let harness3d = null;
+  function renderHarness() {
+    if (harness3d || !window.BRHarness3D) return;
+    harness3d = window.BRHarness3D.mount({ stage: $('hscene'), labels: $('hlabels'), table: $('hTable') });
+  }
 
   // ------------------------------------------------------------ car view
   let car = null, selectedPart = 'battery';

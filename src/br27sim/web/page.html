@@ -122,6 +122,26 @@ td.num, th.num { text-align: right; font-family: var(--f-mono); }
 td.wrap { white-space: normal; min-width: 220px; }
 .mono { font-family: var(--f-mono); }
 .tag { font-size: 11px; padding: 1px 6px; border-radius: 3px; background: var(--bg); color: var(--ink-2); border: 1px solid var(--rule); }
+#hscene { position: relative; height: min(72vh, 640px); min-height: 380px; border-radius: 6px; overflow: hidden; background: var(--scene); touch-action: none; }
+#hscene canvas { display: block; }
+#hscene .hlabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+#hscene .hint { position: absolute; right: 10px; bottom: 8px; font-size: 11.5px; color: var(--ink-3); pointer-events: none; }
+.hlb { position: absolute; left: 0; top: 0; font: 600 11px/1.2 var(--f-mono); padding: 2px 5px; border-radius: 3px; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); white-space: nowrap; opacity: .94; }
+.hlb.node { font-family: var(--f-display); font-size: 13px; border-color: var(--accent); }
+.hlb.term { color: var(--crit-ink); }
+.hlb.wire { font-weight: 400; font-size: 10px; }
+.hlb.hide { display: none; }
+.hctrl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+.hctrl .lbl2 { font-size: 12px; color: var(--ink-3); margin-left: 6px; }
+.hctrl button { font: 600 12px/1 var(--f-mono); padding: 7px 10px; border-radius: 4px; border: 1px solid var(--rule); background: var(--panel); color: var(--ink); cursor: pointer; }
+.hctrl button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.hctrl button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hlegend { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 12px var(--f-mono); margin-top: 10px; }
+.hlegend span { display: inline-flex; align-items: center; gap: 6px; }
+.hlegend i { width: 22px; height: 8px; border-radius: 4px; border: 1px solid var(--ink-3); display: inline-block; }
+#hTable tr.pick { cursor: pointer; }
+#hTable tr.pick:hover td, #hTable tr.pick.on td { color: var(--accent); }
+#hTable tfoot td { font-weight: 600; }
 #scene3d { position: relative; height: 460px; border-radius: 6px; overflow: hidden; background: var(--scene); touch-action: none; }
 #scene3d canvas { display: block; }
 #scene3d .hint { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: var(--ink-3); pointer-events: none; }
@@ -162,6 +182,7 @@ td.wrap { white-space: normal; min-width: 220px; }
       <a href="#can">CAN / DAQ</a>
       <a href="#faults">Faults</a>
       <a href="#wiring">Wiring</a>
+      <a href="#harness">Harness 3D</a>
       <a href="#components">Components</a>
       <a href="#inputs">Inputs</a>
     </nav>
@@ -446,6 +467,67 @@ td.wrap { white-space: normal; min-width: 220px; }
   </div>
   <div class="card"><h3>Build notes</h3><ul class="flags" id="wiringNotes"></ul></div>
   <div class="card"><h3>Components and selection status</h3><div class="scroll"><table id="compTable"></table></div><p class="foot">Dashed boxes in the schematic are parts still to be selected. Exports in the project files under wiring/: PDF (schematic, pinout, this list) and an .xlsx from-to wire list for harness tools.</p></div>
+</section>
+<section class="view" id="v-harness" hidden>
+  <div class="view-head">
+    <h2>The harness in 3D</h2>
+    <p class="lede">Every wire of the CAN node chain, the sensor pigtails, the battery feed and the shutdown loop, drawn in the team color code with its heat-shrink label ID. Twisted pairs are drawn twisted. Drag to orbit, pinch or scroll to zoom, and tap a cable in the table to highlight it. The chain runs dash unit (120 Ω) → FR → FL → firewall grommet → CAN splice by the EMU → RR → RL (120 Ω).</p>
+  </div>
+  <div class="card">
+    <div class="hctrl">
+      <button type="button" data-hview="iso">3D view</button>
+      <button type="button" data-hview="top">Top view</button>
+      <button type="button" data-hview="fl">Close-up: FL node</button>
+      <button type="button" data-hview="dash">Close-up: dash unit</button>
+      <button type="button" data-hview="seat">Close-up: under firewall</button>
+      <span class="lbl2">Show</span>
+      <button type="button" data-hshow="can" aria-pressed="true">CAN chain</button>
+      <button type="button" data-hshow="sens" aria-pressed="true">Sensors</button>
+      <button type="button" data-hshow="power" aria-pressed="true">Power + shutdown</button>
+      <button type="button" data-hshow="main" aria-pressed="true">Labels</button>
+      <button type="button" data-hshow="wire" aria-pressed="false">Wire IDs</button>
+    </div>
+    <div id="hscene"><div class="hlabels" id="hlabels"></div><span class="hint">Wire thickness and twist pitch are exaggerated so they're visible</span></div>
+    <div class="hlegend" aria-label="Wire color code">
+      <span><i style="background:#f4f4f4"></i>CAN_H white</span>
+      <span><i style="background:#1d1d1f"></i>CAN_L black</span>
+      <span><i style="background:#2563eb"></i>+5 V blue</span>
+      <span><i style="background:#1d1d1f"></i>GND black</span>
+      <span><i style="background:#eab308"></i>Signal yellow</span>
+      <span><i style="background:#dc2626"></i>Power red</span>
+      <span><i style="background:#fafafa;border-color:var(--accent)"></i>Heat-shrink label</span>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Cables</h3>
+      <div class="scroll"><table id="hTable"></table></div>
+      <p class="foot">Lengths come from this model's rough layout, with no service loop. Final lengths will come from the CAD routing.</p>
+    </div>
+    <div>
+      <div class="card">
+        <h3>Wire IDs inside each node cable</h3>
+        <div class="scroll"><table><thead><tr><th>Suffix</th><th>Signal</th><th>Color</th><th>Pair</th></tr></thead><tbody>
+          <tr><td>-1</td><td>CAN_H</td><td>White</td><td>Twisted pair A</td></tr>
+          <tr><td>-2</td><td>CAN_L</td><td>Black</td><td>Twisted pair A</td></tr>
+          <tr><td>-3</td><td>+5V_NODE</td><td>Blue</td><td>Twisted pair B</td></tr>
+          <tr><td>-4</td><td>GND</td><td>Black</td><td>Twisted pair B</td></tr>
+        </tbody></table></div>
+        <p class="foot">Example: label C02-2 is CAN_L in the FR to FL cable. CAN_L and GND are both black, so the label is what tells them apart. Put one label at each end, 25 to 40 mm back from the connector.</p>
+      </div>
+      <div class="card">
+        <h3>Node connectors</h3>
+        <div class="scroll"><table><thead><tr><th>Conn.</th><th>Pins</th><th>Use</th></tr></thead><tbody>
+          <tr><td>Dash P1</td><td>M12 A-coded 5-pin</td><td>2 +5 V · 3 GND · 4 CAN_H · 5 CAN_L (pin 1 unused); starts the chain at FR</td></tr>
+          <tr><td>IN / OUT</td><td>DTM 4-pin</td><td>1 CAN_H · 2 CAN_L · 3 +5 V · 4 GND, straight through inside the node</td></tr>
+          <tr><td>SENS</td><td>DTM 6-pin</td><td>Wheel speed Hall plus brake pressure at FL and RL (5 V, GND, signal each)</td></tr>
+          <tr><td>FL extra</td><td>DTM 3-pin</td><td>Steering angle (5 V, GND, signal)</td></tr>
+          <tr><td>RL extra</td><td>DTM 2-pin</td><td>Brake light (+12 V switched, GND)</td></tr>
+        </tbody></table></div>
+        <p class="foot">After building, CAN_H to CAN_L with power off should read about 60 Ω. 120 Ω means a terminator is missing; 40 Ω means the EMU's terminator is still on.</p>
+      </div>
+    </div>
+  </div>
 </section>
 <section class="view" id="v-components" hidden>
   <div class="view-head">

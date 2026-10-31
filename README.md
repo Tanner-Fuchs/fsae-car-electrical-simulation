@@ -137,6 +137,7 @@ print(lap["stats"]["lapTime"], power["stats"]["endSoc"])
 | Component simulations (wheel speed sensor, IR temperature sensor, steering angle pot) | `src/br27sim/components.py` |
 | The page itself (layout, charts, 3D car, text) | `src/br27sim/web/` (HTML and JavaScript) |
 | STL import, CAD axes and part positions | `src/br27sim/cad.py` (server side), `web/car3d.js` (drawing) |
+| 3D harness model (Harness 3D tab: cable routes, colors, lengths) | `web/harness3d.js` |
 | The launchers | `launcher/` |
 
 Every default carries a tag saying where it came from: `[form: ...]` for a concept form,

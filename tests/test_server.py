@@ -91,3 +91,10 @@ def test_cad_upload_and_serve(url, tmp_path, monkeypatch):
         assert r.read() == data
     with pytest.raises(urllib.error.HTTPError):
         get(url + "/cad-files/..%2F..%2Fetc%2Fpasswd")
+
+
+def test_index_loads_harness3d():
+    from br27sim import server
+    html = server.index_html()
+    assert "/harness3d.js" in html and 'id="v-harness"' in html
+    assert html.index("/harness3d.js") < html.index("/app.js")
