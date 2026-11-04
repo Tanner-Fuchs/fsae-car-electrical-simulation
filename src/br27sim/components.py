@@ -291,8 +291,8 @@ def simulate_wheel_speed(params=None, w=None, lap=None):
 # spot is bigger than the target it also sees the background and reads low.
 
 IR_TARGETS = {
-    "tire": {"label": "Tire tread", "widthMM": 152, "emis": 0.95, "tempC": 70, "gradC": 12, "bgC": 35,
-             "note": "Hoosier 10 in tire, about 6 in of tread [assumption]; the background is track and air"},
+    "tire": {"label": "Tire tread", "widthMM": 178, "emis": 0.95, "tempC": 70, "gradC": 12, "bgC": 35,
+             "note": "Hoosier R20 16x7.5-10 on 10 in wheels, 7 in wide [Tanner 2026-11-04, form: VD Tire Model Data #1]; the background is track and air"},
     "rotor": {"label": "Brake rotor face", "widthMM": 32, "emis": 0.5, "tempC": 350, "gradC": 0, "bgC": 80,
               "note": "Rotor friction band [assumption]; the background is the wheel and upright. Bare steel and iron emissivity changes with wear and bluing"},
 }

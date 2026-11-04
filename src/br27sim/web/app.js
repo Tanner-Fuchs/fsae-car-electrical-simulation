@@ -810,7 +810,7 @@
     return a[key] + (b[key] - a[key]) * u;
   }
   function drawIrTop(o, r, deg) {
-    const R = r.tireD * 500, Wt = o.widthMM + 30;            // tire radius and section width (mm)
+    const R = r.tireD * 500, Wt = o.widthMM + 12;            // tire radius and section width (mm), sidewall bulge past the tread
     const k = 175 / R, cx = 330, cy = 235;
     const P = (f, l) => [cx + l * k, cy - f * k];             // chassis frame (forward, outward) -> screen
     const th = -deg * Math.PI / 180;                          // tire turns opposite to the spot's slide across the tread

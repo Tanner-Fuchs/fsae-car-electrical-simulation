@@ -47,8 +47,8 @@
     seg(V(0.6, 0.05, 0.38), V(0.6, 0.72, 0)); seg(V(0.6, 0.05, -0.38), V(0.6, 0.72, 0));
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(4, 3), mat(0x9aa4ad, { transparent: true, opacity: 0.18 }));
     ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; scene.add(ground);
-    const wheels = { FL: V(0.8, 0.23, 0.62), FR: V(0.8, 0.23, -0.62), RL: V(-0.8, 0.23, 0.62), RR: V(-0.8, 0.23, -0.62) };
-    Object.values(wheels).forEach(p => { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.2, 32), mat(0x2b3036, { transparent: true, opacity: 0.14, depthWrite: false })); w.rotation.x = Math.PI / 2; w.position.copy(p); add(w); });
+    const wheels = { FL: V(0.8, 0.203, 0.62), FR: V(0.8, 0.203, -0.62), RL: V(-0.8, 0.203, 0.62), RR: V(-0.8, 0.203, -0.62) };
+    Object.values(wheels).forEach(p => { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.203, 0.203, 0.178, 32), mat(0x2b3036, { transparent: true, opacity: 0.14, depthWrite: false })); w.rotation.x = Math.PI / 2; w.position.copy(p); add(w); });
     // firewall: one sheet bent about 135 deg: a vertical back panel, then a lower leg sloping forward and down to the floor.
     // The battery and EMU sit in the wedge under the sloped leg (engine side). Grommets go through the sloped leg.
     const fwMat = mat(0xb8c2cc, { transparent: true, opacity: 0.24, side: THREE.DoubleSide, depthWrite: false });

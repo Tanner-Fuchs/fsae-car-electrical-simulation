@@ -18,7 +18,7 @@ LHV = 43e6  # J/kg gasoline
 DEFAULTS = {
     # vehicle and drive cycle
     "massKg": 290,            # car + driver [assumption]
-    "tireD": 0.406,           # loaded tire diameter, 10 in wheels [form: Sample Rates]
+    "tireD": 0.406,           # tire diameter: Hoosier R20 16x7.5-10 (16 in tire on 10 in wheels) [form: VD Tire Model Data #1]
     "cdA": 1.1,               # m^2 [assumption]
     "crr": 0.015,             # [assumption]
     "driveEff": 0.90,         # chain + gearbox [assumption]

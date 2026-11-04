@@ -5,7 +5,7 @@
 
   // Component positions [assumption: until chassis CAD exists]
   const P = {
-    frontAxle: 0.80, rearAxle: -0.75, track: 1.22, wheelR: 0.205,
+    frontAxle: 0.80, rearAxle: -0.75, track: 1.22, wheelR: 0.203,
     battery: [-0.10, 0.075, 0.11],
     ecu: [-0.10, 0.065, -0.11],
     dash: [0.42, 0.60, 0],
@@ -208,9 +208,9 @@
     const tyreMat = mat(0x22262b, { roughness: 0.9 });
     const rimMat = mat(0xb9c0c8, { metalness: 0.7, roughness: 0.3 });
     for (const x of [P.frontAxle, P.rearAxle]) for (const s of [1, -1]) {
-      const t = new THREE.Mesh(new THREE.CylinderGeometry(P.wheelR, P.wheelR, 0.19, 28), tyreMat);
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(P.wheelR, P.wheelR, 0.178, 28), tyreMat);
       t.rotation.x = Math.PI / 2; t.position.set(x, P.wheelR, s * P.track / 2); scene.add(t);
-      const r = new THREE.Mesh(new THREE.CylinderGeometry(P.wheelR * 0.62, P.wheelR * 0.62, 0.195, 18), rimMat);
+      const r = new THREE.Mesh(new THREE.CylinderGeometry(P.wheelR * 0.625, P.wheelR * 0.625, 0.183, 18), rimMat);
       r.rotation.x = Math.PI / 2; r.position.copy(t.position); scene.add(r);
       t.userData.wheel = r.userData.wheel = true;
       // wishbones
