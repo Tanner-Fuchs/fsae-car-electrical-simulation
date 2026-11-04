@@ -33,7 +33,7 @@
           <g fill="var(--ink-2)">${teeth}</g>
           <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy + R * 0.3}" stroke="var(--accent)" stroke-width="3"/>
         </g>
-        <rect x="${cx - 14}" y="${cy - R - gapPx - 62}" width="28" height="62" rx="4" fill="var(--ink)"/>
+        <rect x="${cx - 14}" y="${cy - R - gapPx - 62}" width="28" height="62" rx="4" fill="#26201f" stroke="var(--ink-3)"/>
         <rect x="${cx - 9}" y="${cy - R - gapPx - 6}" width="18" height="6" fill="${isHall ? 'var(--s1)' : 'var(--s2)'}"/>
         <line x1="${cx}" y1="${cy - R - gapPx - 62}" x2="${cx}" y2="${cy - R - gapPx - 90}" stroke="${isHall ? 'var(--s1)' : 'var(--s2)'}" stroke-width="3"/>
         <text x="${cx + 22}" y="${cy - R - gapPx - 40}" font-size="13" fill="var(--ink)" font-weight="600">${isHall ? 'Hall sensor' : 'VR sensor'}</text>
