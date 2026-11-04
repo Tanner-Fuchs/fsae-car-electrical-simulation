@@ -555,12 +555,11 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
 <section class="view" id="v-components" hidden>
   <div class="view-head">
     <h2>Component simulations</h2>
-    <p class="lede">Try a part before buying it. Pick a component: the wheel speed sensor (Hall effect vs VR, and how many teeth on the ring), a single IR temperature sensor (field of view and distance to the tire or rotor), an IR array that reads across the whole tread (and how its mounting angles change the data), or the steering angle pot (range, gearing and accuracy). Every number marked as an assumption in the source is a typical datasheet value until the team picks a part.</p>
+    <p class="lede">Try a part before buying it. Pick a component: the wheel speed sensor (Hall effect vs VR, and how many teeth on the ring), a tire temperature sensor (a single IR spot or an IR array across the whole tread, where it is mounted and how its offsets and angles change the data), or the steering angle pot (range, gearing and accuracy). Every number marked as an assumption in the source is a typical datasheet value until the team picks a part.</p>
   </div>
   <div class="subtabs" role="tablist" aria-label="Component" id="compTabs">
     <button type="button" role="tab" data-comp="wheel">Wheel speed</button>
-    <button type="button" role="tab" data-comp="ir">IR temperature</button>
-    <button type="button" role="tab" data-comp="irarray">IR array</button>
+    <button type="button" role="tab" data-comp="irarray">Tire temperature</button>
     <button type="button" role="tab" data-comp="steer">Steering angle</button>
   </div>
   <div class="split">
@@ -604,7 +603,8 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
       </div>
       <div class="cgroup" data-comp="irarray" hidden>
       <h3>Sensor</h3>
-      <div class="field"><label for="a_preset">Array</label><select id="a_preset"></select><span class="src" id="a_presetNote"></span></div>
+      <div class="field"><label for="a_kind">Sensor type</label><select id="a_kind"><option value="single">Single IR (one spot)</option><option value="array">IR array (row of pixels)</option></select></div>
+      <div class="field"><label for="a_preset">Part</label><select id="a_preset"></select><span class="src" id="a_presetNote"></span></div>
       <div class="field" data-custom><label for="a_pixels">Pixels across <output id="o_a_pixels"></output></label><input type="range" id="a_pixels" min="1" max="64" step="1"></div>
       <div class="field" data-custom><label for="a_hFovDeg">Field of view across <output id="o_a_hFovDeg"></output></label><input type="range" id="a_hFovDeg" min="10" max="120" step="1"></div>
       <div class="field" data-custom><label for="a_vFovDeg">Pixel height <output id="o_a_vFovDeg"></output></label><input type="range" id="a_vFovDeg" min="0.5" max="40" step="0.5"></div>
@@ -614,14 +614,16 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
       <div class="field"><label for="a_tempC">Average tread temperature <output id="o_a_tempC"></output></label><input type="range" id="a_tempC" min="20" max="120" step="1"></div>
       <div class="field"><label for="a_gradC">Hot to cold difference <output id="o_a_gradC"></output></label><input type="range" id="a_gradC" min="0" max="40" step="1"></div>
       <div class="field"><label for="a_bgC">Track and air <output id="o_a_bgC"></output></label><input type="range" id="a_bgC" min="0" max="60" step="1"></div>
-      <h3>Mount offsets</h3>
-      <div class="field"><label for="a_xMM">X: distance ahead of the tread <output id="o_a_xMM"></output></label><input type="range" id="a_xMM" min="40" max="320" step="5"></div>
-      <div class="field"><label for="a_yMM">Y: sideways, + outward <output id="o_a_yMM"></output></label><input type="range" id="a_yMM" min="-80" max="80" step="1"></div>
-      <div class="field"><label for="a_zMM">Z: height above the axle <output id="o_a_zMM"></output></label><input type="range" id="a_zMM" min="-150" max="150" step="5"></div>
+      <h3>Mount position</h3>
+      <div class="field"><label for="a_position">Mounted</label><select id="a_position"><option value="front">In front of the tire</option><option value="above">Above the tire</option><option value="beside">On the chassis beside the tire</option></select><span class="src" id="a_positionNote"></span></div>
+      <div class="field"><label for="a_distMM">Distance to the tread <output id="o_a_distMM"></output></label><input type="range" id="a_distMM" min="40" max="320" step="5"></div>
+      <div class="field"><label for="a_xMM">X shift, + forward <output id="o_a_xMM"></output></label><input type="range" id="a_xMM" min="-60" max="60" step="1"></div>
+      <div class="field"><label for="a_yMM">Y shift, + outward <output id="o_a_yMM"></output></label><input type="range" id="a_yMM" min="-60" max="60" step="1"></div>
+      <div class="field"><label for="a_zMM">Z shift, + up <output id="o_a_zMM"></output></label><input type="range" id="a_zMM" min="-60" max="60" step="1"></div>
       <h3>Mount angles</h3>
       <div class="field"><label for="a_rollDeg">Roll (about the look axis) <output id="o_a_rollDeg"></output></label><input type="range" id="a_rollDeg" min="-45" max="45" step="1"><span class="src">Tilts the pixel row</span></div>
       <div class="field"><label for="a_pitchDeg">Pitch (+ looks up) <output id="o_a_pitchDeg"></output></label><input type="range" id="a_pitchDeg" min="-45" max="45" step="1"></div>
-      <div class="field"><label for="a_yawDeg">Yaw (+ looks outward) <output id="o_a_yawDeg"></output></label><input type="range" id="a_yawDeg" min="-30" max="30" step="1"></div>
+      <div class="field"><label for="a_yawDeg">Yaw (+ looks outward) <output id="o_a_yawDeg"></output></label><input type="range" id="a_yawDeg" min="-45" max="45" step="1"></div>
       <h3>Front tire steer</h3>
       <div class="field"><label for="a_mount">Sensor mounted on</label><select id="a_mount"><option value="chassis">Chassis (tire turns under it)</option><option value="upright">Upright (turns with the wheel)</option></select></div>
       <div class="field"><label for="a_steerDeg">Front wheel steer <output id="o_a_steerDeg"></output></label><input type="range" id="a_steerDeg" min="-30" max="30" step="1"><span class="src">+ swings the front of the tire outward</span></div>
@@ -656,7 +658,7 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
           <select id="rSlow" style="width:auto"><option value="1">Real time</option><option value="0.1">1/10 speed</option><option value="0.02" selected>1/50 speed</option><option value="0.005">1/200 speed</option></select>
           <button type="button" id="rPlay">Pause</button>
         </div>
-        <div class="scroll"><svg id="ringSvg" viewBox="0 0 900 360" style="width:100%;min-width:620px;height:auto;display:block" role="img" aria-label="Tone ring, teeth and sensor, spinning"></svg></div>
+        <div class="scroll" style="contain: layout paint"><svg id="ringSvg" viewBox="0 0 900 360" style="width:100%;min-width:620px;height:auto;display:block" role="img" aria-label="Tone ring, teeth and sensor, spinning"></svg></div>
         <div class="grid2">
           <div><h3 style="font-size:15px;margin:6px 0">From sensor pulses to speed</h3><div class="scroll"><table id="rConv"></table></div></div>
           <div><div class="kv" id="rKv"></div><p class="foot" id="rFoot"></p></div>
@@ -721,7 +723,7 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
           <button type="button" data-arview="top">Top (X–Y)</button>
         </div>
         <div id="arScene"><div class="hlabels" id="arLabels"></div><span class="hint">Drag to orbit · pinch or scroll to zoom</span></div>
-        <p class="foot">The tread is colored by its true temperature. Each line is one pixel's view, colored by what that pixel reads; the dots are where it lands. Red, green and blue arrows are X, Y and Z. The rings around the sensor show which way + roll, pitch and yaw turn it.</p>
+        <p class="foot">The tread is colored by its true temperature. Each line is one pixel's view (one line for a single IR sensor), colored by what that pixel reads; the dots are where it lands. Red, green and blue arrows are X, Y and Z. The rings around the sensor show which way + roll, pitch and yaw turn it.</p>
       </div>
       <div class="card">
         <div class="card-head"><h3>Offsets and angles, plane by plane</h3></div>
@@ -732,7 +734,7 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
         </div>
       </div>
       <div class="card">
-        <div class="card-head"><h3>What the array reads</h3><div class="legend" id="arLegend"></div></div>
+        <div class="card-head"><h3 id="arReadTitle">What the array reads</h3><div class="legend" id="arLegend"></div></div>
         <div class="strip" id="arStrip"></div><div class="strip-scale"><span>inner pixel</span><span id="arStripScale"></span><span>outer pixel</span></div>
         <div class="plot"><canvas id="c_arRead"></canvas></div>
         <div class="kv" id="arKv"></div>
@@ -743,7 +745,7 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
           <div class="field" style="margin:0"><select id="arDof" aria-label="Offset or angle to sweep"></select></div></div>
         <div class="grid2">
           <div><p class="foot">Array reading at five settings, pixel by pixel</p><div class="plot"><canvas id="c_arProf"></canvas></div><div class="legend" id="arProfLegend"></div></div>
-          <div><p class="foot">Share of the tread width the array sees</p><div class="plot"><canvas id="c_arCover"></canvas></div></div>
+          <div><p class="foot" id="arCoverTitle">Share of the tread width the array sees</p><div class="plot"><canvas id="c_arCover"></canvas></div></div>
         </div>
         <p class="foot" id="arDofFoot"></p>
       </div>

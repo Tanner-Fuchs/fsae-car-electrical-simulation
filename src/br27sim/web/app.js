@@ -662,9 +662,9 @@
   const A_UNITS = {
     pixels: v => `${v}`, hFovDeg: v => `${v}°`, vFovDeg: v => `${(+v).toFixed(1)}°`, widthMM: v => ln(+v, 1),
     tempC: v => tp(+v), gradC: v => tdp(+v), bgC: v => tp(+v),
-    xMM: v => ln(+v, 1), yMM: v => ln(+v, 2), zMM: v => ln(+v, 1), rollDeg: v => `${v}°`, pitchDeg: v => `${v}°`, yawDeg: v => `${v}°`, steerDeg: v => `${v}°`
+    distMM: v => ln(+v, 1), xMM: v => ln(+v, 2), yMM: v => ln(+v, 2), zMM: v => ln(+v, 2), rollDeg: v => `${v}°`, pitchDeg: v => `${v}°`, yawDeg: v => `${v}°`, steerDeg: v => `${v}°`
   };
-  const AR_DOFS = [['xMM', 'X: distance'], ['yMM', 'Y: sideways'], ['zMM', 'Z: height'], ['rollDeg', 'Roll'], ['pitchDeg', 'Pitch'], ['yawDeg', 'Yaw'], ['steerDeg', 'Front wheel steer']];
+  const AR_DOFS = [['distMM', 'Distance'], ['xMM', 'X shift'], ['yMM', 'Y shift'], ['zMM', 'Z shift'], ['rollDeg', 'Roll'], ['pitchDeg', 'Pitch'], ['yawDeg', 'Yaw'], ['steerDeg', 'Front wheel steer']];
   function setTarget(t) { const d = S.IR_TARGETS[t]; IR.target = t; for (const k of ['widthMM', 'emis', 'tempC', 'gradC', 'bgC']) IR[k] = d[k]; IR.emisSet = d.emis; }
   setTarget(IR.target);
   let wTimer = null;
@@ -695,9 +695,16 @@
     const syncIr = bindGroup('i', IR, I_UNITS, () => { Object.assign(IR, S.IR_DEFAULTS); setTarget(IR.target); });
     $('i_target').addEventListener('input', () => { setTarget($('i_target').value); syncIr(); });
     bindGroup('s', ST, S_UNITS, () => Object.assign(ST, S.STEER_DEFAULTS));
-    $('a_preset').innerHTML = Object.entries(S.IR_ARRAY_PRESETS).map(([k, p]) => `<option value="${k}">${p.label}</option>`).join('');
+    const presetOpts = () => { $('a_preset').innerHTML = Object.entries(S.IR_ARRAY_PRESETS).filter(([, p]) => p.kind === AR.kind).map(([k, p]) => `<option value="${k}">${p.label}</option>`).join(''); $('a_preset').value = AR.preset; };
+    presetOpts();
     $('a_profile').innerHTML = Object.entries(S.IR_ARRAY_PROFILES).map(([k, t]) => `<option value="${k}">${t}</option>`).join('');
     const syncAr = bindGroup('a', AR, A_UNITS, () => Object.assign(AR, S.IR_ARRAY_DEFAULTS));
+    $('a_kind').addEventListener('input', () => {
+      AR.preset = AR.kind === 'single' ? 'single_35' : 'mlx90640_55';
+      const p = S.IR_ARRAY_PRESETS[AR.preset]; Object.assign(AR, { pixels: p.pixels, hFovDeg: p.hFovDeg, vFovDeg: p.vFovDeg, distMM: AR.kind === 'single' ? 100 : 180 });
+      presetOpts(); syncAr();
+    });
+    $('a_reset').addEventListener('click', presetOpts);
     $('a_preset').addEventListener('input', () => { const p = S.IR_ARRAY_PRESETS[AR.preset]; if (AR.preset !== 'custom') Object.assign(AR, { pixels: p.pixels, hFovDeg: p.hFovDeg, vFovDeg: p.vFovDeg }); syncAr(); });
     $('arDof').innerHTML = AR_DOFS.map(([k, t]) => `<option value="${k}">${t}</option>`).join('');
     $('arDof').addEventListener('input', () => { if (arLast) drawArSweep(arLast); });
@@ -710,8 +717,9 @@
   }
   let compSel = 'wheel';
   try { compSel = localStorage.getItem('br27.component') || 'wheel'; } catch (e) { /* storage blocked */ }
+  if (compSel === 'ir') compSel = 'irarray';   // single IR now lives in the tire temperature tab
   function renderComponents() {
-    const c = ({ wheel: 1, ir: 1, irarray: 1, steer: 1 })[compSel] ? compSel : 'wheel';
+    const c = ({ wheel: 1, irarray: 1, steer: 1 })[compSel] ? compSel : 'wheel';
     document.querySelectorAll('#compTabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.comp === c));
     document.querySelectorAll('#v-components .cgroup').forEach(g => { g.hidden = g.dataset.comp !== c; });
     if (ar3d) { if (c === 'irarray') ar3d.resume(); else ar3d.pause(); }
@@ -727,7 +735,7 @@
       ring = window.BRRing.mount($('ringSvg'), { len: (mm, d) => ln(mm, d), imp: IMP });
       $('rSpeed').addEventListener('input', () => { ringKmh = IMP() ? +$('rSpeed').value * 1.609344 : +$('rSpeed').value; renderRing(S.simulateWheelSpeed(params, W, R.lap)); });
       $('rSlow').addEventListener('input', () => renderRing(S.simulateWheelSpeed(params, W, R.lap)));
-      $('rPlay').addEventListener('click', () => { ringPlay = !ringPlay; $('rPlay').textContent = ringPlay ? 'Pause' : 'Play'; if (ringPlay) ring.start(); else ring.stop(); });
+      $('rPlay').addEventListener('click', () => { ringPlay = !ringPlay; $('rPlay').textContent = ringPlay ? 'Pause' : 'Play'; ringGo(); });
     }
     if (!ring) return;
     $('rSpeed').max = IMP() ? 100 : 160;
@@ -740,8 +748,21 @@
     kv('rKv', [['Wheel', `${fmt(n.rpm, 0)} rpm`], ['Teeth pass at', `${fmt(n.rpm * w.teeth / 60, 0)} Hz`], ['Tooth tips move at', ringSurf], ['Tire', n.tireTxt]]);
     $('rFoot').textContent = `Car speed comes from the wheel rpm and the tire size, not the ring: the ring and the tire turn together, so the ring size only sets how big each tooth is and how fast the teeth sweep past the sensor (${ringSurf} here). One tooth every ${fmt(360 / w.teeth, 1)}° of wheel rotation.`;
     $('rNote').textContent = `${w.teeth} teeth · ${ln(w.ringMM, 1)} ring · ${w.sensor === 'hall' ? 'Hall' : 'VR'}`;
-    if (ringPlay && compSel === 'wheel' && currentView === 'components') ring.start(); else ring.stop();
+    ringGo();
   }
+  // Run the ring only while it is on screen and the page is not scrolling: repainting it during
+  // a touch scroll made the page bounce on the iPad.
+  let ringVisible = true, ringScrolling = false, ringScrollT = null;
+  function ringGo() {
+    if (!ring) return;
+    if (ringPlay && ringVisible && !ringScrolling && compSel === 'wheel' && currentView === 'components') ring.start(); else ring.stop();
+  }
+  if (window.IntersectionObserver) new IntersectionObserver(es => { ringVisible = es[0].isIntersecting; ringGo(); }).observe($('ringSvg'));
+  window.addEventListener('scroll', () => {
+    if (!ringScrolling) { ringScrolling = true; ringGo(); }
+    clearTimeout(ringScrollT);
+    ringScrollT = setTimeout(() => { ringScrolling = false; ringGo(); }, 250);
+  }, { passive: true });
   function renderWheel() {
     const r = S.simulateWheelSpeed(params, W, R.lap), w = r.w;
     try { renderRing(r); } catch (e) { console.error(e); }
@@ -869,20 +890,24 @@
   let ar3d = null, arLast = null;
   const heatCss = (t, lo, hi) => { const u = Math.max(0, Math.min(1, (t - lo) / ((hi - lo) || 1))); return `hsl(${Math.round(240 * (1 - u))} 85% 50%)`; };
   const AR_DOF_TEXT = {
-    xMM: 'Moving the sensor away (X) widens the row\'s footprint on the tread. Too close and the outer pixels miss the edges; too far and the edge pixels see the track and air beside the tire, so both ends of the row drop.',
-    yMM: 'A sideways offset (Y) slides the whole row across the tread. Pixels at one end fall off the edge and read the background, and the inner to outer difference you read is no longer edge to edge.',
-    zMM: 'A height offset (Z) moves where the row lands around the tire. The tread curves away from the sensor, so the footprint grows and the outer pixels start to graze the sidewall or miss the tire.',
+    distMM: 'Moving the sensor away widens its footprint on the tread. For an array: too close and the end pixels miss the edges, too far and they see the track and air beside the tire. For a single spot: too far and the spot spills off the tread and reads low.',
+    xMM: 'An X shift (forward or back) moves the sensor along the car. In front of the tire it changes the distance; above or beside the tire it moves where the view lands around the tread.',
+    yMM: 'A Y shift (sideways) slides the view across the tread. Pixels at one end fall off the edge and read the background, and the inner to outer difference you read is no longer edge to edge.',
+    zMM: 'A Z shift (up or down) moves where the view lands around the tire. The tread curves away from the sensor, so the footprint grows and the outer pixels start to graze the sidewall or miss the tire.',
     rollDeg: 'Roll turns the sensor about its look axis, so the pixel row lies diagonally across the tread. It spans less of the width (about cos of the angle), and the end pixels land above and below the centre line.',
     pitchDeg: 'Pitch tilts the view up or down. A little only moves the row around the tire; a lot and the row misses the tire altogether and reads the track or the air.',
     yawDeg: 'Yaw swings the view toward one edge. The row slides across the tread like a sideways offset, and the far end runs off the tire.',
     steerDeg: 'With the sensor on the chassis the front tire turns under it, so the row slides across the tread and the far edge pixels read the track. On the upright the sensor turns with the tire and the data does not change.'
   };
   function renderIrArray() {
-    const r = S.simulateIrArray(AR), o = r.o;
+    const r = S.simulateIrArray(AR), o = r.o, single = o.kind === 'single';
     arLast = r;
     $('a_presetNote').textContent = r.preset.note;
+    $('a_positionNote').textContent = ({ front: 'Looks straight back at the front of the tread', above: 'Looks straight down at the top of the tread', beside: 'Sits inboard and ahead, looking 45° outward and back at the front of the tread [assumption]' })[o.position];
+    $('arReadTitle').textContent = single ? 'What the sensor reads' : 'What the array reads';
+    $('arCoverTitle').textContent = single ? 'Share of the spot on the tread (%)' : 'Share of the tread width the array sees (%)';
     document.querySelectorAll('[data-custom]').forEach(el => { el.hidden = o.preset !== 'custom'; });
-    $('arNote').textContent = `${o.pixels} pixels across ${o.hFovDeg}° · ${ln(o.xMM, 1)} ahead of the tread`;
+    $('arNote').textContent = single ? `one ${o.hFovDeg}° spot · ${ln(o.distMM, 1)} from the tread · ${ln(r.spotMM, 1)} spot` : `${o.pixels} pixels across ${o.hFovDeg}° · ${ln(o.distMM, 1)} from the tread`;
     if (!ar3d && window.BRIrArray3D) ar3d = window.BRIrArray3D.mount($('arScene'), $('arLabels'));
     if (ar3d) ar3d.update(r, o);
     drawArPlanes(r, o);
@@ -896,6 +921,23 @@
       { label: 'True', data: r.pixels.map(p => ({ x: p.i + 1, y: p.treadFrac > 0.5 ? truthAt(p) : null })), color: '--ink-3', dash: [5, 4], width: 1.5 }
     ], { xTitle: 'Pixel (1 = inner edge side)', yTitle: TU(), xMin: 0.5, xMax: o.pixels + 0.5 });
     const ioErr = r.estIO == null ? null : Math.abs(r.estIO - r.trueIO);
+    if (single) {
+      const p0 = r.pixels[0], err = p0.meas - r.trueAvg;
+      kv('arKv', [
+        ['Reading', tp(p0.meas, 1)], ['True tread average', tp(r.trueAvg, 1)],
+        ['Error', tdp(err, 1), Math.abs(err) > 5 ? 'bad' : Math.abs(err) > 2 ? 'meh' : 'ok'],
+        ['Spot on the tread', `${fmt(p0.treadFrac * 100, 0)} %`, p0.treadFrac < 0.98 ? 'bad' : 'ok'],
+        ['Spot size (straight on)', ln(r.spotMM, 1)], ['Tread width', ln(o.widthMM, 1)]
+      ]);
+      const f = [];
+      if (p0.treadFrac < 0.98) f.push(['crit', `Only ${fmt(p0.treadFrac * 100, 0)} % of the spot lands on the tread; the rest sees ${p0.hit === 'tread' ? 'the sidewall, track or air' : 'the track, air or sidewall'}, so it reads ${tdp(Math.abs(err), 1)} ${err < 0 ? 'low' : 'high'}. Move it closer, use a narrower field of view, or fix the aim.`]);
+      if (o.gradC > 4) f.push(['warn', `One spot gives one average. The ${tdp(o.gradC)} difference across the tread (camber or pressure) needs an array, or three single sensors.`]);
+      if (o.mount === 'chassis' && Math.abs(o.steerDeg) > 5) f.push(['info', `On the chassis, the tire has turned ${o.steerDeg}° under the sensor; on the upright it would turn with the tire.`]);
+      if (!f.length) f.push(['good', `The spot sits fully on the tread and reads within ${tdp(Math.abs(err), 1)} of the tread average.`]);
+      flags('arFlags', f);
+      drawArSweep(r);
+      return;
+    }
     kv('arKv', [
       ['Tread width seen', `${fmt(r.coverPct, 0)} %`, r.coverPct > 95 ? 'ok' : r.coverPct > 80 ? 'meh' : 'bad'],
       ['Pixels on the tread', `${r.onTread} of ${o.pixels}`],
@@ -905,8 +947,7 @@
       ['Distance to just span the tread', r.needXMM == null ? '–' : ln(r.needXMM, 1)]
     ]);
     const f = [];
-    if (o.pixels === 1) f.push(['warn', 'One pixel gives one average across the tread, so camber and pressure show up as nothing. An array gives the whole profile.']);
-    if (r.coverPct < 95 && r.needXMM && o.xMM < r.needXMM && Math.abs(o.rollDeg) < 10 && Math.abs(o.yawDeg) < 5 && Math.abs(o.steerDeg) < 5) f.push(['warn', `The row covers only ${fmt(r.coverPct, 0)} % of the tread. At this field of view it needs about ${ln(r.needXMM, 1)} of distance to reach both edges.`]);
+    if (r.coverPct < 95 && r.needXMM && o.distMM < r.needXMM && Math.abs(o.rollDeg) < 10 && Math.abs(o.yawDeg) < 5 && Math.abs(o.steerDeg) < 5) f.push(['warn', `The row covers only ${fmt(r.coverPct, 0)} % of the tread. At this field of view it needs about ${ln(r.needXMM, 1)} of distance to reach both edges.`]);
     else if (r.coverPct < 95) f.push(['warn', `The array sees only ${fmt(r.coverPct, 0)} % of the tread width, so one edge is missing from the data.`]);
     const off = o.pixels - r.onTread - r.mixed;
     if (off > 0) f.push([off > o.pixels / 4 ? 'crit' : 'info', `${off} pixel${off > 1 ? 's' : ''} read the track, air or sidewall instead of the tread, and ${r.mixed} more see part of each. Drop those pixels in the logger (use only pixels that read near the tread) or move the sensor so the row fits the tread with a little margin.`]);
@@ -916,13 +957,14 @@
     drawArSweep(r);
   }
   function drawArSweep(r) {
-    const key = $('arDof').value || 'xMM', sw = r.sweeps[key], isLen = /MM$/.test(key);
+    const key = $('arDof').value || 'distMM', sw = r.sweeps[key], isLen = /MM$/.test(key);
     const cols = ['--s1', '--s3', '--ink', '--s4', '--s2'];
     const valTxt = v => (isLen ? ln(v, 1) : `${fmt(v, 0)}°`);
     C.legend('arProfLegend', sw.profiles.map((p, n) => [valTxt(p.v), cols[n]]));
-    C.draw('c_arProf', sw.profiles.map((p, n) => ({ label: valTxt(p.v), data: p.meas.map((m, i) => ({ x: i + 1, y: tv(m) })), color: cols[n], width: p.v === 0 || (key === 'xMM' && n === 2) ? 3 : 1.5 })),
+    C.draw('c_arProf', sw.profiles.map((p, n) => ({ label: valTxt(p.v), data: p.meas.map((m, i) => ({ x: i + 1, y: tv(m) })), color: cols[n], width: n === 2 ? 3 : 1.5, points: r.o.pixels === 1 })),
       { xTitle: 'Pixel', yTitle: TU(), xMin: 0.5, xMax: r.o.pixels + 0.5 });
-    C.draw('c_arCover', [{ label: 'Tread seen %', data: sw.line.map(p => ({ x: isLen ? lnv(p.v) : p.v, y: p.coverPct })), color: '--s2' }],
+    const single = r.o.kind === 'single';
+    C.draw('c_arCover', [{ label: single ? 'On tread %' : 'Tread seen %', data: sw.line.map(p => ({ x: isLen ? lnv(p.v) : p.v, y: single ? p.onTreadPct : p.coverPct })), color: '--s2' }],
       { xTitle: `${sw.label} (${isLen ? LU() : '°'})`, yMin: 0, yMax: 105, vrefs: [{ x: isLen ? lnv(sw.now) : sw.now, label: 'now' }] });
     $('arDofFoot').textContent = AR_DOF_TEXT[key];
   }
@@ -954,11 +996,11 @@
     };
     const Xc = { c: '#d03b3b', t: 'X fwd' }, Yc = { c: '#1baf7a', t: 'Y out' }, Zc = { c: '#2a78d6', t: 'Z up' };
     const circle = []; for (let i = 0; i <= 48; i++) { const t = i / 48 * 2 * Math.PI; circle.push([Rm * Math.cos(t) * Math.cos(st), Rm * Math.sin(t)]); }
-    view('arSide', 0, 2, Xc, Zc, circle, o.pitchDeg, 'pitch', `x ${ln(o.xMM, 1)} · z ${ln(o.zMM, 1)}`);
+    view('arSide', 0, 2, Xc, Zc, circle, o.pitchDeg, 'pitch', `dist ${ln(o.distMM, 1)} · x ${ln(o.xMM, 2)} · z ${ln(o.zMM, 2)}`);
     const front = [[-w, -Rm], [w, -Rm], [w, Rm], [-w, Rm]].map(([y, z]) => [y * Math.cos(st) + 0, z]);
-    view('arFront', 1, 2, Yc, Zc, front, o.rollDeg, 'roll', `y ${ln(o.yMM, 1)} · z ${ln(o.zMM, 1)}`);
+    view('arFront', 1, 2, Yc, Zc, front, o.rollDeg, 'roll', `y ${ln(o.yMM, 2)} · z ${ln(o.zMM, 2)}`);
     const top = [[Rm, -w], [Rm, w], [-Rm, w], [-Rm, -w]].map(([x, y]) => [x * Math.cos(st) - y * Math.sin(st), x * Math.sin(st) + y * Math.cos(st)]);
-    view('arTop', 0, 1, Xc, Yc, top, o.yawDeg, 'yaw', `x ${ln(o.xMM, 1)} · y ${ln(o.yMM, 1)}${o.steerDeg ? ` · steer ${o.steerDeg}°` : ''}`);
+    view('arTop', 0, 1, Xc, Yc, top, o.yawDeg, 'yaw', `x ${ln(o.xMM, 2)} · y ${ln(o.yMM, 2)}${o.steerDeg ? ` · steer ${o.steerDeg}°` : ''}`);
   }
 
   // top view of the front tire as it steers; pure geometry, so the sweep animates without calling the model

@@ -25,15 +25,21 @@ import math
 from .params import with_defaults
 
 IR_ARRAY_PRESETS = {
-    "mlx90640_55": {"label": "MLX90640 32×24, 55° × 35°", "pixels": 32, "hFovDeg": 55, "vFovDeg": 35 / 24,
+    "mlx90640_55": {"kind": "array", "label": "MLX90640 32×24, 55° × 35°", "pixels": 32, "hFovDeg": 55, "vFovDeg": 35 / 24,
                     "note": "Melexis MLX90640 BAB: 32 × 24 pixels; this uses the middle row [datasheet class]"},
-    "mlx90640_110": {"label": "MLX90640 32×24, 110° × 75°", "pixels": 32, "hFovDeg": 110, "vFovDeg": 75 / 24,
+    "mlx90640_110": {"kind": "array", "label": "MLX90640 32×24, 110° × 75°", "pixels": 32, "hFovDeg": 110, "vFovDeg": 75 / 24,
                      "note": "Melexis MLX90640 BAA wide-angle version; middle row [datasheet class]"},
-    "mlx90621_60": {"label": "MLX90621 16×4, 60° × 16°", "pixels": 16, "hFovDeg": 60, "vFovDeg": 4,
+    "mlx90621_60": {"kind": "array", "label": "MLX90621 16×4, 60° × 16°", "pixels": 16, "hFovDeg": 60, "vFovDeg": 4,
                     "note": "Melexis MLX90621 BAD: 16 × 4 pixels, the classic tire-temperature array [datasheet class]"},
-    "single_35": {"label": "Single MLX90614, 35° (for comparison)", "pixels": 1, "hFovDeg": 35, "vFovDeg": 35,
-                  "note": "One spot sensor: one average across the tread"},
-    "custom": {"label": "Custom", "pixels": 16, "hFovDeg": 60, "vFovDeg": 4, "note": "Set pixels and field of view below"},
+    "single_5": {"label": "MLX90614, 5°", "kind": "single", "pixels": 1, "hFovDeg": 5, "vFovDeg": 5,
+                 "note": "Melexis MLX90614 narrow (5°) version: one spot, one number [datasheet class]"},
+    "single_10": {"label": "MLX90614, 10°", "kind": "single", "pixels": 1, "hFovDeg": 10, "vFovDeg": 10,
+                  "note": "Melexis MLX90614 10° version: one spot, one number [datasheet class]"},
+    "single_35": {"label": "MLX90614, 35°", "kind": "single", "pixels": 1, "hFovDeg": 35, "vFovDeg": 35,
+                  "note": "Melexis MLX90614 35° version: one spot, one average across what it sees [datasheet class]"},
+    "single_90": {"label": "MLX90614, 90°", "kind": "single", "pixels": 1, "hFovDeg": 90, "vFovDeg": 90,
+                  "note": "Melexis MLX90614 standard 90° version: very wide spot [datasheet class]"},
+    "custom": {"kind": "array", "label": "Custom", "pixels": 16, "hFovDeg": 60, "vFovDeg": 4, "note": "Set pixels and field of view below"},
 }
 
 IR_ARRAY_PROFILES = {
@@ -43,15 +49,27 @@ IR_ARRAY_PROFILES = {
     "even": "Even across the tread",
 }
 
+# Where the sensor sits. Each one sets a base position and look direction; the distance,
+# the x / y / z shifts and roll / pitch / yaw are then adjustments around it.
+IR_POSITIONS = {
+    "front": "In front of the tire, looking back at the tread",
+    "above": "Above the tire, looking down at the tread",
+    "beside": "On the chassis beside the tire (inboard, ahead), looking out and back at the tread",
+}
+BESIDE_DEG = 45   # the beside mount looks 45° outward from straight back [assumption]
+
 IR_ARRAY_DEFAULTS = {
+    "kind": "array",      # single | array
     "preset": "mlx90640_55",
+    "position": "front",
     "pixels": 32, "hFovDeg": 55, "vFovDeg": 35 / 24,
     "widthMM": 178,       # tread width, 7 in [Tanner 2026-11-04]
     "profile": "camber",
     "tempC": 70, "gradC": 12, "bgC": 35,
-    "xMM": 180,           # gap from the front of the tread to the sensor [assumption]
-    "yMM": 0,             # sideways offset, + outward
-    "zMM": 0,             # height above the axle, + up
+    "distMM": 180,        # tread to sensor along the mount's look line [assumption]
+    "xMM": 0,             # shift forward
+    "yMM": 0,             # shift sideways, + outward
+    "zMM": 0,             # shift up
     "rollDeg": 0, "pitchDeg": 0, "yawDeg": 0,
     "steerDeg": 0, "mount": "chassis",
 }
@@ -59,12 +77,13 @@ IR_ARRAY_DEFAULTS = {
 RIM_R = 0.127   # 10 in wheel
 SUB = 5         # rays per pixel side
 DOFS = [
-    ("xMM", "Distance (x)", "mm", [100, 140, 180, 220, 260], 60, 320),
-    ("yMM", "Sideways (y)", "mm", [-40, -20, 0, 20, 40], -60, 60),
-    ("zMM", "Height (z)", "mm", [-100, -50, 0, 50, 100], -150, 150),
+    ("distMM", "Distance", "mm", [100, 140, 180, 220, 260], 40, 320),
+    ("xMM", "X shift", "mm", [-40, -20, 0, 20, 40], -60, 60),
+    ("yMM", "Y shift", "mm", [-40, -20, 0, 20, 40], -60, 60),
+    ("zMM", "Z shift", "mm", [-40, -20, 0, 20, 40], -60, 60),
     ("rollDeg", "Roll", "°", [-30, -15, 0, 15, 30], -45, 45),
     ("pitchDeg", "Pitch", "°", [-30, -15, 0, 15, 30], -45, 45),
-    ("yawDeg", "Yaw", "°", [-20, -10, 0, 10, 20], -30, 30),
+    ("yawDeg", "Yaw", "°", [-20, -10, 0, 10, 20], -45, 45),
     ("steerDeg", "Front wheel steer", "°", [-25, -12, 0, 12, 25], -30, 30),
 ]
 
@@ -73,6 +92,11 @@ def _opts(o):
     out = dict(IR_ARRAY_DEFAULTS)
     out.update({k: v for k, v in (o or {}).items() if v is not None})
     pre = IR_ARRAY_PRESETS.get(out["preset"])
+    if pre and pre["kind"] != out["kind"]:
+        out["preset"] = "single_35" if out["kind"] == "single" else "mlx90640_55"
+        pre = IR_ARRAY_PRESETS[out["preset"]]
+    if out.get("position") not in IR_POSITIONS:
+        out["position"] = "front"
     if pre and out["preset"] != "custom":
         out.update(pixels=pre["pixels"], hFovDeg=pre["hFovDeg"], vFovDeg=pre["vFovDeg"])
     out["pixels"] = max(1, min(64, int(out["pixels"])))
@@ -104,6 +128,20 @@ def _rot(o):
     rz = [[cy, -sy, 0], [sy, cy, 0], [0, 0, 1]]
     m = _mm(rz, _mm(ry, rx))
     return m
+
+
+def _base(position, R):
+    """Base rotation, base look direction and the tread point it aims at, for a mount position."""
+    if position == "above":
+        a = math.radians(-90)                      # pitch down: look straight down at the top of the tread
+        c, s = math.cos(a), math.sin(a)
+        return [[c, 0, s], [0, 1, 0], [-s, 0, c]], [0.0, 0.0, -1.0], [0.0, 0.0, R]
+    if position == "beside":
+        a = math.radians(-BESIDE_DEG)              # yaw outward, sitting inboard and ahead
+        c, s = math.cos(a), math.sin(a)
+        look = [-c, -s, 0.0]
+        return [[c, -s, 0], [s, c, 0], [0, 0, 1]], look, [R, 0.0, 0.0]
+    return [[1, 0, 0], [0, 1, 0], [0, 0, 1]], [-1.0, 0.0, 0.0], [R, 0.0, 0.0]
 
 
 def _mm(a, b):
@@ -154,8 +192,10 @@ def _read(o, sub=SUB, rays=False):
     R = with_defaults()["tireD"] / 2
     w = o["widthMM"] / 2000
     st = math.radians(o["steerDeg"])
-    m = _rot(o)
-    pos = [R + o["xMM"] / 1000, o["yMM"] / 1000, o["zMM"] / 1000]
+    base, look0, aim = _base(o["position"], R)
+    m = _mm(base, _rot(o))
+    d0 = o["distMM"] / 1000
+    pos = [aim[k] - look0[k] * d0 + [o["xMM"], o["yMM"], o["zMM"]][k] / 1000 for k in range(3)]
     to_tire = _rz(-st) if o["mount"] == "chassis" else _rz(0)
     # chassis mount: the tire turned under a fixed sensor; work in the tire's own frame
     p_t = _mv(to_tire, pos)
@@ -217,6 +257,7 @@ def simulate_ir_array(o=None):
     truth = [{"yMM": (-w + 2 * w * k / 40) * 1000, "T": tread_temp(o, -w + 2 * w * k / 40)} for k in range(41)]
     h = math.radians(o["hFovDeg"]) / 2
     need = (w / math.tan(h) * 1000) if o["pixels"] > 1 else None
+    spot = 2 * o["distMM"] * math.tan(h)    # spot (or row) width at the tread, straight on
     sweeps = {}
     for key, label, unit, vals, lo, hi in DOFS:
         prof = []
@@ -230,7 +271,9 @@ def simulate_ir_array(o=None):
             q = dict(o); q[key] = v
             rr = _read(q, sub=3)
             err = abs(rr["estIO"] - rr["edgeIO"]) if rr["estIO"] is not None else None
-            line.append({"v": v, "coverPct": rr["coverPct"], "onTread": rr["onTread"], "ioErr": err})
+            line.append({"v": v, "coverPct": rr["coverPct"], "onTread": rr["onTread"], "ioErr": err,
+                         "onTreadPct": rr["pixels"][0]["treadFrac"] * 100 if o["pixels"] == 1 else None})
         sweeps[key] = {"label": label, "unit": unit, "now": o[key], "profiles": prof, "line": line}
     return {"o": o, "preset": IR_ARRAY_PRESETS.get(o["preset"], IR_ARRAY_PRESETS["custom"]),
-            "tireR": R, "rimR": RIM_R, "halfW": w, "truth": truth, "needXMM": need, **r, "sweeps": sweeps}
+            "tireR": R, "rimR": RIM_R, "halfW": w, "truth": truth, "needXMM": need, "spotMM": spot,
+            "trueAvg": sum(p["T"] for p in truth) / len(truth), **r, "sweeps": sweeps}
