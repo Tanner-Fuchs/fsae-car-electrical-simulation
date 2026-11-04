@@ -121,6 +121,7 @@
     if (currentView === 'engine') startEngineAnim(); else stopEngineAnim();
     if (car) { if (currentView === 'car') car.resume(); else car.pause(); }
     if (harness3d) { if (currentView === 'harness') harness3d.resume(); else harness3d.pause(); }
+    if (ring && currentView !== 'components') ring.stop();
     renderView(currentView);
   }
   function renderView(v) {
@@ -714,11 +715,36 @@
     document.querySelectorAll('#compTabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.comp === c));
     document.querySelectorAll('#v-components .cgroup').forEach(g => { g.hidden = g.dataset.comp !== c; });
     if (ar3d) { if (c === 'irarray') ar3d.resume(); else ar3d.pause(); }
+    if (ring && c !== 'wheel') ring.stop();
     ({ wheel: renderWheel, ir: renderIr, irarray: renderIrArray, steer: renderSteer })[c]();
   }
   const kmhTxt = v => (v == null || !isFinite(v) ? 'never' : sp(v, 1));
+  // tone ring animation (geometry only)
+  let ring = null, ringPlay = true, ringKmh = 48.28;
+  function renderRing(r) {
+    const w = r.w;
+    if (!ring && window.BRRing) {
+      ring = window.BRRing.mount($('ringSvg'), { len: (mm, d) => ln(mm, d), imp: IMP });
+      $('rSpeed').addEventListener('input', () => { ringKmh = IMP() ? +$('rSpeed').value * 1.609344 : +$('rSpeed').value; renderRing(S.simulateWheelSpeed(params, W, R.lap)); });
+      $('rSlow').addEventListener('input', () => renderRing(S.simulateWheelSpeed(params, W, R.lap)));
+      $('rPlay').addEventListener('click', () => { ringPlay = !ringPlay; $('rPlay').textContent = ringPlay ? 'Pause' : 'Play'; if (ringPlay) ring.start(); else ring.stop(); });
+    }
+    if (!ring) return;
+    $('rSpeed').max = IMP() ? 100 : 160;
+    $('rSpeed').value = Math.round(IMP() ? ringKmh / 1.609344 : ringKmh);
+    $('o_rSpeed').textContent = sp(ringKmh, 0);
+    const n = ring.set({ teeth: w.teeth, ringMM: w.ringMM, gapMM: w.gapMM, sensor: w.sensor, tireD: r.tireD, kmh: ringKmh, slow: +$('rSlow').value, units: UNITSYS });
+    $('rConv').innerHTML = '<thead><tr><th>Step</th><th>What the node does</th><th class="num">Now</th></tr></thead><tbody>' +
+      n.rows.map(([k, t, v]) => `<tr><td>${k}</td><td>${t}</td><td class="num">${v}</td></tr>`).join('') + '</tbody>';
+    const ringSurf = IMP() ? `${fmt(n.ringSurf * 2.23694, 1)} mph` : `${fmt(n.ringSurf * 3.6, 1)} km/h`;
+    kv('rKv', [['Wheel', `${fmt(n.rpm, 0)} rpm`], ['Teeth pass at', `${fmt(n.rpm * w.teeth / 60, 0)} Hz`], ['Tooth tips move at', ringSurf], ['Tire', n.tireTxt]]);
+    $('rFoot').textContent = `Car speed comes from the wheel rpm and the tire size, not the ring: the ring and the tire turn together, so the ring size only sets how big each tooth is and how fast the teeth sweep past the sensor (${ringSurf} here). One tooth every ${fmt(360 / w.teeth, 1)}° of wheel rotation.`;
+    $('rNote').textContent = `${w.teeth} teeth · ${ln(w.ringMM, 1)} ring · ${w.sensor === 'hall' ? 'Hall' : 'VR'}`;
+    if (ringPlay && compSel === 'wheel' && currentView === 'components') ring.start(); else ring.stop();
+  }
   function renderWheel() {
     const r = S.simulateWheelSpeed(params, W, R.lap), w = r.w;
+    try { renderRing(r); } catch (e) { console.error(e); }
     const pick = w.sensor === 'hall' ? 'Hall effect' : 'VR';
     $('wsNote').textContent = `${w.teeth} teeth · ${ln(r.toothMM, 2)} wide · ${ln(r.tireD * 1000, 1)} tire`;
     const row = (k, h, v, hb, vb) => `<tr><td>${k}</td><td class="${hb || ''}">${h}</td><td class="${vb || ''}">${v}</td></tr>`;

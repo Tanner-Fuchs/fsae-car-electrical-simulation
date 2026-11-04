@@ -648,6 +648,21 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
     <div class="stack">
       <div class="cgroup" data-comp="wheel">
       <div class="card">
+        <div class="card-head"><h3>The ring spinning past the sensor</h3><span class="note" id="rNote"></span></div>
+        <div class="hctrl">
+          <label class="lbl2" for="rSpeed">Car speed <output id="o_rSpeed"></output></label>
+          <input type="range" id="rSpeed" min="0" max="160" step="1" value="48" style="width:180px">
+          <label class="lbl2" for="rSlow">Playback</label>
+          <select id="rSlow" style="width:auto"><option value="1">Real time</option><option value="0.1">1/10 speed</option><option value="0.02" selected>1/50 speed</option><option value="0.005">1/200 speed</option></select>
+          <button type="button" id="rPlay">Pause</button>
+        </div>
+        <div class="scroll"><svg id="ringSvg" viewBox="0 0 900 360" style="width:100%;min-width:620px;height:auto;display:block" role="img" aria-label="Tone ring, teeth and sensor, spinning"></svg></div>
+        <div class="grid2">
+          <div><h3 style="font-size:15px;margin:6px 0">From sensor pulses to speed</h3><div class="scroll"><table id="rConv"></table></div></div>
+          <div><div class="kv" id="rKv"></div><p class="foot" id="rFoot"></p></div>
+        </div>
+      </div>
+      <div class="card">
         <div class="card-head"><h3>Hall effect vs VR with this ring</h3><span class="note" id="wsNote"></span></div>
         <div class="scroll"><table id="wsCompare"></table></div>
         <ul class="flags" id="wsFlags"></ul>
