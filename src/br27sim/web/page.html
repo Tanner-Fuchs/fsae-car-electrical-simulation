@@ -81,6 +81,10 @@ p { margin: 0; }
 .field { display: grid; gap: 3px; }
 .field label { font-size: 12.5px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px; }
 .field label output { font-family: var(--f-mono); color: var(--ink); }
+output.tap { cursor: text; border-bottom: 1px dashed var(--ink-3); padding: 1px 2px; border-radius: 3px; white-space: nowrap; }
+output.tap:hover, output.tap:focus-visible { background: var(--grid); outline: none; border-bottom-color: var(--accent); }
+output .oedit { width: 6.5em; font: inherit; font-size: 16px; padding: 2px 6px; border: 1px solid var(--accent); border-radius: 4px; background: var(--bg); color: var(--ink); }
+output .ounit { margin-left: 4px; color: var(--ink-2); }
 .field .src { font-size: 11px; color: var(--ink-3); }
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 select, input[type="number"] { width: 100%; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
@@ -555,12 +559,13 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
 <section class="view" id="v-components" hidden>
   <div class="view-head">
     <h2>Component simulations</h2>
-    <p class="lede">Try a part before buying it. Pick a component: the wheel speed sensor (Hall effect vs VR, and how many teeth on the ring), a tire temperature sensor (a single IR spot or an IR array across the whole tread, where it is mounted and how its offsets and angles change the data), or the steering angle pot (range, gearing and accuracy). Every number marked as an assumption in the source is a typical datasheet value until the team picks a part.</p>
+    <p class="lede">Try a part before buying it. Pick a component: the wheel speed sensor (Hall effect vs VR, and how many teeth on the ring), a tire temperature sensor (a single IR spot or an IR array across the whole tread, where it is mounted and how its offsets and angles change the data), or the steering angle pot (range, gearing and accuracy), or the brake pressure sensors (pedal travel, the bias bar knob and the brake light). Every number marked as an assumption in the source is a typical datasheet value until the team picks a part.</p>
   </div>
   <div class="subtabs" role="tablist" aria-label="Component" id="compTabs">
     <button type="button" role="tab" data-comp="wheel">Wheel speed</button>
     <button type="button" role="tab" data-comp="irarray">Tire temperature</button>
     <button type="button" role="tab" data-comp="steer">Steering angle</button>
+    <button type="button" role="tab" data-comp="brake">Brake pressure</button>
   </div>
   <div class="split">
     <aside class="rail">
@@ -645,6 +650,26 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
       <label class="chk"><input type="checkbox" id="s_ratiometric"> Pot fed from the ADC reference (ratiometric)</label>
       <div class="field"><label for="s_supplyPct">Supply wander if not <output id="o_s_supplyPct"></output></label><input type="range" id="s_supplyPct" min="0" max="10" step="0.5"></div>
       <button class="btn ghost" id="s_reset" type="button">Reset to defaults</button>
+      </div>
+      <div class="cgroup" data-comp="brake" hidden>
+      <h3>Pedal</h3>
+      <div class="field"><label for="b_pedalPct">Pedal pushed in <output id="o_b_pedalPct"></output></label><input type="range" id="b_pedalPct" min="0" max="100" step="1"><span class="src">Share of the pedal's full travel</span></div>
+      <div class="field"><label for="b_freePct">Free play before pressure <output id="o_b_freePct"></output></label><input type="range" id="b_freePct" min="0" max="30" step="1"></div>
+      <div class="field"><label for="b_maxPedalN">Driver's force at full travel <output id="o_b_maxPedalN"></output></label><input type="range" id="b_maxPedalN" min="300" max="1500" step="25"><span class="src">A hard stop; rules check the pedal at 2000 N (T.3)</span></div>
+      <div class="field"><label for="b_pedalRatio">Pedal ratio <output id="o_b_pedalRatio"></output></label><input type="range" id="b_pedalRatio" min="3" max="8" step="0.1"><span class="src">Typical FSAE 4 to 6</span></div>
+      <h3>Bias bar</h3>
+      <div class="field"><label for="b_biasTurns">Bias knob <output id="o_b_biasTurns"></output></label><input type="range" id="b_biasTurns" min="-8" max="8" step="0.5"><span class="src">Turns from centre, + moves the bar's pivot toward the front cylinder</span></div>
+      <div class="field"><label for="b_pctPerTurn">Front share change per turn <output id="o_b_pctPerTurn"></output></label><input type="range" id="b_pctPerTurn" min="0.5" max="3" step="0.1"><span class="src">Set by the adjuster thread and the bar length</span></div>
+      <div class="field"><label for="b_mcFrontIn">Front master cylinder bore</label><select id="b_mcFrontIn"><option value="0.625">5/8 in · 15.9 mm</option><option value="0.7">0.70 in · 17.8 mm</option><option value="0.75">3/4 in · 19.1 mm</option><option value="0.8125">13/16 in · 20.6 mm</option><option value="0.875">7/8 in · 22.2 mm</option><option value="0.9375">15/16 in · 23.8 mm</option><option value="1">1 in · 25.4 mm</option></select></div>
+      <div class="field"><label for="b_mcRearIn">Rear master cylinder bore</label><select id="b_mcRearIn"><option value="0.625">5/8 in · 15.9 mm</option><option value="0.7">0.70 in · 17.8 mm</option><option value="0.75">3/4 in · 19.1 mm</option><option value="0.8125">13/16 in · 20.6 mm</option><option value="0.875">7/8 in · 22.2 mm</option><option value="0.9375">15/16 in · 23.8 mm</option><option value="1">1 in · 25.4 mm</option></select><span class="src">A smaller bore makes more pressure from the same push</span></div>
+      <h3>Sensors and brake light</h3>
+      <div class="field"><label for="b_lightOnPsi">Brake light on above <output id="o_b_lightOnPsi"></output></label><input type="range" id="b_lightOnPsi" min="10" max="150" step="0.5"></div>
+      <div class="field"><label for="b_lightOffPsi">and off again below <output id="o_b_lightOffPsi"></output></label><input type="range" id="b_lightOffPsi" min="5" max="140" step="0.5"><span class="src">The gap (hysteresis) stops the light flickering at the threshold</span></div>
+      <div class="field"><label for="b_hardPsi">Hard braking flag <output id="o_b_hardPsi"></output></label><input type="range" id="b_hardPsi" min="100" max="1000" step="25"><span class="src">300 psi in the brake pressure sensors form</span></div>
+      <h3>Car</h3>
+      <div class="field"><label for="b_tireMu">Tire grip <output id="o_b_tireMu"></output></label><input type="range" id="b_tireMu" min="1" max="2.5" step="0.05"><span class="src">Lab data says about 2.4; real asphalt is lower</span></div>
+      <div class="field"><label for="b_cgHeightMM">CG height <output id="o_b_cgHeightMM"></output></label><input type="range" id="b_cgHeightMM" min="200" max="350" step="5"><span class="src">275 mm is the middle candidate in the VD form</span></div>
+      <button class="btn ghost" id="b_reset" type="button">Reset to defaults</button>
       </div>
     </aside>
     <div class="stack">
@@ -758,6 +783,28 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
       </div>
       <div class="card"><div class="card-head"><h3>Slalom and a quick correction</h3><div class="legend" id="stLegend"></div></div><div class="plot"><canvas id="c_stTrace"></canvas></div></div>
       <div class="card"><h3>Measured minus true (degrees at the steering wheel)</h3><div class="plot short"><canvas id="c_stErr"></canvas></div><p class="foot">The slow S-shaped part is the pot's linearity, which a calibration at centre and both locks mostly removes. The fuzz is ADC noise; the steps at each reversal are free play.</p></div>
+      </div>
+      <div class="cgroup" data-comp="brake" hidden>
+      <div class="card">
+        <div class="card-head"><h3>Pedal to brake light</h3><span class="note" id="bNote"></span></div>
+        <div class="hctrl"><button type="button" id="bPlay">Press and release</button><span class="foot" style="margin:0">Pushes the pedal to the floor and back so you can watch the light switch on and off.</span></div>
+        <div class="scroll" style="contain: layout paint"><svg id="brakeSvg" viewBox="0 0 900 340" style="width:100%;min-width:640px;height:auto;display:block" role="img" aria-label="Brake pedal, balance bar, master cylinders, pressure gauges and brake light"></svg></div>
+        <div class="kv" id="bKv"></div>
+        <ul class="flags" id="bFlags"></ul>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="card-head"><h3>Line pressure vs pedal travel (<span class="pu">psi</span>)</h3><div class="legend" id="bPressLegend"></div></div><div class="plot"><canvas id="c_bPress"></canvas></div><p class="foot">Nothing until the free play is taken up, then pressure climbs faster toward the end of the travel. The dashed line is where the brake light turns on.</p></div>
+        <div class="card"><h3>Deceleration vs pedal travel (g)</h3><div class="plot"><canvas id="c_bDecel"></canvas></div><p class="foot" id="bDecelFoot"></p></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Brake light as the pedal goes down and back up</h3><div class="legend" id="bLightLegend"></div></div>
+        <div class="plot short"><canvas id="c_bLight"></canvas></div>
+        <p class="foot" id="bLightFoot"></p>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Bias knob: front share of the braking</h3><div class="plot"><canvas id="c_bBias"></canvas></div><p class="foot" id="bBiasFoot"></p></div>
+        <div class="card"><h3>Sensor to CAN</h3><div class="scroll"><table id="bSens"></table></div><p class="foot" id="bSensFoot"></p></div>
+      </div>
       </div>
     </div>
   </div>

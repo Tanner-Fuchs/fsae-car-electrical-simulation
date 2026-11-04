@@ -24,7 +24,13 @@
   const tdv = c => (c == null ? c : IMP() ? c * 1.8 : c);                    // temperature differences
   const tp = (c, d) => `${fmt(tv(c), d == null ? 0 : d)} ${TU()}`;
   const tdp = (c, d) => `${fmt(tdv(c), d == null ? 0 : d)} ${TU()}`;
-  window.BRUnits = { IMP, lnv, LU, mlv, ML, tv, TU };
+  const PU = () => (IMP() ? 'psi' : 'bar');                                  // pressures (model in psi)
+  const prv = psi => (psi == null ? psi : IMP() ? psi : psi / 14.5038);
+  const pr = (psi, d) => `${fmt(prv(psi), d == null ? (IMP() ? 0 : 1) : IMP() ? d : d + 1)} ${PU()}`;
+  const FU = () => (IMP() ? 'lbf' : 'N');                                    // forces (model in N)
+  const fv = n => (IMP() ? n / 4.44822 : n);
+  const frc = (n, d) => `${fmt(fv(n), d == null ? 0 : d)} ${FU()}`;
+  window.BRUnits = { IMP, lnv, LU, mlv, ML, tv, TU, PU, prv };
   const spK = () => (SPD === 'mph' ? 1 / 1.609344 : 1);
   const SU = () => (SPD === 'mph' ? 'mph' : 'km/h');
   const spv = kmh => (kmh == null ? kmh : kmh * spK());          // number in the shown unit
@@ -46,6 +52,60 @@
   const batSel = $('p_battery');
   batSel.innerHTML = Object.entries(S.BATTERIES).map(([k, b]) => `<option value="${k}">${b.label}</option>`).join('');
 
+  // Tap (or Tab + Enter) on a slider's value to type a number. The number is in the units shown;
+  // every display format is a straight-line function of the model value, so two points invert it.
+  const FMT = {};
+  const numIn = t => { const m = String(t).replace(/[−–]/g, '-').replace(/,/g, '').match(/-?\d+(\.\d+)?|-?\.\d+/); return m ? +m[0] : NaN; };
+  function editOutput(out) {
+    const el = $(out.id.slice(2));
+    if (!el || el.type !== 'range' || out.querySelector('input') || out.dataset.editing) return;
+    const f = FMT[el.id] || (v => `${v}`);
+    // far-apart reference points so the display rounding doesn't matter
+    const mn = +el.min, mx = +el.max, X1 = 1e6, d0 = numIn(f(0)), d1 = numIn(f(X1));
+    const ok2 = isFinite(d0) && isFinite(d1) && d1 !== d0;
+    const slope = ok2 ? (d1 - d0) / X1 : 1, icpt = ok2 ? d0 : 0;
+    const toModel = x => (x - icpt) / slope;
+    const shown = numIn(out.textContent);
+    const box = document.createElement('input');
+    box.type = 'number'; box.step = 'any'; box.className = 'oedit'; box.setAttribute('inputmode', 'decimal');
+    box.value = isFinite(shown) ? shown : el.value;
+    box.setAttribute('aria-label', 'Type a value');
+    const keep = out.textContent;
+    out.dataset.editing = '1'; out.textContent = ''; out.appendChild(box);
+    const unit = keep.replace(/^[±+]?[−–-]?[\d.,]+\s*/, '');
+    if (unit) { const u = document.createElement('span'); u.className = 'ounit'; u.textContent = unit; out.appendChild(u); }
+    box.focus(); box.select();
+    let done = false;
+    const finish = ok => {
+      if (done) return; done = true;
+      delete out.dataset.editing;
+      out.textContent = keep;
+      const x = parseFloat(box.value);
+      if (!ok || !isFinite(x)) return;
+      let v = +toModel(x).toPrecision(6);
+      // let a typed value go past the slider's end: widen the slider to hold it
+      if (v < mn) el.min = v;
+      if (v > mx) el.max = v;
+      const st = +el.step || 1, base = +el.min;
+      const snap = Math.round((v - base) / st) * st + base;
+      if (f(+snap.toFixed(10)) === f(v)) v = +snap.toFixed(10); else el.step = 'any';
+      el.value = v;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    box.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); finish(true); out.focus(); } else if (e.key === 'Escape') { finish(false); out.focus(); } });
+    box.addEventListener('blur', () => finish(true));
+  }
+  function makeEditable() {
+    document.querySelectorAll('output[id^="o_"]').forEach(out => {
+      const el = $(out.id.slice(2));
+      if (!el || el.type !== 'range' || out.dataset.tap) return;
+      out.dataset.tap = '1'; out.classList.add('tap'); out.tabIndex = 0; out.setAttribute('role', 'button');
+      out.title = 'Tap to type a value';
+    });
+  }
+  document.addEventListener('click', e => { const out = e.target.closest && e.target.closest('output.tap'); if (out && !e.target.matches('input')) { e.preventDefault(); editOutput(out); } });
+  document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('output.tap')) { e.preventDefault(); editOutput(e.target); } });
+
   function bindInputs() {
     document.querySelectorAll('[id^="p_"]').forEach(el => {
       let key = el.id.slice(2);
@@ -53,6 +113,7 @@
       const v = params[key];
       if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
       const out = $('o_' + el.id);
+      FMT[el.id] = v => (UNITS[key] || (x => `${x}`))(v);
       const show = () => { if (out) out.textContent = (UNITS[key] || (x => x))(el.value); };
       show();
       el.addEventListener('input', () => {
@@ -664,6 +725,12 @@
     tempC: v => tp(+v), gradC: v => tdp(+v), bgC: v => tp(+v),
     distMM: v => ln(+v, 1), xMM: v => ln(+v, 2), yMM: v => ln(+v, 2), zMM: v => ln(+v, 2), rollDeg: v => `${v}°`, pitchDeg: v => `${v}°`, yawDeg: v => `${v}°`, steerDeg: v => `${v}°`
   };
+  const BK = Object.assign({}, S.BRAKE_DEFAULTS);
+  const B_UNITS = {
+    pedalPct: v => `${v} %`, freePct: v => `${v} %`, maxPedalN: v => frc(+v), pedalRatio: v => `${(+v).toFixed(1)} : 1`,
+    biasTurns: v => `${+v > 0 ? '+' : ''}${(+v).toFixed(1)} turns`, pctPerTurn: v => `${(+v).toFixed(1)} % / turn`,
+    lightOnPsi: v => pr(+v, 1), lightOffPsi: v => pr(+v, 1), hardPsi: v => pr(+v), tireMu: v => (+v).toFixed(2), cgHeightMM: v => ln(+v, 1)
+  };
   const AR_DOFS = [['distMM', 'Distance'], ['xMM', 'X shift'], ['yMM', 'Y shift'], ['zMM', 'Z shift'], ['rollDeg', 'Roll'], ['pitchDeg', 'Pitch'], ['yawDeg', 'Yaw'], ['steerDeg', 'Front wheel steer']];
   function setTarget(t) { const d = S.IR_TARGETS[t]; IR.target = t; for (const k of ['widthMM', 'emis', 'tempC', 'gradC', 'bgC']) IR[k] = d[k]; IR.emisSet = d.emis; }
   setTarget(IR.target);
@@ -671,6 +738,7 @@
   const syncers = [];
   function bindGroup(prefix, obj, units, reset) {
     const els = [...document.querySelectorAll(`[id^="${prefix}_"]`)].filter(el => el.id.slice(2) in obj);
+    els.forEach(el => { if (units[el.id.slice(2)]) FMT[el.id] = units[el.id.slice(2)]; });
     const sync = () => els.forEach(el => {
       const key = el.id.slice(2), out = $('o_' + el.id);
       if (el.type === 'checkbox') el.checked = !!obj[key]; else el.value = obj[key];
@@ -679,7 +747,7 @@
     els.forEach(el => {
       const key = el.id.slice(2);
       el.addEventListener('input', () => {
-        obj[key] = el.type === 'checkbox' ? el.checked : el.type === 'range' || key === 'spots' ? +el.value : el.value;
+        obj[key] = el.type === 'checkbox' ? el.checked : el.type === 'range' || typeof obj[key] === 'number' ? +el.value : el.value;
         if (prefix === 'i' && key === 'target') sync();
         const out = $('o_' + el.id); if (out) out.textContent = units[key] ? units[key](el.value) : '';
         clearTimeout(wTimer); wTimer = setTimeout(() => renderView('components'), 120);
@@ -695,6 +763,7 @@
     const syncIr = bindGroup('i', IR, I_UNITS, () => { Object.assign(IR, S.IR_DEFAULTS); setTarget(IR.target); });
     $('i_target').addEventListener('input', () => { setTarget($('i_target').value); syncIr(); });
     bindGroup('s', ST, S_UNITS, () => Object.assign(ST, S.STEER_DEFAULTS));
+    bindGroup('b', BK, B_UNITS, () => Object.assign(BK, S.BRAKE_DEFAULTS));
     const presetOpts = () => { $('a_preset').innerHTML = Object.entries(S.IR_ARRAY_PRESETS).filter(([, p]) => p.kind === AR.kind).map(([k, p]) => `<option value="${k}">${p.label}</option>`).join(''); $('a_preset').value = AR.preset; };
     presetOpts();
     $('a_profile').innerHTML = Object.entries(S.IR_ARRAY_PROFILES).map(([k, t]) => `<option value="${k}">${t}</option>`).join('');
@@ -719,12 +788,13 @@
   try { compSel = localStorage.getItem('br27.component') || 'wheel'; } catch (e) { /* storage blocked */ }
   if (compSel === 'ir') compSel = 'irarray';   // single IR now lives in the tire temperature tab
   function renderComponents() {
-    const c = ({ wheel: 1, irarray: 1, steer: 1 })[compSel] ? compSel : 'wheel';
+    const c = ({ wheel: 1, irarray: 1, steer: 1, brake: 1 })[compSel] ? compSel : 'wheel';
     document.querySelectorAll('#compTabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.comp === c));
     document.querySelectorAll('#v-components .cgroup').forEach(g => { g.hidden = g.dataset.comp !== c; });
     if (ar3d) { if (c === 'irarray') ar3d.resume(); else ar3d.pause(); }
     if (ring && c !== 'wheel') ring.stop();
-    ({ wheel: renderWheel, ir: renderIr, irarray: renderIrArray, steer: renderSteer })[c]();
+    if (brk && c !== 'brake') brk.stop();
+    ({ wheel: renderWheel, ir: renderIr, irarray: renderIrArray, steer: renderSteer, brake: renderBrake })[c]();
   }
   const kmhTxt = v => (v == null || !isFinite(v) ? 'never' : sp(v, 1));
   // tone ring animation (geometry only)
@@ -1111,6 +1181,82 @@
     C.draw('c_stErr', [{ label: 'Error', data: xy(tr.t, tr.err), color: '--s2', width: 1.5 }], { xTitle: 'Time (s)', refs: [{ y: 0 }] });
   }
 
+  // ------------------------------------------------------------ brake pressure
+  let brk = null;
+  function renderBrake() {
+    const r = S.simulateBrakes(params, BK), b = r.b;
+    if (!brk && window.BRBrake) {
+      brk = window.BRBrake.mount($('brakeSvg'), {
+        pr: (psi, d) => pr(psi, d), prShort: psi => `${fmt(prv(psi), 0)}`, force: n => frc(n),
+        bore: inch => (IMP() ? `${(+inch).toFixed(3)} in` : `${fmt(inch * 25.4, 1)} mm`)
+      });
+      brk.onEnd = () => { $('bPlay').textContent = 'Press and release'; };
+      $('bPlay').addEventListener('click', () => {
+        if (brk.playing) { brk.stop(); $('bPlay').textContent = 'Press and release'; } else { brk.play(); $('bPlay').textContent = 'Stop'; }
+      });
+    }
+    if (brk) brk.set(r);
+    const share = `${fmt(r.brakeFrontPct, 0)} % front`;
+    $('bNote').textContent = `${b.pedalPct} % pedal · ${share} · ${r.lightOn ? 'light on' : 'light off'}`;
+    kv('bKv', [
+      ['Front line', pr(r.frontPsi), r.clipFront ? 'bad' : ''],
+      ['Rear line', pr(r.rearPsi), r.clipRear ? 'bad' : ''],
+      ['Front sensor', `${fmt(r.vFront, 2)} V · ${r.codeFront}`],
+      ['Rear sensor', `${fmt(r.vRear, 2)} V · ${r.codeRear}`],
+      ['Braking', `${fmt(r.decelG, 2)} g`, r.lockFront || r.lockRear ? 'bad' : ''],
+      ['Brake force front', `${fmt(r.brakeFrontPct, 1)} %`],
+      ['Ideal front now', `${fmt(r.idealFrontPct, 1)} %`],
+      ['Brake light', r.lightOn ? 'ON' : 'off', r.lightOn ? 'ok' : ''],
+      ['Hard braking flag', r.hard ? 'yes' : 'no', r.hard ? 'meh' : '']
+    ]);
+    const f = [];
+    if (r.lockFront && r.lockRear) f.push(['warn', `At ${b.pedalPct} % pedal both axles ask for more than the tires' ${fmt(b.tireMu, 2)} g of grip, so all four wheels lock.`]);
+    else if (r.lockRear) f.push(['crit', `The rears lock first at ${b.pedalPct} % pedal. A car with locked rears spins. Turn the knob toward the front (about ${r.bestTurns > 0 ? '+' : ''}${fmt(r.bestTurns, 1)} turns uses both axles fully at the limit).`]);
+    else if (r.lockFront) f.push(['warn', `The fronts lock first at ${b.pedalPct} % pedal: the car goes straight on but stays stable. Turning the knob toward the rear (about ${r.bestTurns > 0 ? '+' : ''}${fmt(r.bestTurns, 1)} turns) gets more out of the rears.`]);
+    if (r.clipFront || r.clipRear) f.push(['crit', `The ${r.clipFront ? 'front' : 'rear'} line is past the sensor's ${pr(b.sensorMaxPsi)} range, so the reading sticks at 4.5 V. A smaller pedal ratio, bigger master cylinder or a 2,000 psi sensor fixes it.`]);
+    if (b.lightOffPsi >= b.lightOnPsi) f.push(['crit', `The off point (${pr(b.lightOffPsi, 1)}) must be below the on point (${pr(b.lightOnPsi, 1)}) or the light flickers.`]);
+    if (r.lightOnPedalPct != null) f.push(['good', `The brake light comes on at ${r.lightOnPedalPct} % pedal, just after the free play (${b.freePct} %), so a light touch of the brakes shows behind the car.`]);
+    if (r.lockPedalPct != null && !r.lockFront && !r.lockRear) f.push(['good', `No wheel locks yet. Pushing harder, the ${r.lockFirst === 'both' ? 'front and rear lock together' : r.lockFirst + 's lock first'} at ${r.lockPedalPct} % pedal (${fmt(r.lockG, 2)} g).`]);
+    flags('bFlags', f);
+    const sw = r.sweep, pct = sw.map(x => x.pct);
+    C.legend('bPressLegend', [['Front', '--s1'], ['Rear', '--s2']]);
+    C.draw('c_bPress', [
+      { label: 'Front', data: xy(pct, sw.map(x => prv(x.front))), color: '--s1' },
+      { label: 'Rear', data: xy(pct, sw.map(x => prv(x.rear))), color: '--s2' }
+    ], { xTitle: 'Pedal travel (%)', yTitle: `Pressure (${PU()})`, xMin: 0, xMax: 100, ySugMin: 0,
+      refs: [{ y: prv(b.lightOnPsi), label: 'light on', color: '#d63b30' }, { y: prv(b.sensorMaxPsi), label: 'sensor max' }], vrefs: [{ x: b.pedalPct, label: 'now' }] });
+    const lockAt = sw.filter(x => x.lockF || x.lockR);
+    C.draw('c_bDecel', [
+      { label: 'Braking', data: xy(pct, sw.map(x => Math.min(x.g, b.tireMu))), color: '--s1' },
+      { label: 'Asked of the brakes', data: xy(pct, sw.map(x => x.g)), color: '--ink-3', dash: [5, 4], width: 1.5 }
+    ], { xTitle: 'Pedal travel (%)', yTitle: 'g', xMin: 0, xMax: 100, ySugMin: 0, yMax: Math.max(b.tireMu * 1.6, 1),
+      refs: [{ y: b.tireMu, label: 'tire grip' }], vrefs: [{ x: b.pedalPct, label: 'now' }].concat(lockAt.length ? [{ x: lockAt[0].pct, label: (r.lockFirst === 'both' ? 'all' : r.lockFirst) + ' lock' }] : []) });
+    $('bDecelFoot').textContent = r.lockPedalPct != null ? `Past ${r.lockPedalPct} % pedal the brakes can make more force than the tires can hold, so the ${r.lockFirst === 'both' ? 'wheels lock' : r.lockFirst + ' wheels lock first'} and the car stops at the grip limit (${fmt(b.tireMu, 2)} g) at best.` : 'The tires never run out of grip at this setting.';
+    // light: press to full and release, hysteresis on the higher of the two sensors
+    const L = r.light, on = [], lTop = Math.ceil(prv(b.lightOnPsi) * 3 / (IMP() ? 10 : 1)) * (IMP() ? 10 : 1);
+    let s0 = null;
+    L.forEach((x, i) => { if (x.on && s0 == null) s0 = i; if ((!x.on || i === L.length - 1) && s0 != null) { on.push({ x0: s0, x1: i, color: 'rgba(214,59,48,0.16)', label: 'light on' }); s0 = null; } });
+    C.legend('bLightLegend', [['Higher of the two sensors', '--s1'], ['Pedal travel (top = 100 %)', '--ink-3', true]]);
+    C.draw('c_bLight', [
+      { label: 'Pressure', data: L.map((x, i) => ({ x: i, y: prv(x.psi) })), color: '--s1' },
+      { label: 'Pedal %', data: L.map((x, i) => ({ x: i, y: lTop * x.pct / 100 })), color: '--ink-3', dash: [4, 4], width: 1.25 }
+    ], { xTitle: 'Time: pressing down, then letting off', yTitle: PU(), xMin: 0, xMax: L.length - 1, yMin: 0, yMax: lTop,
+      bands: on, refs: [{ y: prv(b.lightOnPsi), label: 'on', color: '#d63b30' }, { y: prv(b.lightOffPsi), label: 'off' }],
+      tooltip: { title: it => `pedal ${L[it[0].parsed.x].pct} %`, label: it => it.datasetIndex ? '' : `${pr(L[it.parsed.x].psi, 1)} · light ${L[it.parsed.x].on ? 'on' : 'off'}` } });
+    $('bLightFoot').textContent = `Zoomed in on the bottom of the range. Going down the light switches on at ${pr(b.lightOnPsi, 1)}; coming back up it stays on until the pressure falls below ${pr(b.lightOffPsi, 1)}, so a foot resting at the threshold can't make it flicker. The rear node compares the higher of the two sensors, so it still works if one circuit fails.`;
+    const bt = r.byTurn;
+    C.draw('c_bBias', [
+      { label: 'Brake force front', data: bt.map(x => ({ x: x.turns, y: x.brakeFrontPct })), color: '--s1' },
+      { label: 'Bar split', data: bt.map(x => ({ x: x.turns, y: x.frontPct })), color: '--ink-3', dash: [5, 4], width: 1.5 }
+    ], { xTitle: 'Knob turns from centre (+ = more front)', yTitle: '% front', xMin: -b.turnsMax, xMax: b.turnsMax,
+      refs: [{ y: r.idealLimPct, label: `ideal at ${fmt(b.tireMu, 2)} g`, color: '#2a9d5c' }], vrefs: [{ x: b.biasTurns, label: 'now' }, { x: r.bestTurns, label: 'best' }] });
+    $('bBiasFoot').textContent = `Solid: share of the braking force on the front axle; dashed: share of the pedal push the bar sends forward. The bores (${IMP() ? b.mcFrontIn.toFixed(3) + ' in' : fmt(b.mcFrontIn * 25.4, 1) + ' mm'} front, ${IMP() ? b.mcRearIn.toFixed(3) + ' in' : fmt(b.mcRearIn * 25.4, 1) + ' mm'} rear), calipers and rotors move the solid line up or down. Braking moves weight forward, so at the grip limit the front should take ${fmt(r.idealLimPct, 0)} %; about ${r.bestTurns > 0 ? '+' : ''}${fmt(r.bestTurns, 1)} turns gets there.`;
+    const rows = [['Nothing pressed', 0], ['Brake light on', b.lightOnPsi], ['Hard braking flag', b.hardPsi], ['Front now', r.frontPsi], ['Rear now', r.rearPsi], ['Sensor full scale', b.sensorMaxPsi]];
+    const vOf = psi => 0.5 + 4 * Math.min(psi, b.sensorMaxPsi) / b.sensorMaxPsi;
+    $('bSens').innerHTML = `<thead><tr><th>Point</th><th class="num">Pressure</th><th class="num">Sensor</th><th class="num">ADC code</th></tr></thead><tbody>` +
+      rows.map(([t, psi]) => `<tr><td>${t}</td><td class="num">${pr(psi, 1)}</td><td class="num">${fmt(vOf(psi), 3)} V</td><td class="num">${Math.round(vOf(psi) / 5 * (2 ** b.adcBits - 1))}</td></tr>`).join('') + '</tbody>';
+    $('bSensFoot').textContent = `0 to ${pr(b.sensorMaxPsi)} sensors, 0.5 to 4.5 V (brake pressure sensors form), read by a ${b.adcBits}-bit ADC on a 5 V reference: one count is ${pr(r.psiPerCount, 2)}. Below 0.5 V or above 4.5 V means a broken wire or a short, which the node can flag.`;
+  }
 
   // ------------------------------------------------------------ inputs view
   const META = [
@@ -1271,10 +1417,13 @@
 
   bindInputs();
   bindComponents();
+  FMT.rSpeed = v => `${v}`;
+  makeEditable();
   function showUnits() {
     document.querySelectorAll('.su').forEach(e => { e.textContent = SU(); });
     document.querySelectorAll('.tu').forEach(e => { e.textContent = TU(); });
     document.querySelectorAll('.lu').forEach(e => { e.textContent = LU(); });
+    document.querySelectorAll('.pu').forEach(e => { e.textContent = PU(); });
     $('unitSys').value = UNITSYS;
     syncers.forEach(f => f());
     const amb = params.ambientC; ['o_p_ambientC', 'o_p_ambientC2'].forEach(id => { if ($(id)) $(id).textContent = tp(amb); });
