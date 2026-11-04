@@ -6,20 +6,22 @@
 /* Layout: a pit-wall telemetry sheet. Sticky header with the run's status chips,
    tabs per subsystem, each tab = controls rail + stacked plots. */
 :root {
-  --bg: #f3f4f6;
+  /* Texas State colors: maroon #501214 and gold #8D734A */
+  --maroon: #501214; --gold: #8d734a;
+  --bg: #f4f2ef;
   --panel: #ffffff;
   --ink: #12161d;
   --ink-2: #4a515c;
   --ink-3: #7a818c;
-  --rule: #d9dce1;
-  --accent: #0b6e8a;
+  --rule: #ddd8d1;
+  --accent: #501214;
   --accent-ink: #ffffff;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s7: #6250d6;
   --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --crit: #d03b3b;
   --good-ink: #0a6e0a; --warn-ink: #8a5a00; --crit-ink: #b02a2a;
   --chip-good: #e6f4e6; --chip-warn: #fdf1d6; --chip-crit: #fbe3e3;
   --grid: rgba(18,22,29,0.08);
-  --scene: #e9ecf0;
+  --scene: #ece8e2;
   --f-display: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
   --f-body: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -27,7 +29,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #111418; --panel: #191d23; --ink: #eceef1; --ink-2: #b4bac3; --ink-3: #868d97; --rule: #2c323b;
-    --accent: #3fb3d3; --accent-ink: #071216;
+    --accent: #d4b98a; --accent-ink: #1a0607; --maroon: #6e1b1f;
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s7: #9085e9;
     --good-ink: #5fd35f; --warn-ink: #f5c04a; --crit-ink: #f08080;
     --chip-good: #12301a; --chip-warn: #33280c; --chip-crit: #3a1717;
@@ -36,7 +38,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #111418; --panel: #191d23; --ink: #eceef1; --ink-2: #b4bac3; --ink-3: #868d97; --rule: #2c323b;
-  --accent: #3fb3d3; --accent-ink: #071216;
+  --accent: #d4b98a; --accent-ink: #1a0607; --maroon: #6e1b1f;
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s7: #9085e9;
   --good-ink: #5fd35f; --warn-ink: #f5c04a; --crit-ink: #f08080;
   --chip-good: #12301a; --chip-warn: #33280c; --chip-crit: #3a1717;
@@ -142,6 +144,26 @@ td.wrap { white-space: normal; min-width: 220px; }
 #hTable tr.pick { cursor: pointer; }
 #hTable tr.pick:hover td, #hTable tr.pick.on td { color: var(--accent); }
 #hTable tfoot td { font-weight: 600; }
+header.top { border-top: 5px solid var(--maroon); box-shadow: inset 0 -3px 0 var(--gold); border-bottom: 0; }
+header.top h1 { color: var(--accent); }
+.brand .school { font-family: var(--f-display); font-weight: 600; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); }
+nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
+.subtabs { display: flex; gap: 6px; margin: 0 0 16px; padding: 4px; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; width: max-content; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.subtabs button { font: 600 15px/1 var(--f-display); letter-spacing: .04em; text-transform: uppercase; padding: 9px 14px; border-radius: 6px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.subtabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+@media (max-width: 700px) { .subtabs { width: 100%; } }
+#arScene { position: relative; height: 440px; border-radius: 6px; overflow: hidden; background: var(--scene); touch-action: none; }
+#arScene canvas { display: block; }
+#arScene .hlabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.hlb.axis.x { color: #d03b3b; } .hlb.axis.y { color: #1baf7a; } .hlb.axis.z { color: #2a78d6; }
+.planes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .planes { grid-template-columns: minmax(0, 1fr); } }
+.planes figure { margin: 0; }
+.planes svg { width: 100%; height: auto; display: block; background: var(--bg); border-radius: 6px; }
+.planes figcaption { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+.strip { display: flex; height: 34px; border-radius: 4px; overflow: hidden; border: 1px solid var(--rule); }
+.strip i { flex: 1; }
+.strip-scale { display: flex; justify-content: space-between; font: 11.5px var(--f-mono); color: var(--ink-2); margin-top: 4px; }
 #scene3d { position: relative; height: 460px; border-radius: 6px; overflow: hidden; background: var(--scene); touch-action: none; }
 #scene3d canvas { display: block; }
 #scene3d .hint { position: absolute; left: 10px; bottom: 8px; font-size: 12px; color: var(--ink-3); pointer-events: none; }
@@ -169,9 +191,10 @@ td.wrap { white-space: normal; min-width: 220px; }
 <header class="top">
   <div class="wrap">
     <div class="brand">
+      <span class="school">Texas State University</span>
       <h1>BR27 Electrical Simulator</h1>
       <span class="sub">Bobcat Racing · FSAE 2027 · EMU Black on CBR600RR · 12 V LV · CAN 2.0</span>
-      <label class="units">Speeds in <select id="speedUnit"><option value="mph">mph</option><option value="kmh">km/h</option></select></label>
+      <label class="units">Units <select id="unitSys"><option value="imperial">Imperial (mph, in, °F)</option><option value="metric">Metric (km/h, mm, °C)</option></select></label>
     </div>
     <div class="chips" id="chips"></div>
     <nav class="tabs" aria-label="Subsystems">
@@ -315,7 +338,7 @@ td.wrap { white-space: normal; min-width: 220px; }
       <div class="card"><div class="card-head"><h3>Bus voltage (V)</h3><span class="note">Shaded bands are the phases of the event</span></div><div class="plot tall"><canvas id="c_v"></canvas></div></div>
       <div class="grid2">
         <div class="card"><h3>Battery charge (%)</h3><div class="plot"><canvas id="c_soc"></canvas></div></div>
-        <div class="card"><h3>Coolant temperature (°C)</h3><div class="plot"><canvas id="c_cool"></canvas></div><p class="foot">The radiator fan is the biggest switched load, so it shows up in the battery current.</p></div>
+        <div class="card"><h3>Coolant temperature (<span class="tu">°F</span>)</h3><div class="plot"><canvas id="c_cool"></canvas></div><p class="foot">The radiator fan is the biggest switched load, so it shows up in the battery current.</p></div>
       </div>
       <div class="card"><div class="card-head"><h3>Current (A)</h3><div class="legend" id="curLegend"></div></div><div class="plot"><canvas id="c_cur"></canvas></div></div>
       <div class="card">
@@ -532,11 +555,16 @@ td.wrap { white-space: normal; min-width: 220px; }
 <section class="view" id="v-components" hidden>
   <div class="view-head">
     <h2>Component simulations</h2>
-    <p class="lede">Try a part before buying it. Pick a component on the left: the wheel speed sensor (Hall effect vs VR, and how many teeth on the ring), an IR temperature sensor (field of view and distance to the tire or rotor), or the steering angle pot (range, gearing and accuracy). Every number marked as an assumption in the source is a typical datasheet value until the team picks a part.</p>
+    <p class="lede">Try a part before buying it. Pick a component: the wheel speed sensor (Hall effect vs VR, and how many teeth on the ring), a single IR temperature sensor (field of view and distance to the tire or rotor), an IR array that reads across the whole tread (and how its mounting angles change the data), or the steering angle pot (range, gearing and accuracy). Every number marked as an assumption in the source is a typical datasheet value until the team picks a part.</p>
+  </div>
+  <div class="subtabs" role="tablist" aria-label="Component" id="compTabs">
+    <button type="button" role="tab" data-comp="wheel">Wheel speed</button>
+    <button type="button" role="tab" data-comp="ir">IR temperature</button>
+    <button type="button" role="tab" data-comp="irarray">IR array</button>
+    <button type="button" role="tab" data-comp="steer">Steering angle</button>
   </div>
   <div class="split">
     <aside class="rail">
-      <div class="field"><label for="w_component">Component</label><select id="w_component"><option value="wheel">Wheel speed sensor</option><option value="ir">IR temperature sensor</option><option value="steer">Steering angle pot</option></select></div>
       <div class="cgroup" data-comp="wheel">
       <h3>Sensor</h3>
       <div class="field"><label for="w_sensor">Type</label><select id="w_sensor"><option value="hall">Hall effect (powered, digital)</option><option value="vr">VR (passive coil, AC)</option></select></div>
@@ -574,6 +602,31 @@ td.wrap { white-space: normal; min-width: 220px; }
       <div class="field"><label for="i_emisSet">Emissivity set in the sensor <output id="o_i_emisSet"></output></label><input type="range" id="i_emisSet" min="0.1" max="1" step="0.01"></div>
       <button class="btn ghost" id="i_reset" type="button">Reset to defaults</button>
       </div>
+      <div class="cgroup" data-comp="irarray" hidden>
+      <h3>Sensor</h3>
+      <div class="field"><label for="a_preset">Array</label><select id="a_preset"></select><span class="src" id="a_presetNote"></span></div>
+      <div class="field" data-custom><label for="a_pixels">Pixels across <output id="o_a_pixels"></output></label><input type="range" id="a_pixels" min="1" max="64" step="1"></div>
+      <div class="field" data-custom><label for="a_hFovDeg">Field of view across <output id="o_a_hFovDeg"></output></label><input type="range" id="a_hFovDeg" min="10" max="120" step="1"></div>
+      <div class="field" data-custom><label for="a_vFovDeg">Pixel height <output id="o_a_vFovDeg"></output></label><input type="range" id="a_vFovDeg" min="0.5" max="40" step="0.5"></div>
+      <h3>Tire</h3>
+      <div class="field"><label for="a_widthMM">Tread width <output id="o_a_widthMM"></output></label><input type="range" id="a_widthMM" min="100" max="260" step="2"><span class="src">7 in on the 16x7.5-10 [Tanner]</span></div>
+      <div class="field"><label for="a_profile">Temperature across the tread</label><select id="a_profile"></select></div>
+      <div class="field"><label for="a_tempC">Average tread temperature <output id="o_a_tempC"></output></label><input type="range" id="a_tempC" min="20" max="120" step="1"></div>
+      <div class="field"><label for="a_gradC">Hot to cold difference <output id="o_a_gradC"></output></label><input type="range" id="a_gradC" min="0" max="40" step="1"></div>
+      <div class="field"><label for="a_bgC">Track and air <output id="o_a_bgC"></output></label><input type="range" id="a_bgC" min="0" max="60" step="1"></div>
+      <h3>Mount offsets</h3>
+      <div class="field"><label for="a_xMM">X: distance ahead of the tread <output id="o_a_xMM"></output></label><input type="range" id="a_xMM" min="40" max="320" step="5"></div>
+      <div class="field"><label for="a_yMM">Y: sideways, + outward <output id="o_a_yMM"></output></label><input type="range" id="a_yMM" min="-80" max="80" step="1"></div>
+      <div class="field"><label for="a_zMM">Z: height above the axle <output id="o_a_zMM"></output></label><input type="range" id="a_zMM" min="-150" max="150" step="5"></div>
+      <h3>Mount angles</h3>
+      <div class="field"><label for="a_rollDeg">Roll (about the look axis) <output id="o_a_rollDeg"></output></label><input type="range" id="a_rollDeg" min="-45" max="45" step="1"><span class="src">Tilts the pixel row</span></div>
+      <div class="field"><label for="a_pitchDeg">Pitch (+ looks up) <output id="o_a_pitchDeg"></output></label><input type="range" id="a_pitchDeg" min="-45" max="45" step="1"></div>
+      <div class="field"><label for="a_yawDeg">Yaw (+ looks outward) <output id="o_a_yawDeg"></output></label><input type="range" id="a_yawDeg" min="-30" max="30" step="1"></div>
+      <h3>Front tire steer</h3>
+      <div class="field"><label for="a_mount">Sensor mounted on</label><select id="a_mount"><option value="chassis">Chassis (tire turns under it)</option><option value="upright">Upright (turns with the wheel)</option></select></div>
+      <div class="field"><label for="a_steerDeg">Front wheel steer <output id="o_a_steerDeg"></output></label><input type="range" id="a_steerDeg" min="-30" max="30" step="1"><span class="src">+ swings the front of the tire outward</span></div>
+      <button class="btn ghost" id="a_reset" type="button">Reset to defaults</button>
+      </div>
       <div class="cgroup" data-comp="steer" hidden>
       <h3>Steering</h3>
       <div class="field"><label for="s_lockDeg">Steering wheel at full lock <output id="o_s_lockDeg"></output></label><input type="range" id="s_lockDeg" min="60" max="270" step="5"><span class="src">Each way from centre</span></div>
@@ -610,7 +663,7 @@ td.wrap { white-space: normal; min-width: 220px; }
         <div class="grid2">
           <div><p class="foot">Slowest speed that reads (<span class="su">mph</span>)</p><div class="plot short"><canvas id="c_wsMin"></canvas></div></div>
           <div><p class="foot">Below this speed the value updates slower than CAN (<span class="su">mph</span>)</p><div class="plot short"><canvas id="c_wsFull"></canvas></div></div>
-          <div><p class="foot">Tooth width on the ring (mm)</p><div class="plot short"><canvas id="c_wsTooth"></canvas></div></div>
+          <div><p class="foot">Tooth width on the ring (<span class="lu">in</span>)</p><div class="plot short"><canvas id="c_wsTooth"></canvas></div></div>
           <div><p class="foot">Tooth rate at top speed (Hz)</p><div class="plot short"><canvas id="c_wsHz"></canvas></div></div>
         </div>
       </div>
@@ -627,8 +680,8 @@ td.wrap { white-space: normal; min-width: 220px; }
         <ul class="flags" id="irFlags"></ul>
       </div>
       <div class="grid2">
-        <div class="card"><div class="card-head"><h3>Reading vs distance (°C)</h3><div class="legend" id="irDistLegend"></div></div><div class="plot"><canvas id="c_irDist"></canvas></div><p class="foot">Each field of view, middle sensor. Past the distance where the spot outgrows the target the reading falls toward the background.</p></div>
-        <div class="card"><h3>Spot size vs distance (mm)</h3><div class="plot"><canvas id="c_irSpot"></canvas></div><p class="foot">Spot diameter for each field of view against the width each sensor has to stay inside.</p></div>
+        <div class="card"><div class="card-head"><h3>Reading vs distance (<span class="tu">°F</span>)</h3><div class="legend" id="irDistLegend"></div></div><div class="plot"><canvas id="c_irDist"></canvas></div><p class="foot">Each field of view, middle sensor. Past the distance where the spot outgrows the target the reading falls toward the background.</p></div>
+        <div class="card"><h3>Spot size vs distance (<span class="lu">in</span>)</h3><div class="plot"><canvas id="c_irSpot"></canvas></div><p class="foot">Spot diameter for each field of view against the width each sensor has to stay inside.</p></div>
       </div>
       <div class="card">
         <div class="card-head"><h3>Front tire from above</h3><span class="note" id="irTopNote"></span></div>
@@ -640,8 +693,45 @@ td.wrap { white-space: normal; min-width: 220px; }
           </div>
         </div>
       </div>
-      <div class="card"><div class="card-head"><h3>Reading as the front wheel steers (°C)</h3><div class="legend" id="irSteerLegend"></div></div><div class="plot short"><canvas id="c_irSteer"></canvas></div><p class="foot" id="irSteerFoot"></p></div>
-      <div class="card"><h3>Reading as the aim moves off centre (°C)</h3><div class="plot short"><canvas id="c_irOff"></canvas></div><p class="foot">Middle sensor. Steering, camber and bump move the tire under a chassis-mounted sensor; mounting on the upright keeps the aim fixed.</p></div>
+      <div class="card"><div class="card-head"><h3>Reading as the front wheel steers (<span class="tu">°F</span>)</h3><div class="legend" id="irSteerLegend"></div></div><div class="plot short"><canvas id="c_irSteer"></canvas></div><p class="foot" id="irSteerFoot"></p></div>
+      <div class="card"><h3>Reading as the aim moves off centre (<span class="tu">°F</span>)</h3><div class="plot short"><canvas id="c_irOff"></canvas></div><p class="foot">Middle sensor. Steering, camber and bump move the tire under a chassis-mounted sensor; mounting on the upright keeps the aim fixed.</p></div>
+      </div>
+      <div class="cgroup" data-comp="irarray" hidden>
+      <div class="card">
+        <div class="card-head"><h3>The sensor on the tire</h3><span class="note" id="arNote"></span></div>
+        <div class="hctrl">
+          <button type="button" data-arview="iso">3D view</button>
+          <button type="button" data-arview="side">Side (X–Z)</button>
+          <button type="button" data-arview="front">Front (Y–Z)</button>
+          <button type="button" data-arview="top">Top (X–Y)</button>
+        </div>
+        <div id="arScene"><div class="hlabels" id="arLabels"></div><span class="hint">Drag to orbit · pinch or scroll to zoom</span></div>
+        <p class="foot">The tread is colored by its true temperature. Each line is one pixel's view, colored by what that pixel reads; the dots are where it lands. Red, green and blue arrows are X, Y and Z. The rings around the sensor show which way + roll, pitch and yaw turn it.</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Offsets and angles, plane by plane</h3></div>
+        <div class="planes">
+          <figure><svg id="arSide" viewBox="0 0 320 240" role="img" aria-label="Side view, X–Z plane"></svg><figcaption><b>Side, X–Z plane.</b> X (distance) and Z (height) offsets. Pitch turns the sensor in this plane and moves the pixel row around the tire.</figcaption></figure>
+          <figure><svg id="arFront" viewBox="0 0 320 240" role="img" aria-label="Front view, Y–Z plane"></svg><figcaption><b>Front, Y–Z plane.</b> Y (sideways) and Z offsets. Roll turns the sensor in this plane and tilts the pixel row across the tread.</figcaption></figure>
+          <figure><svg id="arTop" viewBox="0 0 320 240" role="img" aria-label="Top view, X–Y plane"></svg><figcaption><b>Top, X–Y plane.</b> X and Y offsets. Yaw turns the sensor in this plane and slides the row toward one edge; steer turns the tire here.</figcaption></figure>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>What the array reads</h3><div class="legend" id="arLegend"></div></div>
+        <div class="strip" id="arStrip"></div><div class="strip-scale"><span>inner pixel</span><span id="arStripScale"></span><span>outer pixel</span></div>
+        <div class="plot"><canvas id="c_arRead"></canvas></div>
+        <div class="kv" id="arKv"></div>
+        <ul class="flags" id="arFlags"></ul>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>How each mount error changes the data</h3>
+          <div class="field" style="margin:0"><select id="arDof" aria-label="Offset or angle to sweep"></select></div></div>
+        <div class="grid2">
+          <div><p class="foot">Array reading at five settings, pixel by pixel</p><div class="plot"><canvas id="c_arProf"></canvas></div><div class="legend" id="arProfLegend"></div></div>
+          <div><p class="foot">Share of the tread width the array sees</p><div class="plot"><canvas id="c_arCover"></canvas></div></div>
+        </div>
+        <p class="foot" id="arDofFoot"></p>
+      </div>
       </div>
       <div class="cgroup" data-comp="steer" hidden>
       <div class="card">

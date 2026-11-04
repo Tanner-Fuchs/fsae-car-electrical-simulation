@@ -208,14 +208,18 @@
       table.querySelectorAll('tr.pick').forEach(r => r.classList.toggle('on', r.dataset.key === hiKey));
       if (hiKey) stage.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
     }
-    const tot = {};
-    table.innerHTML = '<thead><tr><th>ID</th><th>Group</th><th>Run</th><th>Wires</th><th>Twist</th><th class="num">Est. m</th></tr></thead><tbody>' +
-      rows.map(r => { tot[r.layer] = (tot[r.layer] || 0) + r.len; return `<tr class="pick" tabindex="0" data-key="${r.key}"><td>${r.id}</td><td>${LAYER_NAME[r.layer]}</td><td>${r.run}</td><td>${r.wires}</td><td>${r.twist}</td><td class="num">${r.len.toFixed(2)}</td></tr>`; }).join('') +
-      '</tbody><tfoot>' + Object.entries(tot).map(([k, v]) => `<tr><td></td><td>${LAYER_NAME[k]}</td><td>Total cable length</td><td></td><td></td><td class="num">${v.toFixed(2)}</td></tr>`).join('') + '</tfoot>';
-    table.querySelectorAll('tr.pick').forEach(tr => {
-      tr.addEventListener('click', () => highlight(tr.dataset.key));
-      tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); highlight(tr.dataset.key); } });
-    });
+    function renderTable() {
+      const U = window.BRUnits, cv = m => (U ? U.mlv(m) : m), unit = U ? U.ML() : 'm';
+      const tot = {};
+      table.innerHTML = `<thead><tr><th>ID</th><th>Group</th><th>Run</th><th>Wires</th><th>Twist</th><th class="num">Est. ${unit}</th></tr></thead><tbody>` +
+        rows.map(r => { tot[r.layer] = (tot[r.layer] || 0) + r.len; return `<tr class="pick${r.key === hiKey ? ' on' : ''}" tabindex="0" data-key="${r.key}"><td>${r.id}</td><td>${LAYER_NAME[r.layer]}</td><td>${r.run}</td><td>${r.wires}</td><td>${r.twist}</td><td class="num">${cv(r.len).toFixed(2)}</td></tr>`; }).join('') +
+        '</tbody><tfoot>' + Object.entries(tot).map(([k, v]) => `<tr><td></td><td>${LAYER_NAME[k]}</td><td>Total cable length</td><td></td><td></td><td class="num">${cv(v).toFixed(2)}</td></tr>`).join('') + '</tfoot>';
+      table.querySelectorAll('tr.pick').forEach(tr => {
+        tr.addEventListener('click', () => highlight(tr.dataset.key));
+        tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); highlight(tr.dataset.key); } });
+      });
+    }
+    renderTable();
 
     // ---- views, labels and layer toggles
     const views = { iso: [V(1.9, 1.5, 1.9), V(0, 0.2, 0)], top: [V(0.049, 4.2, 0), V(0.05, 0.1, 0)], fl: [V(1.15, 0.5, 0.75), V(0.78, 0.2, 0.4)], dash: [V(1.3, 0.85, 0.5), V(0.76, 0.46, 0)], seat: [V(0.55, 0.6, 0.75), V(-0.03, 0.12, 0.08)] };
@@ -250,6 +254,7 @@
     return {
       pause() { running = false; cancelAnimationFrame(raf); },
       resume() { if (!running) { running = true; resize(); frame(); } },
+      setUnits: renderTable,
       rows
     };
   }

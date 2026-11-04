@@ -12,13 +12,13 @@ from pathlib import Path
 
 import urllib.parse
 
-from . import JS_API, cad, can, components, engine, faults, params, shutdown, wiring
+from . import JS_API, cad, can, components, irarray, engine, faults, params, shutdown, wiring
 from .jsonio import dumps
 
 WEB = Path(__file__).resolve().parent / "web"
 # Libraries are bundled (Chart.js 4.4.1, three.js 0.128.0) so the page works offline.
 LIBS = ["vendor/chart-4.4.1.umd.js", "vendor/three-0.128.0.min.js", "vendor/OrbitControls-0.128.0.js"]
-SCRIPTS = ["bridge.js", "charts.js", "engine.js", "car3d.js", "harness3d.js", "app.js"]
+SCRIPTS = ["bridge.js", "charts.js", "engine.js", "car3d.js", "harness3d.js", "irarray3d.js", "app.js"]
 TYPES = {".js": "text/javascript", ".html": "text/html", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json"}
 
 # Shows any script error on the page instead of leaving it blank.
@@ -50,6 +50,7 @@ def constants():
         "CAN_LAYOUTS": can.CAN_LAYOUTS, "BUS_INFO": can.BUS_INFO,
         "FAULTS": fault_list, "FAULT_BANDS": faults.FAULT_BANDS, "WHEEL_DEFAULTS": components.WHEEL_DEFAULTS,
         "IR_DEFAULTS": components.IR_DEFAULTS, "IR_TARGETS": components.IR_TARGETS, "STEER_DEFAULTS": components.STEER_DEFAULTS,
+        "IR_ARRAY_DEFAULTS": irarray.IR_ARRAY_DEFAULTS, "IR_ARRAY_PRESETS": irarray.IR_ARRAY_PRESETS, "IR_ARRAY_PROFILES": irarray.IR_ARRAY_PROFILES,
         "FUNCTIONS": sorted(JS_API),
     }
 

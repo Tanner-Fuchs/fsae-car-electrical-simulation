@@ -17,7 +17,7 @@ LHV = 43e6  # J/kg gasoline
 
 DEFAULTS = {
     # vehicle and drive cycle
-    "massKg": 290,            # car + driver [assumption]
+    "massKg": 288.6,          # car + driver: 216 kg curb target [Master Timeline, Chapter One] + 72.6 kg (160 lb) driver [Tanner 2026-11-04]
     "tireD": 0.406,           # tire diameter: Hoosier R20 16x7.5-10 (16 in tire on 10 in wheels) [form: VD Tire Model Data #1]
     "cdA": 1.1,               # m^2 [assumption]
     "crr": 0.015,             # [assumption]
