@@ -1024,7 +1024,7 @@
     for (const id of CAD.placed || []) rows += `<tr><td>${partName(id)}</td><td>placed by hand</td><td></td><td></td><td class="mono">${xyz(CAD.positions[id])}</td><td></td><td><button type="button" data-unplace="${id}">Reset</button></td></tr>`;
     $('cadTable').innerHTML = `<thead><tr><th>File / part</th><th>Role</th><th class="num">Triangles</th><th>Size (m)</th><th>Centre x, y, z (m)</th><th class="num">Volume (L)</th><th></th></tr></thead><tbody>` +
       (rows || '<tr><td colspan="7">No CAD imported yet. The 3D car uses placeholder positions.</td></tr>') + '</tbody>';
-    $('cadDir').textContent = `CAD files are stored in ${CAD.dir} (kept across updates). Axes: +x forward, +y up, +z to the driver's right, metres.`;
+    $('cadDir').textContent = `CAD files are stored ${window.BR27_LOCAL ? 'in this browser on this device' : 'in ' + CAD.dir} (kept across updates). Axes: +x forward, +y up, +z to the driver's right, metres.`;
   }
   function bindCad() {
     $('cadFiles').addEventListener('change', async e => {

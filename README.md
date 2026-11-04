@@ -28,6 +28,18 @@ Close the black window to stop the simulator.
 
 To publish an update that everyone's launcher picks up, see [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
+## On an iPad or iPhone (web version)
+
+Open **https://tanner-fuchs.github.io/fsae-car-electrical-simulation/** in Safari. Nothing to
+install: the same Python model runs inside the browser (Pyodide). The first visit downloads
+about 12 MB; after that it opens from the cache. To get an app icon, tap Share, then
+**Add to Home Screen**. It works on any computer's browser too.
+
+The web version is rebuilt and published by `.github/workflows/pages.yml` on every push to
+`main`, so it always matches the launcher. CAD files imported there are kept in that
+browser only. To build it yourself: `python tools/build_web.py --pyodide <pyodide folder>`
+(see the top of that file).
+
 ## Import the car's CAD
 
 On the **Car** tab, the **CAD models (STL)** card takes STL files of the frame and the main
@@ -138,6 +150,7 @@ print(lap["stats"]["lapTime"], power["stats"]["endSoc"])
 | The page itself (layout, charts, 3D car, text) | `src/br27sim/web/` (HTML and JavaScript) |
 | STL import, CAD axes and part positions | `src/br27sim/cad.py` (server side), `web/car3d.js` (drawing) |
 | 3D harness model (Harness 3D tab: cable routes, colors, lengths) | `web/harness3d.js` |
+| Web version (iPad/iPhone): Python in the browser | `web/pyboot.js`, `tools/build_web.py`, `server.handle()` |
 | The launchers | `launcher/` |
 
 Every default carries a tag saying where it came from: `[form: ...]` for a concept form,

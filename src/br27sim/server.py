@@ -96,48 +96,54 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
-        path = self.path.split("?")[0]
-        try:
+        path, _, query = self.path.partition("?")
+        self.send(*handle("GET", path, query))
+
+    def do_POST(self):
+        path, _, query = self.path.partition("?")
+        self.send(*handle("POST", path, query, self.rfile.read(int(self.headers.get("Content-Length") or 0))))
+
+
+def handle(method, path, query="", body=b""):
+    """Answer one page request: returns (status, body, content type).
+
+    Used by the local server and, in the web version, called directly from the browser
+    (Pyodide), so both run exactly the same code.
+    """
+    try:
+        if method == "GET":
             if path in ("/", "/index.html"):
-                return self.send(200, index_html(), "text/html")
+                return 200, index_html(), "text/html"
             if path == "/api/constants":
-                return self.send(200, dumps(constants()))
+                return 200, dumps(constants()), "application/json"
             if path == "/api/wiring":
-                return self.send(200, dumps(wiring_bundle()))
+                return 200, dumps(wiring_bundle()), "application/json"
             if path == "/api/cad":
-                return self.send(200, dumps(cad.summary()))
+                return 200, dumps(cad.summary()), "application/json"
             if path.startswith("/cad-files/"):
                 name = urllib.parse.unquote(path[len("/cad-files/"):])
                 f = (cad.data_dir() / name).resolve()
                 if f.parent == cad.data_dir().resolve() and f.is_file():
-                    return self.send(200, f.read_bytes(), "model/stl")
+                    return 200, f.read_bytes(), "model/stl"
             f = (WEB / path.lstrip("/")).resolve()
             if WEB in f.parents and f.is_file():
-                return self.send(200, f.read_bytes(), TYPES.get(f.suffix, "application/octet-stream"))
-            self.send(404, "not found", "text/plain")
-        except Exception:
-            self.send(500, traceback.format_exc(), "text/plain")
-
-    def do_POST(self):
-        path, _, query = self.path.partition("?")
+                return 200, f.read_bytes(), TYPES.get(f.suffix, "application/octet-stream")
+            return 404, "not found", "text/plain"
         if path in ("/api/cad/upload", "/api/cad/update"):
             try:
-                body = self.rfile.read(int(self.headers.get("Content-Length") or 0))
                 if path == "/api/cad/upload":
                     q = urllib.parse.parse_qs(query)
                     cad.add_file(q.get("name", ["part.stl"])[0], body, q.get("role", ["other"])[0])
-                    return self.send(200, dumps(cad.summary()))
-                return self.send(200, dumps(cad.update(json.loads(body or b"{}"))))
+                    return 200, dumps(cad.summary()), "application/json"
+                return 200, dumps(cad.update(json.loads(body or b"{}"))), "application/json"
             except Exception as e:
-                return self.send(400, str(e), "text/plain")
+                return 400, str(e), "text/plain"
         if not path.startswith("/api/call/"):
-            return self.send(404, "not found", "text/plain")
-        try:
-            body = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
-            result = call(path[len("/api/call/"):], body.get("args") or [])
-            self.send(200, dumps(result))
-        except Exception:
-            self.send(500, traceback.format_exc(), "text/plain")
+            return 404, "not found", "text/plain"
+        req = json.loads(body or b"{}")
+        return 200, dumps(call(path[len("/api/call/"):], req.get("args") or [])), "application/json"
+    except Exception:
+        return 500, traceback.format_exc(), "text/plain"
 
 
 def make_server(host="127.0.0.1", port=8027):

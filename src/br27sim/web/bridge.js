@@ -3,10 +3,17 @@
  * JavaScript model (window.BR27Sim, window.BRWiring); this file provides the
  * same objects, but every call runs in Python through the local server
  * started by `br27sim serve`. Calls are synchronous so app.js works unchanged.
+ * In the web version (iPad/iPhone) there is no server: pyboot.js runs the same
+ * Python in the browser with Pyodide and sets window.BR27_LOCAL to answer requests.
  */
 (function () {
   'use strict';
   function request(method, url, body) {
+    if (window.BR27_LOCAL) {
+      const r = window.BR27_LOCAL(method, url, body === undefined ? undefined : JSON.stringify(body));
+      if (r.status !== 200) throw new Error('Python model: ' + r.text);
+      return JSON.parse(r.text);
+    }
     const x = new XMLHttpRequest();
     x.open(method, url, false);
     if (body !== undefined) x.setRequestHeader('Content-Type', 'application/json');

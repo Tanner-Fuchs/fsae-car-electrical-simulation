@@ -98,3 +98,30 @@ def test_index_loads_harness3d():
     html = server.index_html()
     assert "/harness3d.js" in html and 'id="v-harness"' in html
     assert html.index("/harness3d.js") < html.index("/app.js")
+
+
+def test_handle_matches_server_routes():
+    import json
+    from br27sim import server
+    code, body, ctype = server.handle("GET", "/api/constants")
+    assert code == 200 and "simulateLap" in json.loads(body)["FUNCTIONS"]
+    code, body, _ = server.handle("POST", "/api/call/simulateLap", "", json.dumps({"args": [{}]}))
+    assert code == 200 and "series" in json.loads(body)
+    assert server.handle("GET", "/nope")[0] == 404
+
+
+def test_build_web(tmp_path):
+    import importlib.util
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    spec = importlib.util.spec_from_file_location("build_web", root / "tools" / "build_web.py")
+    bw = importlib.util.module_from_spec(spec); spec.loader.exec_module(bw)
+    fake = tmp_path / "pyodide"; fake.mkdir()
+    for f in bw.PYODIDE_FILES:
+        (fake / f).write_text("x")
+    bw.build(fake, tmp_path / "site")
+    html = (tmp_path / "site" / "index.html").read_text(encoding="utf-8")
+    assert "pyboot.js" in html and "BR27_BOOT" in html and "viewport" in html
+    import zipfile
+    names = zipfile.ZipFile(tmp_path / "site" / "br27sim.zip").namelist()
+    assert "br27sim/server.py" in names and "br27sim/engine.py" in names
