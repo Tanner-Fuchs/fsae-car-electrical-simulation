@@ -227,7 +227,7 @@
       });
       return g + faultBar() + footer(s);
     }
-    // driver's autocross sketch: speed + gear in one centre panel, four panels around it, faults top right
+    // driver's autocross sketch: speed + gear in one centre panel, four panels around it, faults bottom right
     function modeAutocross(s) {
       const box = (x, y, w, h) => `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h - 6}" rx="6" fill="#0f0f0f" stroke="#2a2a2a"/>`;
       const pair = (x, y, label, rows) => box(x, y, 230, 205) + T(x + 14, y + 26, label, 14, 'fill="#9aa4b1" letter-spacing="1"') +
@@ -239,8 +239,8 @@
         T(400, 190, fmt(spd(s.v), 0), 120, `text-anchor="middle" fill="#fff" ${MONO} font-weight="700"`) +
         `<line x1="250" y1="236" x2="550" y2="236" stroke="#2a2a2a" stroke-width="2"/>` + T(244, 262, 'GEAR', 14, 'fill="#9aa4b1" letter-spacing="1"') +
         T(400, 420, s.gear || 'N', 170, `text-anchor="middle" fill="#fff" ${MONO} font-weight="700"`) +
-        faultBox(570, 46, 230, 205) +
-        pair(570, 251, 'POWER / FUEL', [['VOLTS', `${fmt(s.volts, 1)} V`, s.volts < 12.8 || s.volts > 15 ? AMB : '#fff'], ['FUEL P', pr(s.fuelP), s.fuelP < 2.8 ? AMB : '#fff']]) +
+        pair(570, 46, 'POWER / FUEL', [['VOLTS', `${fmt(s.volts, 1)} V`, s.volts < 12.8 || s.volts > 15 ? AMB : '#fff'], ['FUEL P', pr(s.fuelP), s.fuelP < 2.8 ? AMB : '#fff']]) +
+        faultBox(570, 251, 230, 205) +
         footer(s);
     }
     function fullWarning(code, s) {
