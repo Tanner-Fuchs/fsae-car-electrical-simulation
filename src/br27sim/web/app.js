@@ -1339,7 +1339,10 @@
     const syncD = bindGroup('d', DP, D_UNITS, () => { Object.assign(DP, S.PI_DEFAULTS); piRamOpts(); }, 'dash');
     $('d_board').addEventListener('input', () => { piRamOpts(); syncD(); });
     $('piPlay').addEventListener('click', () => { piPlay = !piPlay; $('piPlay').textContent = piPlay ? 'Pause' : 'Play'; piGo(); });
-    $('piRestart').addEventListener('click', () => dashOS && dashOS.restart());
+    $('piRestart').addEventListener('click', () => dashOS && dashOS.reboot());
+    $('piSkip').addEventListener('click', () => dashOS && dashOS.skip(30));
+    $('piScen').innerHTML = Object.entries(window.BRDashOS ? window.BRDashOS.SCENARIOS : {}).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('');
+    $('piScen').addEventListener('input', () => dashOS && dashOS.scenario($('piScen').value));
     $('piTable').addEventListener('click', e => {
       const tr = e.target.closest('tr[data-k]'); if (!tr) return;
       const [k, g] = tr.dataset.k.split('|'); DP.board = k; if (g) DP.ramGB = +g;
@@ -1347,6 +1350,7 @@
     });
     return syncD;
   }
+  let syncDash = null;
   let dashOS = null, piPlay = true, piScrolling = false, piScrollT = null, piVisible = true;
   function piGo() { if (!dashOS) return; if (piPlay && !piScrolling && piVisible && currentView === 'dash') dashOS.start(); else dashOS.stop(); }
   window.addEventListener('scroll', () => {
@@ -1356,17 +1360,25 @@
   if (window.IntersectionObserver) new IntersectionObserver(es => { piVisible = es[0].isIntersecting; piGo(); }).observe($('osScreen'));
   function renderDash() {
     const r = S.simulatePi(params, DP), sel = r.sel, b = r.board, pico = !b.linux, o = r.o;
-    if (!dashOS && window.BRDashOS) dashOS = window.BRDashOS.mount($('osScreen'), { spv, SU, tp });
-    if (dashOS) dashOS.set(r, R.lap);
+    if (!dashOS && window.BRDashOS) {
+      dashOS = window.BRDashOS.mount($('osScreen'), { spv, SU, tp, IMP }, {
+        onSetting: (k, v) => { DP[k] = v; syncDash && syncDash(); renderView('dash'); }
+      });
+      dashOS.scenario($('piScen').value || 'clean');
+    }
+    let bias = 64;
+    try { bias = S.simulateBrakes(params, BK).brakeFrontPct; } catch (e) { /* brake model optional here */ }
+    if (dashOS) dashOS.set(r, R.lap, { biasPct: bias });
+    if (window.BRPiWiring) window.BRPiWiring.draw({ svg: $('pwSvg'), table: $('pwPins'), flags: $('pwFlags'), cfg: $('pwCfg'), note: $('pwNote') }, r, { tp });
     piGo();
     const memTxt = x => (x.ramKB ? `${fmt(x.usedKB, 0)} of ${x.ramKB} KB` : `${fmt(x.usedMB, 0)} of ${fmt(x.ramMB, 0)} MB`);
     $('piNote').textContent = `${b.label}${pico ? '' : ' ' + ramTxt(r.ramGB)} · ${r.fps} CAN frames/s · ${sel.ok ? 'inside spec' : 'outside spec'}`;
     $('piSpecNote').textContent = `spec: memory ≤ ${o.specRamPct} %, busiest core ≤ ${o.specCorePct} %`;
-    $('piTable').innerHTML = '<thead><tr><th>Board</th><th>Memory</th><th class="num">Memory used</th><th class="num">Busiest core</th><th class="num">All cores</th><th class="num">5 V draw</th><th class="num">Price</th><th>Spec</th><th>Why</th></tr></thead><tbody>' +
+    $('piTable').innerHTML = '<thead><tr><th>Board</th><th>Memory</th><th class="num">Boot to dash</th><th class="num">Memory used</th><th class="num">Busiest core</th><th class="num">All cores</th><th class="num">5 V draw</th><th class="num">Price</th><th>Spec</th><th>Why</th></tr></thead><tbody>' +
       r.rows.map(x => {
         const bb = S.PI_BOARDS[x.key], isSel = x.key === r.boardKey && x.ramGB === r.ramGB;
         const why = x.fails.concat(x.warns.filter(w => !/no operating system/.test(w))).join('; ') || 'fits with room to spare';
-        return `<tr data-k="${x.key}|${x.ramGB == null ? '' : x.ramGB}" aria-selected="${isSel}"><td>${bb.label}</td><td>${x.ramKB ? x.ramKB + ' KB' : ramTxt(x.ramGB)}</td><td class="num">${fmt(x.ramPct, 0)} %</td><td class="num">${fmt(x.busiest, 0)} %</td><td class="num">${fmt(x.totalCpu, 0)} %</td><td class="num">${fmt(x.amps, 1)} A</td><td class="num">$${x.price}</td><td class="${x.ok ? 'ok' : 'bad'}">${x.ok ? 'Yes' : 'No'}</td><td class="why">${why}</td></tr>`;
+        return `<tr data-k="${x.key}|${x.ramGB == null ? '' : x.ramGB}" aria-selected="${isSel}"><td>${bb.label}</td><td>${x.ramKB ? x.ramKB + ' KB' : ramTxt(x.ramGB)}</td><td class="num">${fmt(x.bootS, 1)} s</td><td class="num">${fmt(x.ramPct, 0)} %</td><td class="num">${fmt(x.busiest, 0)} %</td><td class="num">${fmt(x.totalCpu, 0)} %</td><td class="num">${fmt(x.amps, 1)} A</td><td class="num">$${x.price}</td><td class="${x.ok ? 'ok' : 'bad'}">${x.ok ? 'Yes' : 'No'}</td><td class="why">${why}</td></tr>`;
       }).join('') + '</tbody>';
     $('piSelTitle').textContent = `${b.label}${pico ? '' : ' ' + ramTxt(r.ramGB)}`;
     kv('piKv', [
@@ -1374,6 +1386,7 @@
       ['Memory use', `${fmt(sel.ramPct, 0)} %`, sel.ramPct > o.specRamPct ? 'bad' : 'ok'],
       ['Busiest core', `${fmt(sel.busiest, 0)} %`, sel.busiest > o.specCorePct ? 'bad' : 'ok'],
       ['All cores', `${fmt(sel.totalCpu, 0)} %`],
+      ['Boot to dash', `${fmt(sel.bootS, 1)} s`, sel.bootS > 20 ? 'meh' : ''],
       ['CAN frames', `${r.fps} /s`],
       ['Log rate', `${fmt(r.logKBs, 1)} KB/s`],
       ['Log per endurance', `${fmt(r.logMBendur, 0)} MB`],
@@ -1560,7 +1573,7 @@
 
   bindInputs();
   bindComponents();
-  bindDash();
+  syncDash = bindDash();
   FMT.rSpeed = v => `${v}`;
   makeEditable();
   function showUnits() {

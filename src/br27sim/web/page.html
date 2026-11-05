@@ -132,6 +132,16 @@ td.wrap { white-space: normal; min-width: 220px; }
 #hscene canvas { display: block; }
 #hscene .hlabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 #hscene .hint { position: absolute; right: 10px; bottom: 8px; font-size: 11.5px; color: var(--ink-3); pointer-events: none; }
+.dev { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 14px; align-items: center; }
+@media (max-width: 760px) { .dev { grid-template-columns: minmax(0, 1fr); } .dev-btns { grid-auto-flow: column; } }
+.dev-bezel { background: #111; border-radius: 14px; padding: 14px; border: 1px solid #333; box-shadow: inset 0 0 0 3px #1e1e1e; contain: layout paint; }
+.dev-bezel svg { display: block; width: 100%; height: auto; border-radius: 4px; user-select: none; -webkit-user-select: none; }
+.dev-btns { display: grid; gap: 12px; }
+.dev-btns button { display: grid; gap: 2px; justify-items: center; padding: 12px 8px; border-radius: 999px; border: 3px solid #333; background: radial-gradient(circle at 50% 35%, #3a3a3a, #111); color: #fff; cursor: pointer; font: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.dev-btns button:active { transform: translateY(1px); border-color: var(--gold, #8d734a); }
+.dev-btns button b { font-family: var(--f-display); font-size: 17px; letter-spacing: 1px; } .dev-btns button span { font-size: 10.5px; color: #bbb; text-align: center; }
+.dev-btns button[data-btn="clear"] { background: radial-gradient(circle at 50% 35%, #8a2a2a, #3a0d0f); }
+pre.cfg { background: var(--bg); border: 1px solid var(--rule); border-radius: 4px; padding: 10px 12px; font-family: var(--f-mono); font-size: 12.5px; overflow-x: auto; margin: 0; }
 .osscreen { background: #0d0f12; color: #d7dde5; border-radius: 10px; padding: 0 0 10px; border: 8px solid #1d2126; font-size: 12px; contain: layout paint; }
 .os-bar { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding: 6px 12px; background: #1a1e24; border-radius: 3px 3px 0 0; font-family: var(--f-mono); font-size: 11.5px; }
 .os-host { font-weight: 700; color: #fff; } .os-board { color: #9aa4b1; flex: 1; } .os-stat { color: #d7dde5; }
@@ -857,9 +867,21 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
     </aside>
     <div class="stack">
       <div class="card">
-        <div class="card-head"><h3>Mock dash OS</h3><span class="note" id="piNote"></span></div>
-        <div class="hctrl"><button type="button" id="piPlay">Pause</button><button type="button" id="piRestart">Restart lap</button><span class="foot" style="margin:0">Plays the simulated lap through every program on the board, 10 updates a second.</span></div>
-        <div class="osscreen" id="osScreen"></div>
+        <div class="card-head"><h3>Mock dash</h3><span class="note" id="piNote"></span></div>
+        <div class="hctrl">
+          <label class="lbl2" for="piScen">Session</label><select id="piScen" style="width:auto;max-width:100%"></select>
+          <button type="button" id="piPlay">Pause</button><button type="button" id="piSkip">Skip 30 s</button><button type="button" id="piRestart">Restart</button>
+        </div>
+        <div id="osScreen"></div>
+        <p class="foot">It boots, then goes straight to the dash. <b>MODE</b> (button 1) steps through the driver's displays: Endurance, Check tires, Debug and Autocross, from the driver's dash preferences sheet. <b>CLEAR</b> (button 2) clears a warning. <b>MENU</b> opens CAN data, the fault log, logging, system load, LoRa and settings. In the menu, MODE moves down, MENU selects and CLEAR goes back; you can also tap the screen. A new fault takes the whole screen, even over the menu. After CLEAR it moves to the warning box until it goes away, and a critical fault comes back every 15 s while it is still active. Each session is 5 laps, then it starts over. Oil, water, fuel and tire values are mock signals until those sensors are chosen.</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Wiring: Pi, buttons, screen, CAN HAT and power</h3><span class="note" id="pwNote"></span></div>
+        <div class="scroll"><svg id="pwSvg" viewBox="0 0 1000 640" style="width:100%;min-width:720px;height:auto;display:block" role="img" aria-label="Wiring schematic for the dash computer"></svg></div>
+        <div class="scroll"><table id="pwPins"></table></div>
+        <ul class="flags" id="pwFlags"></ul>
+        <p class="foot">Setup in <code>/boot/firmware/config.txt</code>:</p>
+        <pre class="cfg" id="pwCfg"></pre>
       </div>
       <div class="card">
         <div class="card-head"><h3>Which boards fit the spec</h3><span class="note" id="piSpecNote"></span></div>

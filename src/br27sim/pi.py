@@ -16,28 +16,30 @@ from .params import with_defaults
 
 # speed: work per core relative to one Pi 5 core [assumption, from published single-core benchmarks]
 BOARDS = {
-    "pi5":    {"label": "Raspberry Pi 5", "linux": True, "cores": 4, "cpu": "4 × Cortex-A76 2.4 GHz", "speed": 1.0,
+    "pi5":    {"bootS": 6, "label": "Raspberry Pi 5", "linux": True, "cores": 4, "cpu": "4 × Cortex-A76 2.4 GHz", "speed": 1.0,
                "ramGB": [2, 4, 8, 16], "price": {2: 50, 4: 60, 8: 80, 16: 120}, "sdMBs": 40,
                "idleW": 2.7, "maxW": 9.5, "supplyA": 5.0, "displays": ["dsi", "hdmi", "spi"],
                "note": "5 V 5 A supply for full USB power; on 3 A it limits USB to 600 mA"},
-    "pi4":    {"label": "Raspberry Pi 4", "linux": True, "cores": 4, "cpu": "4 × Cortex-A72 1.8 GHz", "speed": 0.42,
+    "pi4":    {"bootS": 11, "label": "Raspberry Pi 4", "linux": True, "cores": 4, "cpu": "4 × Cortex-A72 1.8 GHz", "speed": 0.42,
                "ramGB": [1, 2, 4, 8], "price": {1: 35, 2: 45, 4: 55, 8: 75}, "sdMBs": 22,
                "idleW": 2.7, "maxW": 6.4, "supplyA": 3.0, "displays": ["dsi", "hdmi", "spi"], "note": "5 V 3 A"},
-    "pi3":    {"label": "Raspberry Pi 3 B+", "linux": True, "cores": 4, "cpu": "4 × Cortex-A53 1.4 GHz", "speed": 0.22,
+    "pi3":    {"bootS": 18, "label": "Raspberry Pi 3 B+", "linux": True, "cores": 4, "cpu": "4 × Cortex-A53 1.4 GHz", "speed": 0.22,
                "ramGB": [1], "price": {1: 35}, "sdMBs": 18,
                "idleW": 1.9, "maxW": 5.1, "supplyA": 2.5, "displays": ["dsi", "hdmi", "spi"], "note": "5 V 2.5 A"},
-    "zero2":  {"label": "Raspberry Pi Zero 2 W", "linux": True, "cores": 4, "cpu": "4 × Cortex-A53 1.0 GHz", "speed": 0.16,
+    "zero2":  {"bootS": 24, "label": "Raspberry Pi Zero 2 W", "linux": True, "cores": 4, "cpu": "4 × Cortex-A53 1.0 GHz", "speed": 0.16,
                "ramGB": [0.5], "price": {0.5: 15}, "sdMBs": 18,
                "idleW": 0.6, "maxW": 3.0, "supplyA": 2.5, "displays": ["hdmi", "spi"], "note": "mini HDMI only, no DSI connector"},
-    "pico":   {"label": "Raspberry Pi Pico (RP2040)", "linux": False, "cores": 2, "cpu": "2 × Cortex-M0+ 133 MHz", "speed": 1.0,
+    "pico":   {"bootS": 0.3, "label": "Raspberry Pi Pico (RP2040)", "linux": False, "cores": 2, "cpu": "2 × Cortex-M0+ 133 MHz", "speed": 1.0,
                "ramKB": 264, "price": 4, "sdMBs": 0.6, "idleW": 0.1, "maxW": 0.35, "supplyA": 0.1, "displays": ["spi"],
                "note": "no operating system: one firmware program; SPI screen up to about 480 × 320"},
-    "pico2":  {"label": "Raspberry Pi Pico 2 (RP2350)", "linux": False, "cores": 2, "cpu": "2 × Cortex-M33 150 MHz", "speed": 1.7,
+    "pico2":  {"bootS": 0.3, "label": "Raspberry Pi Pico 2 (RP2350)", "linux": False, "cores": 2, "cpu": "2 × Cortex-M33 150 MHz", "speed": 1.7,
                "ramKB": 520, "price": 5, "sdMBs": 0.8, "idleW": 0.1, "maxW": 0.4, "supplyA": 0.1, "displays": ["spi"],
                "note": "no operating system: one firmware program; SPI screen up to about 480 × 320"},
 }
 
 DISPLAYS = {
+    "5in-hdmi": {"label": '5 in 800 × 480 TFT, HDMI + USB touch [Tanner: 5 in TFT]', "w": 800, "h": 480, "port": "hdmi", "W": 2.5},
+    "5in-dsi": {"label": '5 in 800 × 480 TFT, DSI ribbon', "w": 800, "h": 480, "port": "dsi", "W": 2.0},
     "800x480": {"label": '7 in 800 × 480 (official DSI touch screen)', "w": 800, "h": 480, "port": "dsi", "W": 2.5},
     "1024x600": {"label": '7 in 1024 × 600 (HDMI)', "w": 1024, "h": 600, "port": "hdmi", "W": 3.0},
     "1280x720": {"label": '1280 × 720 (HDMI)', "w": 1280, "h": 720, "port": "hdmi", "W": 4.0},
@@ -46,17 +48,17 @@ DISPLAYS = {
 
 # OS image: resident memory after boot and background CPU (% of one Pi 5 core)
 OS_IMAGES = {
-    "lite": {"label": "Raspberry Pi OS Lite (no desktop)", "ramMB": 170, "cpu": 1.0},
-    "desktop": {"label": "Raspberry Pi OS with desktop", "ramMB": 520, "cpu": 3.0},
-    "minimal": {"label": "Custom minimal image (Buildroot / Yocto)", "ramMB": 45, "cpu": 0.5},
+    "lite": {"label": "Raspberry Pi OS Lite (no desktop)", "ramMB": 170, "cpu": 1.0, "boot": 1.0},
+    "desktop": {"label": "Raspberry Pi OS with desktop", "ramMB": 520, "cpu": 3.0, "boot": 1.8},
+    "minimal": {"label": "Custom minimal image (Buildroot / Yocto)", "ramMB": 45, "cpu": 0.5, "boot": 0.4},
 }
 
 # dash renderer: CPU ms per frame at 800 x 480 on a Pi 5 core, memory MB, and whether it uses the GPU
 RENDERERS = {
-    "qt": {"label": "Qt Quick (C++ / QML, GPU)", "ms": 1.2, "ramMB": 90, "gpu": True, "threads": 1},
-    "lvgl": {"label": "LVGL (C, CPU drawn)", "ms": 2.5, "ramMB": 12, "gpu": False, "threads": 1},
-    "pygame": {"label": "Pygame (Python)", "ms": 6.0, "ramMB": 55, "gpu": False, "threads": 1},
-    "chromium": {"label": "Web page in Chromium kiosk", "ms": 8.0, "ramMB": 380, "gpu": True, "threads": 2},
+    "qt": {"label": "Qt Quick (C++ / QML, GPU)", "startS": 1.5, "ms": 1.2, "ramMB": 90, "gpu": True, "threads": 1},
+    "lvgl": {"label": "LVGL (C, CPU drawn)", "startS": 0.3, "ms": 2.5, "ramMB": 12, "gpu": False, "threads": 1},
+    "pygame": {"label": "Pygame (Python)", "startS": 2.0, "ms": 6.0, "ramMB": 55, "gpu": False, "threads": 1},
+    "chromium": {"label": "Web page in Chromium kiosk", "startS": 6.0, "ms": 8.0, "ramMB": 380, "gpu": True, "threads": 2},
 }
 
 # CAN interface: kernel time per received frame (Pi 5 core us) and how it copes with bursts
@@ -74,7 +76,7 @@ LANGS = {
 }
 
 PI_DEFAULTS = {
-    "board": "pi5", "ramGB": 2, "os": "lite", "lang": "python", "renderer": "qt", "display": "800x480", "fps": 30,
+    "board": "pi5", "ramGB": 2, "os": "lite", "lang": "python", "renderer": "qt", "display": "5in-hdmi", "fps": 30,
     "canIface": "mcp2518fd", "logFormat": "binary", "bufS": 5, "viewer": True, "viewerHistS": 60,
     "imu": True, "imuHz": 200, "gps": True, "gpsHz": 10,
     "lora": True, "loraHz": 5, "loraBytes": 32, "loraSF": 7, "loraBW": 125,
@@ -162,11 +164,14 @@ def _linux(bk, b, ram_gb, o, fps, disp):
     amps = (w + disp["W"]) / 5.0
     if amps > 4.0:
         warns.append(f"board + screen draw about {amps:.1f} A at 5 V, over 80 % of the 5 A screen/dash supply module")
+    boot = b["bootS"] * osi["boot"] + (rend["startS"] + (1.0 if o["lang"] == "python" else 0.1)) / b["speed"]
+    if boot > 20:
+        warns.append(f"about {boot:.0f} s from power on to the dash; a custom minimal image boots much faster")
     if o["renderer"] == "chromium" and b["speed"] < 0.3:
         warns.append("Chromium on this board is slow to start (tens of seconds)")
     return {"key": bk, "ramGB": ram_gb, "procs": procs, "cores": cores, "totalCpu": total_cpu, "busiest": max(cores),
             "ramMB": ram_mb, "usedMB": used, "ramPct": used / ram_mb * 100, "logBps": log_bps, "watts": w,
-            "amps": (w + disp["W"]) / 5.0, "fails": fails, "warns": warns, "ok": not fails, "price": b["price"][ram_gb]}
+            "amps": (w + disp["W"]) / 5.0, "fails": fails, "warns": warns, "ok": not fails, "price": b["price"][ram_gb], "bootS": boot}
 
 
 def _pico(bk, b, o, fps, disp):
@@ -213,7 +218,7 @@ def _pico(bk, b, o, fps, disp):
     return {"key": bk, "ramGB": None, "procs": procs, "cores": cores, "totalCpu": sum(cores) / 2, "busiest": max(cores),
             "ramMB": ram_kb / 1024, "usedMB": used / 1024, "ramPct": used / ram_kb * 100, "logBps": log_bps,
             "watts": b["maxW"], "amps": (b["maxW"] + DISPLAYS["480x320"]["W"]) / 5.0, "fails": fails, "warns": warns,
-            "ok": not fails, "price": b["price"], "ramKB": ram_kb, "usedKB": used}
+            "ok": not fails, "price": b["price"], "ramKB": ram_kb, "usedKB": used, "bootS": b["bootS"]}
 
 
 def simulate_pi(p=None, o=None):
