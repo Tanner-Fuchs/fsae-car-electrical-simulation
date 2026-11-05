@@ -76,7 +76,7 @@ LANGS = {
 }
 
 PI_DEFAULTS = {
-    "board": "pi5", "ramGB": 2, "os": "lite", "lang": "python", "renderer": "qt", "display": "5in-hdmi", "fps": 30,
+    "board": "pi5", "ramGB": 2, "os": "lite", "lang": "python", "renderer": "qt", "display": "5in-dsi", "fps": 30,
     "canIface": "mcp2518fd", "logFormat": "binary", "bufS": 5, "viewer": True, "viewerHistS": 60,
     "imu": True, "imuHz": 200, "gps": True, "gpsHz": 10,
     "lora": True, "loraHz": 5, "loraBytes": 32, "loraSF": 7, "loraBW": 125,

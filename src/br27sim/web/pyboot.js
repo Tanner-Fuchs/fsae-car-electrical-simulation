@@ -11,10 +11,19 @@
   const BOOT = window.BR27_BOOT;
   const box = document.createElement('div');
   box.id = 'pyLoading';
-  box.style.cssText = 'position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--bg,#f3f4f6);color:var(--ink,#12161d);font:15px/1.5 system-ui,sans-serif;text-align:center;padding:24px';
-  box.innerHTML = '<div><b style="font-size:18px">BR27 Electrical Simulator</b><br><span id="pyLoadMsg">Starting Python…</span><br><small style="opacity:.7">The first visit downloads about 12 MB. After that it opens from the cache.</small></div>';
+  // the same Bobcat Racing boot screen as the dash computer (splash.js), while Python loads
+  box.style.cssText = 'position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#050404;color:#9aa4b1;font:13px/1.5 system-ui,sans-serif;text-align:center;padding:16px;transition:opacity .35s';
+  box.innerHTML = '<div style="width:min(100%,960px)"><svg id="pySplash" viewBox="0 0 800 480" style="width:100%;height:auto;display:block;border-radius:6px" role="img" aria-label="Bobcat Racing, starting up"></svg>' +
+    '<p id="pyLoadMsg" style="margin:10px 0 0">Starting Python…</p><small style="opacity:.7">The first visit downloads about 12 MB. After that it opens from the cache.</small></div>';
   document.body.appendChild(box);
-  const say = t => { document.getElementById('pyLoadMsg').textContent = t; };
+  const log = [], t0 = performance.now();
+  let prog = 0.04, shown = 0, anim = 0;
+  const say = (t, p) => { document.getElementById('pyLoadMsg').textContent = t; if (p != null) prog = p; log.push(t.replace(/…$/, '')); };
+  const paint = now => {
+    shown += (prog - shown) * 0.08;
+    if (window.BRSplash) document.getElementById('pySplash').innerHTML = window.BRSplash.frame(shown, (now - t0) / 1000, log, 'BR27 Electrical Simulator');
+    anim = requestAnimationFrame(paint);
+  };
   const loadScript = src => new Promise((ok, fail) => {
     const s = document.createElement('script'); s.src = src; s.async = false;
     s.onload = ok; s.onerror = () => fail(new Error('could not load ' + src));
@@ -22,9 +31,13 @@
   });
 
   try {
+    const splashSrc = BOOT.scripts.find(x => x.startsWith('splash.js'));
+    if (splashSrc) { try { await loadScript(splashSrc); } catch (e) { /* plain text loading screen */ } }
+    say('Starting Python…', 0.1);
+    anim = requestAnimationFrame(paint);
     await loadScript(BOOT.pyodide + 'pyodide.js');
     const py = await loadPyodide({ indexURL: BOOT.pyodide });
-    say('Loading the car model…');
+    say('Loading the car model…', 0.55);
     const DATA = '/home/pyodide/.br27sim';
     let persist = () => Promise.resolve();
     try {
@@ -72,8 +85,13 @@ js_handle`);
       return new Response(r.bytes || r.text, { status: r.status, headers: { 'Content-Type': r.ctype } });
     };
 
-    say('Opening…');
-    for (const src of BOOT.scripts) await loadScript(src);
+    say('Starting dash…', 0.8);
+    for (const src of BOOT.scripts) { if (src !== splashSrc) await loadScript(src); }
+    prog = 1;
+    await new Promise(ok => setTimeout(ok, 450));
+    box.style.opacity = '0';
+    await new Promise(ok => setTimeout(ok, 350));
+    cancelAnimationFrame(anim);
     box.remove();
   } catch (e) {
     console.error(e);

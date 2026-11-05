@@ -31,9 +31,10 @@ HEAD = """<!doctype html>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BR27 Sim">
-<meta name="theme-color" content="#0b6e8a">
+<meta name="theme-color" content="#501214">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" href="icon-180.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 </head><body>
 """
@@ -95,11 +96,13 @@ def build(pyodide_dir, out):
             + f'<script src="pyboot.js?v={v}"></script>\n</body></html>\n')
     (out / "index.html").write_text(html, encoding="utf-8")
 
-    make_icon(out / "icon-180.png", 180)
-    make_icon(out / "icon-512.png", 512)
+    # the Bobcat Racing icon (web/icon.svg, pre-rendered PNGs in web/); draw a plain one only if they are missing
+    for size in (180, 512):
+        if not (out / f"icon-{size}.png").exists():
+            make_icon(out / f"icon-{size}.png", size)
     (out / "manifest.webmanifest").write_text(json.dumps({
         "name": "BR27 Electrical Simulator", "short_name": "BR27 Sim", "start_url": "./", "display": "standalone",
-        "background_color": "#f3f4f6", "theme_color": "#0b6e8a",
+        "background_color": "#050404", "theme_color": "#501214",
         "icons": [{"src": "icon-180.png", "sizes": "180x180", "type": "image/png"},
                   {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}],
     }, indent=1), encoding="utf-8")

@@ -79,24 +79,12 @@
     }
   };
 
-  function bobcat(op) {
-    // an original, geometric bobcat head in team colors
-    return `<g opacity="${op}">
-      <polygon points="330,120 352,168 448,168 470,120 486,190 480,240 450,278 400,296 350,278 320,240 314,190" fill="${MAROON}" stroke="${GOLD}" stroke-width="4" stroke-linejoin="round"/>
-      <line x1="330" y1="120" x2="324" y2="96" stroke="${GOLD}" stroke-width="4" stroke-linecap="round"/><line x1="470" y1="120" x2="476" y2="96" stroke="${GOLD}" stroke-width="4" stroke-linecap="round"/>
-      <polygon points="336,136 350,164 324,170" fill="${GOLD}" opacity="0.55"/><polygon points="464,136 450,164 476,170" fill="${GOLD}" opacity="0.55"/>
-      <polyline points="314,212 292,232 320,238" fill="none" stroke="${GOLD}" stroke-width="3"/><polyline points="486,212 508,232 480,238" fill="none" stroke="${GOLD}" stroke-width="3"/>
-      <polyline points="320,240 300,258 330,262" fill="none" stroke="${GOLD}" stroke-width="3"/><polyline points="480,240 500,258 470,262" fill="none" stroke="${GOLD}" stroke-width="3"/>
-      <line x1="388" y1="176" x2="393" y2="192" stroke="${GOLD}" stroke-width="3"/><line x1="400" y1="172" x2="400" y2="192" stroke="${GOLD}" stroke-width="3"/><line x1="412" y1="176" x2="407" y2="192" stroke="${GOLD}" stroke-width="3"/>
-      <polygon points="356,206 386,198 389,214 364,218" fill="#ffcc33"/><polygon points="444,206 414,198 411,214 436,218" fill="#ffcc33"/>
-      <line x1="374" y1="201" x2="376" y2="216" stroke="#111" stroke-width="3"/><line x1="426" y1="201" x2="424" y2="216" stroke="#111" stroke-width="3"/>
-      <polygon points="388,238 412,238 400,252" fill="#111" stroke="${GOLD}" stroke-width="2"/>
-      <polyline points="400,252 400,264 386,274" fill="none" stroke="${GOLD}" stroke-width="3"/><polyline points="400,264 414,274" fill="none" stroke="${GOLD}" stroke-width="3"/>
-    </g>`;
-  }
+  const bobcat = op => window.BRSplash.bobcat(op);
 
+  let mounts = 0;
   function mount(el, U, hooks) {
     hooks = hooks || {};
+    const UID = 'd' + (++mounts);              // unique SVG ids when more than one dash is on the page
     let PI = null, LAP = null, X = {}, cum = null, t = 0, last = 0, raf = 0, running = false, lastDraw = 0;
     let phase = 'boot', bootT = 0, mode = 0, menuIdx = 0, page = null, pageIdx = 0, logging = true, logStartT = 0, logBytes = 0;
     let scen = 'clean', lastSig = null;
@@ -104,14 +92,14 @@
     const history = [];                  // fault log: { t, code, on }
     const set = { shiftRpm: 12500, bright: 100, speedUnit: null, bootMode: 0 };
     el.innerHTML = `<div class="dev">
-        <div class="dev-bezel"><svg id="devScr" viewBox="0 0 800 480" role="img" aria-label="Mock 5 inch dash screen"></svg></div>
+        <div class="dev-bezel"><svg class="dev-scr" viewBox="0 0 800 480" role="img" aria-label="Mock 5 inch dash screen"></svg></div>
         <div class="dev-btns">
           <button type="button" data-btn="mode"><b>MODE</b><span>button 1 · display / down</span></button>
           <button type="button" data-btn="clear"><b>CLEAR</b><span>button 2 · clear warning / back</span></button>
           <button type="button" data-btn="menu"><b>MENU</b><span>open / select</span></button>
         </div>
       </div>`;
-    const scr = el.querySelector('#devScr');
+    const scr = el.querySelector(".dev-scr");
     el.querySelectorAll('[data-btn]').forEach(b => b.addEventListener('click', () => api.press(b.dataset.btn)));
     scr.addEventListener('click', e => {
       const hit = e.target.closest('[data-tap]'); if (!hit) return;
@@ -284,7 +272,7 @@
       if (PI.o.tireZones) {
           // left tires: outer | centre | inner from left to right as seen from the seat; right tires mirrored
           const order = k % 2 === 0 ? [2, 1, 0] : [0, 1, 2], lab = ['I', 'C', 'O'];
-          g += `<clipPath id="tz${k}"><rect x="${x}" y="${y}" width="40" height="90" rx="8"/></clipPath><g clip-path="url(#tz${k})" opacity="0.9">` +
+          g += `<clipPath id="tz${UID}${k}"><rect x="${x}" y="${y}" width="40" height="90" rx="8"/></clipPath><g clip-path="url(#tz${UID}${k})" opacity="0.9">` +
             order.map((z, n) => `<rect x="${x + n * 40 / 3}" y="${y}" width="${40 / 3 + 0.5}" height="90" fill="${heat(tr.z[z])}"/>`).join('') + '</g>';
           const xs = k % 2 === 0 ? [266, 312, 358] : [680, 723, 766];
           g += T(k % 2 === 0 ? 370 : 690, y + 18, nm, 16, `text-anchor="${anchor}" fill="${GOLD}" font-weight="700"`);
@@ -478,18 +466,7 @@
         ? ['RP2040 boot ROM', 'flash XIP ok', 'SD card mounted (FatFs)', 'MCP2515 1 Mbit/s', 'LVGL display ready', 'dash']
         : ['Raspberry Pi bootloader', `Linux on ${PI.board.cpu}`, 'mounting /data (SD card)', 'can0: 1 Mbit/s, up', 'starting can-reader, logger, fault monitor', PI.o.lora ? 'lora-telemetry: SX1276 ok' : 'lora-telemetry: off', 'starting dash'];
       const shown = lines.slice(0, Math.max(1, Math.ceil(u * lines.length))).slice(-3);
-      const zoom = 0.85 + 0.15 * Math.min(1, u * 2.5), op = Math.min(1, u * 3);
-      let g = `<defs><radialGradient id="bootBg" cx="50%" cy="42%" r="70%"><stop offset="0" stop-color="#3a0d0f"/><stop offset="1" stop-color="#050404"/></radialGradient></defs><rect width="800" height="480" fill="url(#bootBg)"/>`;
-      for (let k = 0; k < 7; k++) {
-        const x = ((bootT * 900 + k * 160) % 1100) - 200, y = 120 + k * 30;
-        g += `<line x1="${x}" y1="${y}" x2="${x + 120}" y2="${y}" stroke="${GOLD}" stroke-opacity="${0.12 + 0.05 * (k % 3)}" stroke-width="3" stroke-linecap="round"/>`;
-      }
-      g += `<g transform="translate(400 200) scale(${zoom}) translate(-400 -200)">${bobcat(op)}</g>`;
-      g += T(400, 350, 'BOBCAT RACING', 46, `text-anchor="middle" fill="${GOLD}" ${DISP} font-weight="700" letter-spacing="4" opacity="${op}"`);
-      g += T(400, 378, 'BR27 · FSAE 2027', 16, `text-anchor="middle" fill="${GOLD2}" ${MONO} letter-spacing="3" opacity="${op}"`);
-      g += `<rect x="250" y="400" width="300" height="8" rx="4" fill="#2a1a1a"/><rect x="250" y="400" width="${300 * u}" height="8" rx="4" fill="${GOLD}"/>`;
-      g += T(400, 430, `ready in ${fmt(PI.sel.bootS, 1)} s on this board`, 13, `text-anchor="middle" fill="#9aa4b1" ${MONO}`);
-      g += shown.map((l, k) => T(16, 470 - (shown.length - 1 - k) * 14, `[ ok ] ${l}`, 11, `fill="#6b7280" ${MONO}`)).join('');
+      const g = window.BRSplash.frame(u, bootT, shown, `ready in ${fmt(PI.sel.bootS, 1)} s on this board`, UID);
       return g;
     }
 

@@ -1,4 +1,5 @@
 <title>BR27 Electrical Simulator</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -136,6 +137,7 @@ td.wrap { white-space: normal; min-width: 220px; }
 #hscene canvas { display: block; }
 #hscene .hlabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 #hscene .hint { position: absolute; right: 10px; bottom: 8px; font-size: 11.5px; color: var(--ink-3); pointer-events: none; }
+.livewrap { max-width: 1100px; margin: 0 auto; width: 100%; display: grid; gap: 10px; }
 .dev { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 14px; align-items: center; }
 @media (max-width: 760px) { .dev { grid-template-columns: minmax(0, 1fr); } .dev-btns { grid-auto-flow: column; } }
 .dev-bezel { background: #111; border-radius: 14px; padding: 14px; border: 1px solid #333; box-shadow: inset 0 0 0 3px #1e1e1e; contain: layout paint; }
@@ -231,6 +233,7 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
     </div>
     <div class="chips" id="chips"></div>
     <nav class="tabs" aria-label="Subsystems">
+      <a href="#live">Dash</a>
       <a href="#car">Car</a>
       <a href="#engine">Engine</a>
       <a href="#power">12 V power</a>
@@ -240,7 +243,7 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
       <a href="#wiring">Wiring</a>
       <a href="#harness">Harness 3D</a>
       <a href="#components">Components</a>
-      <a href="#dash">Dash computer</a>
+      <a href="#dash">Dash test</a>
       <a href="#inputs">Inputs</a>
     </nav>
   </div>
@@ -249,7 +252,11 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
 <main><div class="wrap">
 
 <!-- CAR -->
-<section class="view" id="v-car">
+<section class="view" id="v-live" hidden>
+  <div class="livewrap"><div id="liveScreen"></div>
+    <p class="foot" style="text-align:center">MODE switches displays, CLEAR clears a warning, MENU opens CAN data, the fault log and settings. Default dash setup, playing the simulated lap. To change the board, options or fault sessions, use Dash test.</p></div>
+</section>
+<section class="view" id="v-car" hidden>
   <div class="view-head">
     <h2>The car, wired</h2>
     <p class="lede">A rough FSAE car with the CBR600RR behind the driver, the dash, IMU and GPS up front, the NOCO NLP14 battery and EMU Black under the seat, and a sensor node at each corner. Drag to rotate, pinch to zoom, tap a part to see what the simulation says about it.</p>
@@ -847,7 +854,7 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
 </section>
 <section class="view" id="v-dash" hidden>
   <div class="view-head">
-    <h2>Dash computer</h2>
+    <h2>Dash test</h2>
     <p class="lede">How hard a Raspberry Pi works as the dash computer: logging every CAN frame, drawing the driver's display, a live CAN viewer and LoRa telemetry to the pits. The mock screen plays the simulated lap through the programs that would run on the board. Pick a board and the software on the left; the table says which boards stay inside the team's spec. Costs per task are estimates until the real software is measured on the bench.</p>
   </div>
   <div class="split">

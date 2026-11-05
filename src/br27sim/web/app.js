@@ -172,11 +172,11 @@
   }
 
   // ------------------------------------------------------------ routing
-  const VIEWS = ['car', 'engine', 'power', 'shutdown', 'can', 'faults', 'wiring', 'harness', 'components', 'dash', 'inputs'];
-  let currentView = 'car';
+  const VIEWS = ['live', 'car', 'engine', 'power', 'shutdown', 'can', 'faults', 'wiring', 'harness', 'components', 'dash', 'inputs'];
+  let currentView = 'live';
   function route() {
     const h = location.hash.replace('#', '');
-    currentView = VIEWS.includes(h) ? h : 'car';
+    currentView = VIEWS.includes(h) ? h : 'live';            // the plain dash opens first
     for (const v of VIEWS) $('v-' + v).hidden = v !== currentView;
     document.querySelectorAll('nav.tabs a').forEach(a => a.setAttribute('aria-current', a.getAttribute('href') === '#' + currentView ? 'page' : 'false'));
     if (currentView === 'engine') startEngineAnim(); else stopEngineAnim();
@@ -184,6 +184,7 @@
     if (harness3d) { if (currentView === 'harness') harness3d.resume(); else harness3d.pause(); }
     if (ring && currentView !== 'components') ring.stop();
     if (dashOS && currentView !== 'dash') dashOS.stop();
+    if (liveOS && currentView !== 'live') liveOS.stop();
     renderView(currentView);
   }
   function renderView(v) {
@@ -191,7 +192,7 @@
     try { renderViewInner(v); } catch (e) { console.error(e); window.BRShowError && window.BRShowError('the ' + v + ' tab', e); }
   }
   function renderViewInner(v) {
-    ({ car: renderCar, engine: renderEngine, power: renderPower, shutdown: renderShutdown, can: renderCan, faults: renderFaults, wiring: renderWiring, harness: renderHarness, components: renderComponents, dash: renderDash, inputs: renderInputs })[v]();
+    ({ live: renderLive, car: renderCar, engine: renderEngine, power: renderPower, shutdown: renderShutdown, can: renderCan, faults: renderFaults, wiring: renderWiring, harness: renderHarness, components: renderComponents, dash: renderDash, inputs: renderInputs })[v]();
   }
 
   const kv = (id, items) => { $(id).innerHTML = items.map(([k, v, cls]) => `<div><span>${k}</span><b class="${cls || ''}">${v}</b></div>`).join(''); };
@@ -1469,6 +1470,17 @@
     clearTimeout(piScrollT); piScrollT = setTimeout(() => { piScrolling = false; piGo(); }, 250);
   }, { passive: true });
   if (window.IntersectionObserver) new IntersectionObserver(es => { piVisible = es[0].isIntersecting; piGo(); }).observe($('osScreen'));
+  // the plain dash: default dash options, no inputs, nothing but the screen and its buttons
+  let liveOS = null;
+  function renderLive() {
+    if (!window.BRDashOS) return;
+    const r = S.simulatePi(params, S.PI_DEFAULTS);
+    if (!liveOS) { liveOS = window.BRDashOS.mount($('liveScreen'), { spv, SU, tp, IMP }, {}); liveOS.scenario('clean'); }
+    let bias = 64;
+    try { bias = S.simulateBrakes(params, S.BRAKE_DEFAULTS).brakeFrontPct; } catch (e) { /* brake model optional here */ }
+    liveOS.set(r, R.lap, { biasPct: bias });
+    if (currentView === 'live' && !document.hidden) liveOS.start(); else liveOS.stop();
+  }
   function renderDash() {
     const r = S.simulatePi(params, DP), sel = r.sel, b = r.board, pico = !b.linux, o = r.o;
     if (!dashOS && window.BRDashOS) {
