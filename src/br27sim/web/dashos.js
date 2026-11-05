@@ -235,11 +235,11 @@
       return shiftLights(s.rpm) +
         pair(0, 46, 'TEMPS', [['WATER', U.tp(s.waterC), colTemp(s.waterC, 100, 110)], ['OIL', U.tp(s.oilC), colTemp(s.oilC, 120, 130)]]) +
         cell(0, 251, 230, 205, 'OIL P', pr(s.oilP), s.oilP < 1.0 ? RED : s.oilP < 1.5 ? AMB : '#fff', 54) +
-        box(230, 46, 340, 410) + T(244, 72, `SPEED (${su()})`, 14, 'fill="#9aa4b1" letter-spacing="1"') +
+        box(230, 46, 340, 410) + T(400, 72, `SPEED (${su()})`, 14, 'text-anchor="middle" fill="#9aa4b1" letter-spacing="1"') +
         T(400, 190, fmt(spd(s.v), 0), 120, `text-anchor="middle" fill="#fff" ${MONO} font-weight="700"`) +
-        `<line x1="250" y1="236" x2="550" y2="236" stroke="#2a2a2a" stroke-width="2"/>` + T(244, 262, 'GEAR', 14, 'fill="#9aa4b1" letter-spacing="1"') +
+        `<line x1="250" y1="236" x2="550" y2="236" stroke="#2a2a2a" stroke-width="2"/>` + T(400, 262, 'GEAR', 14, 'text-anchor="middle" fill="#9aa4b1" letter-spacing="1"') +
         T(400, 420, s.gear || 'N', 170, `text-anchor="middle" fill="#fff" ${MONO} font-weight="700"`) +
-        pair(570, 46, 'POWER / FUEL', [['VOLTS', `${fmt(s.volts, 1)} V`, s.volts < 12.8 || s.volts > 15 ? AMB : '#fff'], ['FUEL P', pr(s.fuelP), s.fuelP < 2.8 ? AMB : '#fff']]) +
+        pair(570, 46, 'POWER / FUEL', [['VOLTS', `${fmt(s.volts, 1)} V`, s.volts < 12.8 || s.volts > 15 ? AMB : '#fff'], ['FUEL', `${fmt(s.fuelL, 2)} L`, s.fuelL < 1 ? AMB : '#fff']]) +
         faultBox(570, 251, 230, 205) +
         footer(s);
     }
