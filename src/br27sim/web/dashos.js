@@ -18,7 +18,14 @@
   const MONO = 'font-family="var(--f-mono)"', DISP = 'font-family="var(--f-display)"';
   const SESSION_LAPS = 5;
 
-  // Fault codes match the Faults tab; BR-W12 is new, proposed for the driver's fuel pressure request.
+  // Fault codes match the Faults tab; BR-W12 (fuel pressure), BR-W13 and BR-W14 (tire temps) are new, proposed.
+  // Tire limits [assumption]: whole tire over 100 °C, or inner and outer more than 15 °C apart (needs the I/C/O option).
+  const CORNERS = ['FL', 'FR', 'RL', 'RR'];
+  const hotTire = (s, U) => { const k = s.tires.reduce((a, x, n) => (x.c > s.tires[a].c ? n : a), 0); return `${CORNERS[k]} ${U.tp(s.tires[k].c)}`; };
+  const edgeTire = (s, U) => {
+    const k = s.tires.reduce((a, x, n) => (Math.abs(x.z[0] - x.z[2]) > Math.abs(s.tires[a].z[0] - s.tires[a].z[2]) ? n : a), 0), z = s.tires[k].z;
+    return `${CORNERS[k]} ${z[0] > z[2] ? 'inner' : 'outer'} ${U.tp(Math.max(z[0], z[2]))}`;
+  };
   const FAULTS = {
     'BR-C01': { sev: 'critical', name: 'LOW OIL PRESSURE', test: s => s.oilP < 1.0 && s.rpm > 3000, val: (s, U) => U.pr(s.oilP) },
     'BR-C02': { sev: 'critical', name: 'COOLANT OVER TEMP', test: s => s.waterC > 110, val: (s, U) => U.tp(s.waterC) },
@@ -29,6 +36,8 @@
     'BR-W09': { sev: 'warning', name: 'BRAKE SENSOR FAULT', test: s => !!s.brakeSensorFault, val: () => 'rear sensor open' },
     'BR-W10': { sev: 'warning', name: 'LOW FUEL', test: s => s.fuelL < 1.0, val: s => `${fmt(s.fuelL, 2)} L` },
     'BR-W12': { sev: 'warning', name: 'LOW FUEL PRESSURE', test: s => s.fuelP < 2.8 && s.rpm > 2000, val: (s, U) => U.pr(s.fuelP) },
+    'BR-W13': { sev: 'warning', name: 'TIRE OVERHEAT', test: s => s.tires.some(x => x.c > 100), val: (s, U) => hotTire(s, U) },
+    'BR-W14': { sev: 'warning', name: 'TIRE EDGE HOT', test: s => s.zonesOn && s.tires.some(x => Math.abs(x.z[0] - x.z[2]) > 15), val: (s, U) => edgeTire(s, U) },
     'BR-I01': { sev: 'info', name: 'SD WRITE STALL', test: s => !!s.sdStall, val: () => '> 250 ms' }
   };
   const RANK = { critical: 0, warning: 1, info: 2 };
@@ -39,6 +48,25 @@
     oil: { label: 'Oil pressure drops on lap 2 (BR-C01)', fx: (s, t) => { if (t > 62) s.oilP *= clamp(1 - (t - 62) / 12, 0.12, 1); } },
     overheat: { label: 'Coolant creeps up to overheating (BR-C02)', fx: (s, t) => { s.waterC += Math.max(0, t - 40) * 0.22; } },
     charging: { label: 'Regulator fails, battery runs down (BR-W01)', fx: (s, t) => { if (t > 45) s.volts = 13.1 - (t - 45) * 0.012 + 0.03 * Math.sin(t * 3); } },
+    tires: {
+      label: 'Tires overheat: FR whole tire, then FL inner edge (BR-W13, BR-W14)',
+      fx: (s, t) => {
+        const heat = (k, dz) => { const x = s.tires[k]; x.z = x.z.map((v, n) => v + dz[n]); x.c = (x.z[0] + x.z[1] + x.z[2]) / 3; };
+        if (t > 40) heat(1, [1, 1, 1].map(() => Math.min(34, (t - 40) * 0.7)));                 // FR: too much pressure / sliding, whole tire
+        if (t > 100) heat(0, [Math.min(26, (t - 100) * 0.8), Math.min(6, (t - 100) * 0.2), 0]);  // FL: too much negative camber, inner edge
+      }
+    },
+    pileup: {
+      label: 'Many faults at once (2 critical, 5 warnings, 1 info) to test the screen',
+      fx: (s, t) => {
+        if (t < 20) return;
+        s.oilP *= 0.12; s.rpm = Math.max(s.rpm, 3500);
+        s.waterC = Math.max(s.waterC, 113);
+        s.volts = 12.4; s.nodeOff = 'RL'; s.fuelP = 2.4; s.lam = Math.max(s.lam, 0.97); s.map = Math.max(s.map, 90);
+        s.tires[1].c += 30; s.tires[1].z = s.tires[1].z.map(v => v + 30);
+        s.sdStall = (t % 10) < 3;
+      }
+    },
     mixed: {
       label: 'Endurance stint: several faults (W03, W02, W12, W09, W10, I01)', fuel0: 1.45,
       fx: (s, t) => {
@@ -118,6 +146,7 @@
         volts: (rpm > 2500 ? 14.3 : 13.1) + 0.04 * Math.sin(t * 3),
         fuelP: 3.43 + 0.04 * Math.sin(t * 11),                                  // 343 kPa regulated (CBR600RR spec) [assumption]
         fuelL: Math.max(0, fuel0 - used),
+        zonesOn: !!PI.o.tireZones,
         tires: [0, 1, 2, 3].map(k => {
           const warmT = 1 - Math.exp(-t / 70), c = 32 + (42 + (k < 2 ? 5 : 0) + 3 * Math.sin(k)) * warmT + 1.5 * Math.sin(t / 5 + k);
           const camb = (k < 2 ? 9 : 4) * warmT, load = 3 * Math.sin(t / 4 + (k % 2) * Math.PI) * warmT;   // negative camber: inner hotter; corners load the outside [mock]
@@ -143,7 +172,7 @@
       }
       if (history.length > 60) history.splice(0, history.length - 60);
     }
-    const activeFaults = () => Object.keys(fs).filter(c => fs[c].active).sort((a, b) => RANK[FAULTS[a].sev] - RANK[FAULTS[b].sev] || fs[b].since - fs[a].since);
+    const activeFaults = () => Object.keys(fs).filter(c => fs[c].active).sort((a, b) => RANK[FAULTS[a].sev] - RANK[FAULTS[b].sev] || (a < b ? -1 : 1));   // most important first: severity, then code (lower code = lower CAN ID)
     const POP_S = { warning: 1.5, critical: 8 };   // longest a fault fills the screen [Tanner 2026-11-05: yellow < 2 s, red < 10 s]
     function popup() {
       // highest priority fault that should fill the screen: not cleared yet, or a critical fault
@@ -179,19 +208,51 @@
         T(x + 14, y + 24, label, 14, 'fill="#9aa4b1" letter-spacing="1"') + T(x + w / 2, y + h / 2 + (big || 34) / 2 + 8, val, big || 34, `text-anchor="middle" fill="${col || '#fff'}" ${MONO} font-weight="700"`);
     }
     const colTemp = (c, warn, crit) => (c >= crit ? RED : c >= warn ? AMB : '#fff');
+    const sevCol = f => (f.sev === 'critical' ? RED : f.sev === 'warning' ? AMB : '#38bdf8');
+    const cut = (txt, n) => (txt.length > n ? txt.slice(0, n - 1) + '…' : txt);
     function faultBox(x, y, w, h) {
       const act = activeFaults();
       if (!act.length) return cell(x, y, w, h, 'WARNINGS', 'none', '#3a3a3a', 24);
-      const c = act[0], f = FAULTS[c], col = f.sev === 'critical' ? RED : f.sev === 'warning' ? AMB : '#38bdf8';
-      return `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h - 6}" rx="6" fill="${col}" opacity="${f.sev === 'critical' && Math.floor(t * 2) % 2 ? 0.75 : 1}"/>` +
-        T(x + 12, y + 26, `⚠ ${c}${act.length > 1 ? `  +${act.length - 1}` : ''}`, 15, `fill="#000" font-weight="700" ${MONO}`) +
-        T(x + 12, y + 56, f.name.length > 17 ? f.name.slice(0, 16) + '…' : f.name, 17, 'fill="#000" font-weight="700"') + T(x + 12, y + 82, f.val(lastSig, UU), 17, `fill="#000" ${MONO}`);
+      const c = act[0], f = FAULTS[c], col = sevCol(f), blink = f.sev === 'critical' && Math.floor(t * 2) % 2 ? 0.75 : 1;
+      if (act.length === 1) {
+        return `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h - 6}" rx="6" fill="${col}" opacity="${blink}"/>` +
+          T(x + 12, y + 26, `⚠ ${c}`, 15, `fill="#000" font-weight="700" ${MONO}`) +
+          T(x + 12, y + 56, cut(f.name, 17), 17, 'fill="#000" font-weight="700"') + T(x + 12, y + 82, f.val(lastSig, UU), 17, `fill="#000" ${MONO}`);
+      }
+      // several at once: one row each, most important on top
+      let g = `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h - 6}" rx="6" fill="#0f0f0f" stroke="${col}" stroke-width="2"/>`;
+      if (h < 150) {
+        // short box: the most important fault on top, the rest as code chips under it
+        g += `<rect x="${x + 7}" y="${y + 7}" width="${w - 14}" height="30" rx="4" fill="${col}" opacity="${blink}"/>` +
+          T(x + 13, y + 27, c.slice(3), 14, `fill="#000" font-weight="700" ${MONO}`) + T(x + 54, y + 27, cut(f.name, Math.floor((w - 70) / 8.6)), 14, 'fill="#000" font-weight="700"');
+        const rest = act.slice(1), fit = Math.floor((w - 14) / 56), chips = rest.length > fit ? rest.slice(0, fit - 1) : rest;
+        chips.forEach((k, i) => { g += `<rect x="${x + 7 + i * 56}" y="${y + 42}" width="52" height="26" rx="4" fill="${sevCol(FAULTS[k])}"/>` + T(x + 33 + i * 56, y + 60, k.slice(3), 13, `text-anchor="middle" fill="#000" font-weight="700" ${MONO}`); });
+        if (chips.length < rest.length) g += T(x + 33 + chips.length * 56, y + 60, `+${rest.length - chips.length}`, 15, `text-anchor="middle" fill="#fff" font-weight="700" ${MONO}`);
+        return g + T(x + 9, y + h - 14, `${act.length} active · MENU › Fault log`, 11.5, 'fill="#aaa"');
+      }
+      const rowH = 33, n = Math.floor((h - 12) / rowH), show = act.length > n ? n - 1 : act.length;
+      const chars = Math.floor((w - 70) / 8.6);
+      act.slice(0, show).forEach((k, i) => {
+        const fk = FAULTS[k], ry = y + 6 + i * rowH;
+        g += `<rect x="${x + 7}" y="${ry}" width="${w - 14}" height="${rowH - 3}" rx="4" fill="${sevCol(fk)}" opacity="${i === 0 ? blink : 1}"/>` +
+          T(x + 13, ry + rowH * 0.66, k.slice(3), rowH > 24 ? 14 : 12, `fill="#000" font-weight="700" ${MONO}`) +
+          T(x + 54, ry + rowH * 0.66, cut(fk.name, chars), rowH > 24 ? 14 : 12, 'fill="#000" font-weight="700"');
+      });
+      if (show < act.length) g += T(x + 13, y + 6 + show * rowH + rowH * 0.66, `+${act.length - show} more (MENU › Fault log)`, 12, 'fill="#ccc"');
+      return g;
     }
     function faultBar() {
       const act = activeFaults();
       if (!act.length) return '';
-      const c = act[0], f = FAULTS[c], col = f.sev === 'critical' ? RED : f.sev === 'warning' ? AMB : '#38bdf8';
-      return `<rect x="0" y="414" width="800" height="40" fill="${col}"/>` + T(14, 441, `⚠ ${c}  ${f.name}  ${f.val(lastSig, UU)}${act.length > 1 ? `   +${act.length - 1} more` : ''}`, 19, `fill="#000" font-weight="700" ${MONO}`);
+      const c = act[0], f = FAULTS[c], rest = act.slice(1), chips = rest.slice(0, 4);
+      let g = `<rect x="0" y="414" width="800" height="40" fill="${sevCol(f)}"/>` +
+        T(14, 441, `⚠ ${c}  ${cut(f.name, rest.length ? 20 : 40)}  ${f.val(lastSig, UU)}`, rest.length ? 16 : 19, `fill="#000" font-weight="700" ${MONO}`);
+      chips.forEach((k, i) => {
+        const x = 800 - (chips.length - i) * 62 - (rest.length > 4 ? 44 : 4);
+        g += `<rect x="${x}" y="419" width="58" height="30" rx="4" fill="${sevCol(FAULTS[k])}" stroke="#000" stroke-width="1.5"/>` + T(x + 29, 440, k.slice(3), 14, `text-anchor="middle" fill="#000" font-weight="700" ${MONO}`);
+      });
+      if (rest.length > 4) g += T(796, 440, `+${rest.length - 4}`, 15, `text-anchor="end" fill="#000" font-weight="700" ${MONO}`);
+      return g;
     }
 
     // ---------------------------------------------------------------- the driver's modes
