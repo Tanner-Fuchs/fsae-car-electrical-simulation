@@ -852,6 +852,9 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
   </div>
   <div class="split">
     <aside class="rail">
+      <h3>Dash screen options</h3>
+      <label class="chk"><input type="checkbox" id="d_tireZones"> Tire temps: inner / centre / outer</label>
+      <span class="src" style="font-size:11px;color:var(--ink-3);margin-top:-8px">From IR arrays. Check tires and Debug show all three zones per tire; adds 4 CAN frames at 10 Hz.</span>
       <h3>Board</h3>
       <div class="field"><label for="d_board">Board</label><select id="d_board"></select><span class="src" id="d_boardNote"></span></div>
       <div class="field"><label for="d_ramGB">Memory</label><select id="d_ramGB"></select><span class="src" id="d_ramGBNote"></span></div>
@@ -870,8 +873,6 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
       <div class="field"><label for="d_viewerHistS">Viewer history <output id="o_d_viewerHistS"></output></label><input type="range" id="d_viewerHistS" min="10" max="300" step="10"></div>
       <label class="chk"><input type="checkbox" id="d_imu"> IMU on the dash computer (I2C)</label>
       <div class="field"><label for="d_imuHz">IMU rate <output id="o_d_imuHz"></output></label><input type="range" id="d_imuHz" min="50" max="1000" step="50"></div>
-      <label class="chk"><input type="checkbox" id="d_tireZones"> Tire temps as inner / centre / outer (IR arrays)</label>
-      <span class="src" style="font-size:11px;color:var(--ink-3)">Check tires and Debug show all three zones per tire; adds 4 CAN frames at 10 Hz</span>
       <label class="chk"><input type="checkbox" id="d_gps"> GPS on the dash computer (UART)</label>
       <div class="field"><label for="d_gpsHz">GPS rate <output id="o_d_gpsHz"></output></label><input type="range" id="d_gpsHz" min="1" max="25" step="1"></div>
       <h3>LoRa telemetry (optional)</h3>
