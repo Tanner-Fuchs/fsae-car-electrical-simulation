@@ -81,6 +81,7 @@ PI_DEFAULTS = {
     "imu": True, "imuHz": 200, "gps": True, "gpsHz": 10,
     "lora": True, "loraHz": 5, "loraBytes": 32, "loraSF": 7, "loraBW": 125,
     "endurMin": 30,
+    "tireZones": False,   # IR arrays send inner / centre / outer tire temps; dash shows all three
     "specRamPct": 70, "specCorePct": 70,     # the team's spec: headroom kept free [assumption, change to suit]
 }
 
@@ -225,6 +226,12 @@ def simulate_pi(p=None, o=None):
     p = with_defaults(p or {})
     o = pi_defaults(o)
     msgs, fps = can_load(p)
+    if o["tireZones"]:
+        # one frame per corner node: inner, centre, outer temps (3 × int16) + pressure [assumption: 10 Hz]
+        tz = [{"id": 0x5A0 + k, "name": f"Tire temps I/C/O + pressure {c}", "node": c, "hz": 10, "bytes": 8}
+              for k, c in enumerate(("FL", "FR", "RL", "RR"))]
+        msgs = msgs + tz
+        fps += sum(m["hz"] for m in tz)
     disp = DISPLAYS[o["display"]]
     rows = []
     for bk, b in BOARDS.items():

@@ -97,6 +97,7 @@
     const lapNo = () => Math.min(SESSION_LAPS, Math.floor(t / LAP.lapTime) + 1);
     const imp = () => (set.speedUnit ? set.speedUnit === 'mph' : U.SU() === 'mph');
     const spd = kmh => (imp() ? kmh / 1.609344 : kmh), su = () => (imp() ? 'mph' : 'km/h');
+    const tv = c => (U.IMP() ? c * 9 / 5 + 32 : c);
     const pr = bar => (bar == null ? '—' : U.IMP() ? `${fmt(bar * 14.5038, 0)} psi` : `${fmt(bar, 1)} bar`);
     const UU = { tp: U.tp, pr };
     const bootLen = () => clamp(PI.sel.bootS * 0.35, 1.6, 5);
@@ -117,7 +118,11 @@
         volts: (rpm > 2500 ? 14.3 : 13.1) + 0.04 * Math.sin(t * 3),
         fuelP: 3.43 + 0.04 * Math.sin(t * 11),                                  // 343 kPa regulated (CBR600RR spec) [assumption]
         fuelL: Math.max(0, fuel0 - used),
-        tires: [0, 1, 2, 3].map(k => { const c = 32 + (42 + (k < 2 ? 5 : 0) + 3 * Math.sin(k)) * (1 - Math.exp(-t / 70)) + 1.5 * Math.sin(t / 5 + k); return { c, psi: 10 + (c - 32) / 30 * 2.4 }; }),
+        tires: [0, 1, 2, 3].map(k => {
+          const warmT = 1 - Math.exp(-t / 70), c = 32 + (42 + (k < 2 ? 5 : 0) + 3 * Math.sin(k)) * warmT + 1.5 * Math.sin(t / 5 + k);
+          const camb = (k < 2 ? 9 : 4) * warmT, load = 3 * Math.sin(t / 4 + (k % 2) * Math.PI) * warmT;   // negative camber: inner hotter; corners load the outside [mock]
+          return { c, psi: 10 + (c - 32) / 30 * 2.4, z: [c + camb / 2 - load / 2, c + 1.5 * warmT, c - camb / 2 + load] };   // inner, centre, outer
+        }),
         wheels: [0, 1, 2, 3].map(k => s0.v[i] * (1 + 0.012 * Math.sin(t * 0.9 + k * 1.3)))
       };
       if (SCENARIOS[scen].fx) SCENARIOS[scen].fx(s, t);
@@ -203,12 +208,24 @@
       g += `<rect x="440" y="60" width="160" height="350" rx="70" fill="none" stroke="#555" stroke-width="3"/><line x1="470" y1="120" x2="570" y2="120" stroke="#333" stroke-width="2"/><line x1="470" y1="350" x2="570" y2="350" stroke="#333" stroke-width="2"/>`;
       const pos = [[392, 80, 'FL', 'end', 370], [608, 80, 'FR', 'start', 690], [392, 300, 'RL', 'end', 370], [608, 300, 'RR', 'start', 690]];
       pos.forEach(([x, y, nm, anchor, tx], k) => {
-        const tr = s.tires[k], col = tr.c < 55 ? '#60a5fa' : tr.c > 95 ? RED : GRN;
+        const tr = s.tires[k], tcol = c => (c < 55 ? '#60a5fa' : c > 95 ? RED : GRN), col = tcol(tr.c);
+        const heat = c => `hsl(${Math.round(240 * (1 - clamp((c - 50) / 50, 0, 1)))} 85% 50%)`;   // 50 °C blue → 100 °C red
+      if (PI.o.tireZones) {
+          // left tires: outer | centre | inner from left to right as seen from the seat; right tires mirrored
+          const order = k % 2 === 0 ? [2, 1, 0] : [0, 1, 2], lab = ['I', 'C', 'O'];
+          g += `<clipPath id="tz${k}"><rect x="${x}" y="${y}" width="40" height="90" rx="8"/></clipPath><g clip-path="url(#tz${k})" opacity="0.9">` +
+            order.map((z, n) => `<rect x="${x + n * 40 / 3}" y="${y}" width="${40 / 3 + 0.5}" height="90" fill="${heat(tr.z[z])}"/>`).join('') + '</g>';
+          const xs = k % 2 === 0 ? [266, 312, 358] : [680, 723, 766];
+          g += T(k % 2 === 0 ? 370 : 690, y + 18, nm, 16, `text-anchor="${anchor}" fill="${GOLD}" font-weight="700"`);
+          order.forEach((z, n) => { g += T(xs[n], y + 36, lab[z], 11, 'text-anchor="middle" fill="#9aa4b1"') + T(xs[n], y + 58, fmt(tv(tr.z[z]), 0), 20, `text-anchor="middle" fill="${tcol(tr.z[z]) === GRN ? '#fff' : tcol(tr.z[z])}" ${MONO} font-weight="700"`); });
+          g += T(tx, y + 84, `${fmt(U.IMP() ? tr.psi : tr.psi / 14.5038, U.IMP() ? 1 : 2)} ${U.IMP() ? 'psi' : 'bar'}`, 18, `text-anchor="${anchor}" fill="#ccc" ${MONO}`);
+          return;
+        }
         g += `<rect x="${x}" y="${y}" width="40" height="90" rx="8" fill="${col}" opacity="0.85"/>`;
         g += T(tx, y + 18, nm, 16, `text-anchor="${anchor}" fill="${GOLD}" font-weight="700"`) + T(tx, y + 50, U.tp(tr.c), 26, `text-anchor="${anchor}" fill="#fff" ${MONO}`) +
           T(tx, y + 80, `${fmt(U.IMP() ? tr.psi : tr.psi / 14.5038, U.IMP() ? 1 : 2)} ${U.IMP() ? 'psi' : 'bar'}`, 20, `text-anchor="${anchor}" fill="#ccc" ${MONO}`);
       });
-      return g + T(400, 440, 'tire pressure / temperature: mock values until sensors are chosen', 12, 'text-anchor="middle" fill="#555"') + faultBar() + footer(s);
+      return g + (PI.o.tireZones ? T(400, 30, `tire temps ${U.IMP() ? '°F' : '°C'}: I inner · C centre · O outer`, 13, 'text-anchor="middle" fill="#9aa4b1"') : '') + T(400, 440, 'tire pressure / temperature: mock values until sensors are chosen', 12, 'text-anchor="middle" fill="#555"') + faultBar() + footer(s);
     }
     function modeDebug(s) {
       const items = [
@@ -217,7 +234,7 @@
         ['OIL P', pr(s.oilP)], ['OIL TEMP', U.tp(s.oilC)], ['WATER', U.tp(s.waterC)], ['FUEL P', pr(s.fuelP)],
         ['FUEL LEVEL', `${fmt(s.fuelL, 2)} L`], ['BRAKE F', pr(s.brakeF)], ['BRAKE R', s.brakeR == null ? 'FAULT' : pr(s.brakeR)], ['BIAS', `${fmt(s.biasPct, 1)} %`],
         ['WS FL', fmt(spd(s.wheels[0]), 1)], ['WS FR', s.nodeOff === 'FR' ? 'OFFLINE' : fmt(spd(s.wheels[1]), 1)], ['WS RL', fmt(spd(s.wheels[2]), 1)], ['WS RR', fmt(spd(s.wheels[3]), 1)],
-        ['TIRE FL', U.tp(s.tires[0].c)], ['TIRE FR', U.tp(s.tires[1].c)], ['TIRE RL', U.tp(s.tires[2].c)], ['TIRE RR', U.tp(s.tires[3].c)],
+        ...['FL', 'FR', 'RL', 'RR'].map((nm, k) => [PI.o.tireZones ? `TIRE ${nm} I/C/O` : `TIRE ${nm}`, PI.o.tireZones ? s.tires[k].z.map(c => fmt(tv(c), 0)).join('/') : U.tp(s.tires[k].c)]),
         ['CAN', `${PI.fps}/s`], ['CPU', `${fmt(PI.sel.busiest, 0)} % max`], ['RAM', `${fmt(PI.sel.ramPct, 0)} %`], ['FAULTS', `${activeFaults().length}`]
       ];
       let g = `<rect width="800" height="456" fill="#050505"/>`;

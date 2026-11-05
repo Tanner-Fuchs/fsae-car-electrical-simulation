@@ -49,3 +49,10 @@ def test_lora_airtime_known_value():
     # SF7, 125 kHz, 4/5, 8 preamble, explicit header, CRC: 10 bytes is about 41 ms (Semtech calculator)
     assert 38 < lora_airtime(10, 7, 125) < 44
     assert lora_airtime(32, 12, 125) > 1000
+
+
+def test_tire_zones_add_can_frames():
+    from br27sim import simulate_pi
+    off, on = simulate_pi(o={"tireZones": False}), simulate_pi(o={"tireZones": True})
+    assert on["fps"] == off["fps"] + 40
+    assert sum("I/C/O" in m["name"] for m in on["msgs"]) == 4
