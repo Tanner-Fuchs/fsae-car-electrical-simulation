@@ -783,7 +783,6 @@
     $('a_preset').addEventListener('input', () => { const p = S.IR_ARRAY_PRESETS[AR.preset]; if (AR.preset !== 'custom') Object.assign(AR, { pixels: p.pixels, hFovDeg: p.hFovDeg, vFovDeg: p.vFovDeg }); syncAr(); });
     $('arDof').innerHTML = AR_DOFS.map(([k, t]) => `<option value="${k}">${t}</option>`).join('');
     $('arDof').addEventListener('input', () => { if (arLast) drawArSweep(arLast); });
-    document.querySelectorAll('[data-arview]').forEach(b => b.addEventListener('click', () => ar3d && ar3d.view(b.dataset.arview)));
     document.querySelectorAll('#compTabs button').forEach(b => b.addEventListener('click', () => {
       compSel = b.dataset.comp;
       try { localStorage.setItem('br27.component', compSel); } catch (e) { /* storage blocked */ }
@@ -800,7 +799,6 @@
     document.querySelectorAll('#compTabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.comp === c));
     const grp = c === 'irarray' && irKind === 'single' ? 'ir' : c;
     document.querySelectorAll('#v-components .cgroup').forEach(g => { g.hidden = g.dataset.comp !== grp; });
-    if (ar3d) { if (grp === 'irarray') ar3d.resume(); else ar3d.pause(); }
     if (ring && c !== 'wheel') ring.stop();
     if (brk && c !== 'brake') brk.stop();
     ({ wheel: renderWheel, ir: renderIr, irarray: renderIrArray, steer: renderSteer, brake: renderBrake })[grp]();
@@ -966,7 +964,7 @@
   }
 
   // ------------------------------------------------------------ IR array on the tire
-  let ar3d = null, arLast = null;
+  let arLast = null;
   const heatCss = (t, lo, hi) => { const u = Math.max(0, Math.min(1, (t - lo) / ((hi - lo) || 1))); return `hsl(${Math.round(240 * (1 - u))} 85% 50%)`; };
   const AR_DOF_TEXT = {
     distMM: 'Moving the sensor away widens its footprint on the tread. For an array: too close and the end pixels miss the edges, too far and they see the track and air beside the tire.',
@@ -980,13 +978,12 @@
     arLast = r;
     $('a_presetNote').textContent = r.preset.note;
     $('a_positionNote').textContent = ({ front: 'Looks straight back at the front of the tread', above: 'Looks straight down at the top of the tread', beside: 'Sits inboard and ahead, looking 45° outward and back at the front of the tread [assumption]' })[o.position];
-    $('arReadTitle').textContent = single ? 'What the sensor reads' : 'What the array reads';
     $('arCoverTitle').textContent = single ? 'Share of the spot on the tread (%)' : 'Share of the tread width the array sees (%)';
     document.querySelectorAll('[data-custom]').forEach(el => { el.hidden = o.preset !== 'custom'; });
     $('arNote').textContent = single ? `one ${o.hFovDeg}° spot · ${ln(o.distMM, 1)} from the tread · ${ln(r.spotMM, 1)} spot` : `${o.pixels} pixels across ${o.hFovDeg}° · ${ln(o.distMM, 1)} from the tread`;
-    if (!ar3d && window.BRIrArray3D) ar3d = window.BRIrArray3D.mount($('arScene'), $('arLabels'));
-    if (ar3d) ar3d.update(r, o);
-    drawArPlanes(r, o);
+    drawArLook(r, o);
+    drawArTop(r, o);
+    drawArRow(r, o);
     const lo = Math.min(o.bgC, ...r.truth.map(p => p.T)), hi = Math.max(...r.truth.map(p => p.T));
     $('arStrip').innerHTML = r.pixels.map(p => `<i style="background:${heatCss(p.meas, lo, hi)}" title="pixel ${p.i + 1}: ${tp(p.meas, 1)}"></i>`).join('');
     $('arStripScale').textContent = `blue ${tp(lo)} · red ${tp(hi)}`;
@@ -1044,38 +1041,92 @@
       { xTitle: `${sw.label} (${isLen ? LU() : '°'})`, yMin: 0, yMax: 105, vrefs: [{ x: isLen ? lnv(sw.now) : sw.now, label: 'now' }] });
     $('arDofFoot').textContent = AR_DOF_TEXT[key];
   }
-  // three flat views of the same pose: side (X–Z), front (Y–Z), top (X–Y)
-  function drawArPlanes(r, o) {
-    const Rm = r.tireR, w = r.halfW, st = o.steerDeg * Math.PI / 180;
+  // the tread seen face on, with each pixel's footprint (same style as the single IR view)
+  function drawArLook(r, o) {
     const lo = Math.min(o.bgC, ...r.truth.map(p => p.T)), hi = Math.max(...r.truth.map(p => p.T));
-    const ink2 = 'var(--ink-2)';
-    const view = (id, a, b, aLab, bLab, outline, angle, angLab, offs) => {
-      // a: screen right, b: screen up (model axes indices)
-      const pts = [r.sensor, ...r.pixels.map(p => p.end)];
-      const xs = pts.map(p => p[a]).concat(outline.map(p => p[0])), ys = pts.map(p => p[b]).concat(outline.map(p => p[1]));
-      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
-      const k = Math.min(280 / ((x1 - x0) || 1), 190 / ((y1 - y0) || 1));
-      const X = v => 20 + (v - x0) * k + (280 - (x1 - x0) * k) / 2, Y = v => 220 - (v - y0) * k - (190 - (y1 - y0) * k) / 2;
-      let g = `<polygon points="${outline.map(p => `${X(p[0])},${Y(p[1])}`).join(' ')}" fill="var(--s2)" fill-opacity="0.18" stroke="var(--s2)"/>`;
-      r.pixels.forEach(p => { g += `<line x1="${X(r.sensor[a])}" y1="${Y(r.sensor[b])}" x2="${X(p.end[a])}" y2="${Y(p.end[b])}" stroke="${heatCss(p.meas, lo, hi)}" stroke-width="1.2" stroke-opacity="${p.hit === 'tread' ? 0.9 : 0.35}"/>`; });
-      const sx = X(r.sensor[a]), sy = Y(r.sensor[b]);
-      g += `<rect x="${sx - 6}" y="${sy - 4}" width="12" height="8" rx="2" fill="var(--ink)"/>`;
-      // look axis in this plane
-      const lk = r.axes[0], L = Math.hypot(lk[a], lk[b]) || 1;
-      g += `<line x1="${sx}" y1="${sy}" x2="${sx + lk[a] / L * 34}" y2="${sy - lk[b] / L * 34}" stroke="var(--ink)" stroke-width="2"/>`;
-      // axes key
-      g += `<g font-size="11" font-family="var(--f-mono)"><line x1="14" y1="226" x2="44" y2="226" stroke="${aLab.c}" stroke-width="2"/><text x="47" y="230" fill="${aLab.c}">${aLab.t}</text>`;
-      g += `<line x1="14" y1="226" x2="14" y2="196" stroke="${bLab.c}" stroke-width="2"/><text x="18" y="196" fill="${bLab.c}">${bLab.t}</text></g>`;
-      g += `<text x="306" y="18" font-size="11" text-anchor="end" fill="${ink2}" font-family="var(--f-mono)">${offs}</text>`;
-      $(id).innerHTML = g;
-    };
-    const Xc = { c: '#d03b3b', t: 'X fwd' }, Yc = { c: '#1baf7a', t: 'Y out' }, Zc = { c: '#2a78d6', t: 'Z up' };
-    const circle = []; for (let i = 0; i <= 48; i++) { const t = i / 48 * 2 * Math.PI; circle.push([Rm * Math.cos(t) * Math.cos(st), Rm * Math.sin(t)]); }
-    view('arSide', 0, 2, Xc, Zc, circle, o.pitchDeg, 'pitch', `dist ${ln(o.distMM, 1)} · x ${ln(o.xMM, 2)} · z ${ln(o.zMM, 2)}`);
-    const front = [[-w, -Rm], [w, -Rm], [w, Rm], [-w, Rm]].map(([y, z]) => [y * Math.cos(st) + 0, z]);
-    view('arFront', 1, 2, Yc, Zc, front, o.rollDeg, 'roll', `y ${ln(o.yMM, 2)} · z ${ln(o.zMM, 2)}`);
-    const top = [[Rm, -w], [Rm, w], [-Rm, w], [-Rm, -w]].map(([x, y]) => [x * Math.cos(st) - y * Math.sin(st), x * Math.sin(st) + y * Math.cos(st)]);
-    view('arTop', 0, 1, Xc, Yc, top, o.yawDeg, 'yaw', `x ${ln(o.xMM, 2)} · y ${ln(o.yMM, 2)}${o.steerDeg ? ` · steer ${o.steerDeg}°` : ''}`);
+    const ys = r.pixels.map(p => p.yMM).filter(v => v != null);
+    const fpW = r.mmPerPx || (2 * o.distMM * Math.tan(o.hFovDeg / o.pixels * Math.PI / 360));
+    const fpH = Math.max(4, 2 * o.distMM * Math.tan(o.vFovDeg * Math.PI / 360));
+    const span = Math.max(o.widthMM * 1.5, ...ys.map(v => Math.abs(v) * 2 + fpW * 2));
+    const k = Math.min(820 / span, 150 / fpH, 6), cx = 450, cy = 110, H = 160;
+    const X = mm => cx + mm * k, ink2 = 'var(--ink-2)';
+    let g = `<defs><linearGradient id="arGrad" x1="0" x2="1">${r.truth.map((p, n) => `<stop offset="${(n / (r.truth.length - 1)).toFixed(3)}" stop-color="${heatCss(p.T, lo, hi)}" stop-opacity="0.45"/>`).join('')}</linearGradient></defs>`;
+    g += `<rect x="0" y="${cy - H / 2}" width="900" height="${H}" fill="var(--bg)"/>`;
+    g += `<rect x="${X(-o.widthMM / 2)}" y="${cy - H / 2}" width="${o.widthMM * k}" height="${H}" fill="url(#arGrad)" stroke="var(--s2)"/>`;
+    g += `<text x="${X(-o.widthMM / 2) + 6}" y="${cy - H / 2 + 16}" font-size="12" fill="${ink2}">inner edge</text>`;
+    g += `<text x="${X(o.widthMM / 2) - 6}" y="${cy - H / 2 + 16}" font-size="12" text-anchor="end" fill="${ink2}">outer edge</text>`;
+    g += `<text x="12" y="${cy - H / 2 + 16}" font-size="12" fill="${ink2}">background ${tp(o.bgC)}</text>`;
+    r.pixels.forEach(p => {
+      if (p.yMM == null) return;
+      const bad = p.treadFrac < 0.98;
+      const w = Math.max(2, fpW * k), h = Math.min(H - 8, fpH * k);
+      g += `<rect x="${X(p.yMM) - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" fill="${heatCss(p.meas, lo, hi)}" fill-opacity="0.55" stroke="${bad ? 'var(--crit-ink)' : 'var(--s1)'}" stroke-width="${bad ? 1.5 : 1}"/>`;
+    });
+    // labels at inner, middle, outer pixels that land on the tread
+    const on = r.pixels.filter(p => p.yMM != null && p.treadFrac > 0.5);
+    const picks = on.length ? [on[0], on[Math.floor(on.length / 2)], on[on.length - 1]] : [];
+    picks.forEach((p, n) => {
+      const lx = cx + (n - 1) * 280, ly = cy + H / 2 + 62;
+      const tr = r.truth[Math.round((p.yMM / 1000 + r.halfW) / (2 * r.halfW) * (r.truth.length - 1))];
+      g += `<line x1="${X(p.yMM)}" y1="${cy}" x2="${lx}" y2="${ly - 16}" stroke="var(--ink-3)" stroke-dasharray="3 3"/><circle cx="${X(p.yMM)}" cy="${cy}" r="3" fill="var(--ink)"/>`;
+      g += `<text x="${lx}" y="${ly}" font-size="14" text-anchor="middle" fill="var(--ink)" font-family="var(--f-mono)">${['inner', 'middle', 'outer'][n]} ${tp(p.meas, 1)}</text>`;
+      g += `<text x="${lx}" y="${ly + 16}" font-size="11.5" text-anchor="middle" fill="var(--ink-2)">pixel ${p.i + 1} · true ${tr ? tp(tr.T, 1) : '–'}</text>`;
+    });
+    g += `<line x1="${X(-o.widthMM / 2)}" x2="${X(o.widthMM / 2)}" y1="${cy + H / 2 + 12}" y2="${cy + H / 2 + 12}" stroke="${ink2}"/><text x="${X(o.widthMM / 2) + 6}" y="${cy + H / 2 + 16}" font-size="12" fill="${ink2}">${ln(o.widthMM, 1)} tread</text>`;
+    $('arSvg').innerHTML = g;
+  }
+  function drawArRow(r, o) {
+    const presets = Object.entries(S.IR_ARRAY_PRESETS).filter(([k, p]) => p.kind === 'array' && k !== 'custom');
+    const fovs = [...new Set(presets.map(([, p]) => p.hFovDeg).concat([o.hFovDeg]))].sort((a, b) => a - b);
+    const cols = ['--s1', '--s3', '--s2', '--s7', '--s5'];
+    const col = fv => cols[fovs.indexOf(fv) % cols.length];
+    const ds = [];
+    for (let d = 20; d <= 320; d += 10) ds.push(d);
+    C.legend('arRowLegend', fovs.map(fv => [`${fv}°`, col(fv)]));
+    C.draw('c_arRow', fovs.map(fv => ({ label: `${fv}°`, data: ds.map(d => ({ x: lnv(d), y: lnv(2 * d * Math.tan(fv * Math.PI / 360)) })), color: col(fv), width: fv === o.hFovDeg ? 3 : 1.5 })),
+      { xTitle: `Distance (${LU()})`, yMin: 0, yMax: lnv(o.widthMM * 2.5), refs: [{ y: lnv(o.widthMM), label: 'tread width' }], vrefs: [{ x: lnv(o.distMM), label: 'now' }] });
+  }
+  // top view of the front tire with the pixel row (same style as the single IR top view)
+  function drawArTop(r, o) {
+    const R = r.tireR * 1000, Wt = o.widthMM + 12, deg = o.steerDeg;
+    const lo = Math.min(o.bgC, ...r.truth.map(p => p.T)), hi = Math.max(...r.truth.map(p => p.T));
+    const pe = r.pixels.map(p => p.end), sx0 = r.sensor[0] * 1000, sy0 = r.sensor[1] * 1000;
+    const ext = Math.max(R, sx0 + 20, ...pe.map(e => e[0] * 1000));
+    const k = Math.min(175 / R, 210 / ext), cx = 330, cy = 250;
+    const P = (f, l) => [cx + l * k, cy - f * k];
+    const ang = o.mount === 'chassis' ? deg : 0;              // on the upright the picture turns with the tire, so draw it straight
+    let g = `<defs><linearGradient id="arTread" x1="0" x2="1"><stop offset="0" stop-color="var(--s2)" stop-opacity="${o.gradC ? 0.85 : 0.55}"/><stop offset="1" stop-color="var(--s2)" stop-opacity="0.4"/></linearGradient>
+      <marker id="arArr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)"/></marker></defs>`;
+    const [lx] = P(0, -Wt / 2 - 130);
+    g += `<line x1="${lx}" y1="30" x2="${lx}" y2="440" stroke="var(--rule)" stroke-width="10" stroke-linecap="round"/><text x="${lx}" y="458" font-size="11.5" text-anchor="middle" fill="var(--ink-3)">chassis</text>`;
+    g += `<line x1="40" y1="120" x2="40" y2="40" stroke="var(--ink-3)" stroke-width="1.5" marker-end="url(#arArr)"/><text x="48" y="52" font-size="11.5" fill="var(--ink-3)">front</text>`;
+    const [x0, y0] = P(R, -Wt / 2), [tx, ty] = P(R, -o.widthMM / 2);
+    g += `<g transform="rotate(${ang.toFixed(2)} ${cx} ${cy})">`;
+    g += `<rect x="${x0}" y="${y0}" width="${Wt * k}" height="${2 * R * k}" rx="${22 * k}" fill="var(--ink-2)" fill-opacity="0.18" stroke="var(--ink-2)"/>`;
+    g += `<rect x="${tx}" y="${ty}" width="${o.widthMM * k}" height="${2 * R * k}" fill="url(#arTread)"/>`;
+    for (let f = -R + 30; f < R; f += 45) { const [a1, b1] = P(f, -Wt / 2), [a2] = P(f, Wt / 2); g += `<line x1="${a1}" y1="${b1}" x2="${a2}" y2="${b1}" stroke="var(--ink-2)" stroke-opacity="0.25"/>`; }
+    g += `<text x="${P(0, -o.widthMM / 2 + 6)[0]}" y="${cy - 4}" font-size="11" fill="var(--ink)">inner</text><text x="${P(0, o.widthMM / 2 - 6)[0]}" y="${cy - 4}" font-size="11" text-anchor="end" fill="var(--ink)">outer</text>`;
+    g += `</g><circle cx="${cx}" cy="${cy}" r="4" fill="var(--ink)"/><text x="${cx + 8}" y="${cy + 16}" font-size="11" fill="var(--ink-3)">steering axis</text>`;
+    // the row in the frame the model drew it (the tire turned under a chassis sensor); for the upright, undo the turn
+    const un = o.mount === 'chassis' ? 0 : deg * Math.PI / 180;
+    const rot = (f, l) => [f * Math.cos(un) + l * Math.sin(un), -f * Math.sin(un) + l * Math.cos(un)];
+    const [sx, sy] = P(...rot(sx0, sy0));
+    r.pixels.forEach(p => {
+      const [ex, ey] = P(...rot(p.end[0] * 1000, p.end[1] * 1000));
+      g += `<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="${heatCss(p.meas, lo, hi)}" stroke-opacity="${p.hit === 'tread' ? 0.7 : 0.25}"/>`;
+      if (p.hit === 'tread') g += `<circle cx="${ex}" cy="${ey}" r="3" fill="${heatCss(p.meas, lo, hi)}"/>`;
+    });
+    g += `<rect x="${sx - 9}" y="${sy - 6}" width="18" height="12" rx="2" fill="var(--ink)"/>`;
+    g += `<text x="14" y="454" font-size="13" fill="var(--ink)" font-family="var(--f-mono)">steer ${deg >= 0 ? '+' : ''}${Math.round(deg)}°</text>`;
+    $('arTopV').innerHTML = g;
+    $('arTopNote').textContent = `${o.mount === 'chassis' ? 'Sensor on the chassis' : 'Sensor on the upright'} · ${ln(r.tireR * 2000, 1)} tire`;
+    const st = r.sweeps.steerDeg.line, lose = st.filter(q => q.coverPct < 95).map(q => Math.abs(q.v));
+    kv('arTopKv', [
+      ['Steer', `${Math.round(deg)}°`],
+      ['Tread width seen', `${fmt(r.coverPct, 0)} %`, r.coverPct > 95 ? 'ok' : r.coverPct > 80 ? 'meh' : 'bad'],
+      ['Pixels on the tread', `${r.onTread} of ${o.pixels}`],
+      ['Row starts losing an edge at', o.mount === 'upright' ? 'never' : lose.length ? `±${fmt(Math.min(...lose), 0)}°` : 'past the sweep']
+    ]);
   }
 
   // top view of the front tire as it steers; pure geometry, so the sweep animates without calling the model

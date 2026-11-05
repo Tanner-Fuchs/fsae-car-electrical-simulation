@@ -156,9 +156,6 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
 .subtabs button { font: 600 15px/1 var(--f-display); letter-spacing: .04em; text-transform: uppercase; padding: 9px 14px; border-radius: 6px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
 .subtabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
 @media (max-width: 700px) { .subtabs { width: 100%; } }
-#arScene { position: relative; height: 440px; border-radius: 6px; overflow: hidden; background: var(--scene); touch-action: none; }
-#arScene canvas { display: block; }
-#arScene .hlabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .hlb.axis.x { color: #d03b3b; } .hlb.axis.y { color: #1baf7a; } .hlb.axis.z { color: #2a78d6; }
 .planes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 760px) { .planes { grid-template-columns: minmax(0, 1fr); } }
@@ -738,30 +735,24 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
       </div>
       <div class="cgroup" data-comp="irarray" hidden>
       <div class="card">
-        <div class="card-head"><h3>The sensor on the tire</h3><span class="note" id="arNote"></span></div>
-        <div class="hctrl">
-          <button type="button" data-arview="iso">3D view</button>
-          <button type="button" data-arview="side">Side (X–Z)</button>
-          <button type="button" data-arview="front">Front (Y–Z)</button>
-          <button type="button" data-arview="top">Top (X–Y)</button>
-        </div>
-        <div id="arScene"><div class="hlabels" id="arLabels"></div><span class="hint">Drag to orbit · pinch or scroll to zoom</span></div>
-        <p class="foot">The tread is colored by its true temperature. Each line is one pixel's view, colored by what that pixel reads; the dots are where it lands. Red, green and blue arrows are X, Y and Z.</p>
-      </div>
-      <div class="card">
-        <div class="card-head"><h3>Offsets, plane by plane</h3></div>
-        <div class="planes">
-          <figure><svg id="arSide" viewBox="0 0 320 240" role="img" aria-label="Side view, X–Z plane"></svg><figcaption><b>Side, X–Z plane.</b> X (distance) and Z (height) offsets.</figcaption></figure>
-          <figure><svg id="arFront" viewBox="0 0 320 240" role="img" aria-label="Front view, Y–Z plane"></svg><figcaption><b>Front, Y–Z plane.</b> Y (sideways) and Z offsets.</figcaption></figure>
-          <figure><svg id="arTop" viewBox="0 0 320 240" role="img" aria-label="Top view, X–Y plane"></svg><figcaption><b>Top, X–Y plane.</b> X and Y offsets. Steer turns the tire in this plane.</figcaption></figure>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-head"><h3 id="arReadTitle">What the array reads</h3><div class="legend" id="arLegend"></div></div>
+        <div class="card-head"><h3>Where the array looks</h3><span class="note" id="arNote"></span></div>
+        <div class="scroll"><svg id="arSvg" viewBox="0 0 900 300" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="Each pixel's footprint on the tread"></svg></div>
         <div class="strip" id="arStrip"></div><div class="strip-scale"><span>inner pixel</span><span id="arStripScale"></span><span>outer pixel</span></div>
-        <div class="plot"><canvas id="c_arRead"></canvas></div>
         <div class="kv" id="arKv"></div>
         <ul class="flags" id="arFlags"></ul>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="card-head"><h3 id="arReadTitle">Reading across the tread (<span class="tu">°F</span>)</h3><div class="legend" id="arLegend"></div></div><div class="plot"><canvas id="c_arRead"></canvas></div><p class="foot">Each pixel's reading against the true tread temperature where it lands. Pixels at the ends that see the track or air read low.</p></div>
+        <div class="card"><div class="card-head"><h3>Row width vs distance (<span class="lu">in</span>)</h3><div class="legend" id="arRowLegend"></div></div><div class="plot"><canvas id="c_arRow"></canvas></div><p class="foot">Width the pixel row covers, looking straight on, for each array's field of view, against the tread width it has to span.</p></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Front tire from above</h3><span class="note" id="arTopNote"></span></div>
+        <div class="irtop"><svg id="arTopV" viewBox="0 0 560 470" role="img" aria-label="Top view of the front tire and where the pixel row lands"></svg>
+          <div class="irtop-side">
+            <div class="kv" id="arTopKv"></div>
+            <p class="foot">Looking down on the front-left tire, front of the car up, car centreline to the left. The orange band is the tread (hotter inner edge darker). The dots are where each pixel lands, colored by what it reads; on the chassis the sensor stays put while the tire turns under it, on the upright it turns with the tire.</p>
+          </div>
+        </div>
       </div>
       <div class="card">
         <div class="card-head"><h3>How each mount offset changes the data</h3>
