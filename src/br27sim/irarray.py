@@ -277,3 +277,15 @@ def simulate_ir_array(o=None):
     return {"o": o, "preset": IR_ARRAY_PRESETS.get(o["preset"], IR_ARRAY_PRESETS["custom"]),
             "tireR": R, "rimR": RIM_R, "halfW": w, "truth": truth, "needXMM": need, "spotMM": spot,
             "trueAvg": sum(p["T"] for p in truth) / len(truth), **r, "sweeps": sweeps}
+
+
+def ir_array_frames(o=None):
+    """The pixel row at each whole steer angle from -30 to +30 deg, for the steering sweep animation."""
+    o = _opts(o)
+    out = []
+    for deg in range(-30, 31):
+        q = dict(o); q["steerDeg"] = deg
+        r = _read(q, rays=True)
+        r["deg"] = deg
+        out.append(r)
+    return out

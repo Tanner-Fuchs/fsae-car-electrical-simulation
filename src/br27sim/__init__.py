@@ -15,7 +15,7 @@ from .pi import PI_DEFAULTS, simulate_pi
 from .can import (BUS_INFO, CAN_LAYOUTS, arbitrate, can_messages, can_physical, frame_bits, frame_time,
                   simulate_can, simulate_can_all)
 from .daq import alias_demo
-from .irarray import IR_ARRAY_DEFAULTS, IR_ARRAY_PRESETS, IR_ARRAY_PROFILES, simulate_ir_array
+from .irarray import IR_ARRAY_DEFAULTS, IR_ARRAY_PRESETS, IR_ARRAY_PROFILES, ir_array_frames, simulate_ir_array
 from .engine import FIRING_ORDER, engine_model, firing_events, simulate_lap
 from .faults import FAULT_BANDS, FAULTS, fault_logic, simulate_fault
 from .params import BATTERIES, DEFAULTS, TRACK, with_defaults
@@ -46,6 +46,7 @@ JS_API = {
     "simulateWheelSpeed": simulate_wheel_speed,
     "simulateIr": simulate_ir,
     "simulateIrArray": simulate_ir_array,
+    "irArrayFrames": ir_array_frames,
     "simulateSteering": simulate_steering,
     "simulateBrakes": simulate_brakes,
     "simulatePi": simulate_pi,

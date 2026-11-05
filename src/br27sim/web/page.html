@@ -74,9 +74,13 @@ h3 { font-family: var(--f-display); font-weight: 600; font-size: 18px; letter-sp
 p { margin: 0; }
 .lede { color: var(--ink-2); }
 .split { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 18px; align-items: start; }
-@media (max-width: 860px) { .split { grid-template-columns: minmax(0, 1fr); } }
-.rail { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; display: grid; gap: 12px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 120px); }
-@media (max-width: 860px) { .rail { position: static; } }
+@media (max-width: 1000px) { .split { grid-template-columns: 240px minmax(0, 1fr); gap: 14px; } }
+@media (max-width: 700px) { .split { grid-template-columns: minmax(0, 1fr); } }
+/* the inputs scroll on their own, so the drawings stay put while you work through the sliders */
+.rail { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; display: grid; gap: 12px; align-content: start;
+  position: sticky; top: calc(var(--hdr, 110px) + 12px); max-height: calc(100vh - var(--hdr, 110px) - 24px); max-height: calc(100dvh - var(--hdr, 110px) - 24px);
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+@media (max-width: 700px) { .rail { position: static; max-height: none; overflow: visible; } }
 .rail h3 { font-size: 15px; color: var(--ink-2); }
 .field { display: grid; gap: 3px; }
 .field label { font-size: 12.5px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px; }
@@ -764,7 +768,7 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
       </div>
       <div class="cgroup" data-comp="irarray" hidden>
       <div class="card">
-        <div class="card-head"><h3>Where the array looks</h3><span class="note" id="arNote"></span></div>
+        <div class="card-head"><h3>Where the array looks</h3><span class="note" id="arNote"></span><button class="btn" id="a_play" type="button">Play steering sweep</button></div>
         <div class="scroll"><svg id="arSvg" viewBox="0 0 900 300" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="Each pixel's footprint on the tread"></svg></div>
         <div class="strip" id="arStrip"></div><div class="strip-scale"><span>inner pixel</span><span id="arStripScale"></span><span>outer pixel</span></div>
         <div class="kv" id="arKv"></div>
@@ -779,6 +783,7 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
         <div class="irtop"><svg id="arTopV" viewBox="0 0 560 470" role="img" aria-label="Top view of the front tire and where the pixel row lands"></svg>
           <div class="irtop-side">
             <div class="kv" id="arTopKv"></div>
+            <p class="foot">Play steering sweep (top of this tab) turns the wheel ±25° and moves this view, the footprints and the pixel strip together.</p>
             <p class="foot">Looking down on the front-left tire, front of the car up, car centreline to the left. The orange band is the tread (hotter inner edge darker). The dots are where each pixel lands, colored by what it reads; on the chassis the sensor stays put while the tire turns under it, on the upright it turns with the tire.</p>
           </div>
         </div>

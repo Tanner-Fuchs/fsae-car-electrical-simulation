@@ -995,15 +995,9 @@
       { label: 'Reading', data: r.pixels.map(p => ({ x: p.i + 1, y: tv(p.meas) })), color: '--s2', points: true, width: 2 },
       { label: 'True', data: r.pixels.map(p => ({ x: p.i + 1, y: p.treadFrac > 0.5 ? truthAt(p) : null })), color: '--ink-3', dash: [5, 4], width: 1.5 }
     ], { xTitle: 'Pixel (1 = inner edge side)', yTitle: TU(), xMin: 0.5, xMax: o.pixels + 0.5 });
-    const ioErr = r.estIO == null ? null : Math.abs(r.estIO - r.trueIO);
     if (single) {
       const p0 = r.pixels[0], err = p0.meas - r.trueAvg;
-      kv('arKv', [
-        ['Reading', tp(p0.meas, 1)], ['True tread average', tp(r.trueAvg, 1)],
-        ['Error', tdp(err, 1), Math.abs(err) > 5 ? 'bad' : Math.abs(err) > 2 ? 'meh' : 'ok'],
-        ['Spot on the tread', `${fmt(p0.treadFrac * 100, 0)} %`, p0.treadFrac < 0.98 ? 'bad' : 'ok'],
-        ['Spot size (straight on)', ln(r.spotMM, 1)], ['Tread width', ln(o.widthMM, 1)]
-      ]);
+      fillArKv(r, o, single);
       const f = [];
       if (p0.treadFrac < 0.98) f.push(['crit', `Only ${fmt(p0.treadFrac * 100, 0)} % of the spot lands on the tread; the rest sees ${p0.hit === 'tread' ? 'the sidewall, track or air' : 'the track, air or sidewall'}, so it reads ${tdp(Math.abs(err), 1)} ${err < 0 ? 'low' : 'high'}. Move it closer, use a narrower field of view, or fix the aim.`]);
       if (o.gradC > 4) f.push(['warn', `One spot gives one average. The ${tdp(o.gradC)} difference across the tread (camber or pressure) needs an array, or three single sensors.`]);
@@ -1013,14 +1007,7 @@
       drawArSweep(r);
       return;
     }
-    kv('arKv', [
-      ['Tread width seen', `${fmt(r.coverPct, 0)} %`, r.coverPct > 95 ? 'ok' : r.coverPct > 80 ? 'meh' : 'bad'],
-      ['Pixels on the tread', `${r.onTread} of ${o.pixels}`],
-      ['Across the tread per pixel', r.mmPerPx == null ? '–' : ln(r.mmPerPx, 2)],
-      ['Inner minus outer, read', r.estIO == null ? '–' : tdp(r.estIO, 1), ioErr != null && ioErr > 3 ? 'bad' : ''],
-      ['Inner minus outer, true edges', tdp(r.trueIO, 1)],
-      ['Distance to just span the tread', r.needXMM == null ? '–' : ln(r.needXMM, 1)]
-    ]);
+    fillArKv(r, o, single);
     const f = [];
     if (r.coverPct < 95 && r.needXMM && o.distMM < r.needXMM && Math.abs(o.rollDeg) < 10 && Math.abs(o.yawDeg) < 5 && Math.abs(o.steerDeg) < 5) f.push(['warn', `The row covers only ${fmt(r.coverPct, 0)} % of the tread. At this field of view it needs about ${ln(r.needXMM, 1)} of distance to reach both edges.`]);
     else if (r.coverPct < 95) f.push(['warn', `The array sees only ${fmt(r.coverPct, 0)} % of the tread width, so one edge is missing from the data.`]);
@@ -1031,6 +1018,74 @@
     flags('arFlags', f);
     drawArSweep(r);
   }
+  function fillArKv(r, o, single) {
+    if (single) {
+      const p0 = r.pixels[0], err = p0.meas - r.trueAvg;
+        kv('arKv', [
+          ['Reading', tp(p0.meas, 1)], ['True tread average', tp(r.trueAvg, 1)],
+          ['Error', tdp(err, 1), Math.abs(err) > 5 ? 'bad' : Math.abs(err) > 2 ? 'meh' : 'ok'],
+          ['Spot on the tread', `${fmt(p0.treadFrac * 100, 0)} %`, p0.treadFrac < 0.98 ? 'bad' : 'ok'],
+          ['Spot size (straight on)', ln(r.spotMM, 1)], ['Tread width', ln(o.widthMM, 1)]
+        ]);
+      return;
+    }
+    const ioErr = r.estIO == null ? null : Math.abs(r.estIO - r.trueIO);
+    kv('arKv', [
+      ['Tread width seen', `${fmt(r.coverPct, 0)} %`, r.coverPct > 95 ? 'ok' : r.coverPct > 80 ? 'meh' : 'bad'],
+      ['Pixels on the tread', `${r.onTread} of ${o.pixels}`],
+      ['Across the tread per pixel', r.mmPerPx == null ? '–' : ln(r.mmPerPx, 2)],
+      ['Inner minus outer, read', r.estIO == null ? '–' : tdp(r.estIO, 1), ioErr != null && ioErr > 3 ? 'bad' : ''],
+      ['Inner minus outer, true edges', tdp(r.trueIO, 1)],
+      ['Distance to just span the tread', r.needXMM == null ? '–' : ln(r.needXMM, 1)]
+    ]);
+  }
+  // steering sweep for the array: frames come from the model once, then only the drawings update (no charts, no flags) so the page holds still
+  let arAnim = null, arFrames = null, arFramesKey = '';
+  function arFrame(deg) {
+    const f = arFrames[Math.max(0, Math.min(arFrames.length - 1, Math.round(deg) + 30))];
+    return Object.assign({}, arLast, f, { o: Object.assign({}, arLast.o, { steerDeg: f.deg }) });
+  }
+  function drawArFrame(r) {
+    const o = r.o, single = o.kind === 'single';
+    drawArLook(r, o); drawArTop(r, o);
+    const lo = Math.min(o.bgC, ...r.truth.map(p => p.T)), hi = Math.max(...r.truth.map(p => p.T));
+    $('arStrip').innerHTML = r.pixels.map(p => `<i style="background:${heatCss(p.meas, lo, hi)}" title="pixel ${p.i + 1}: ${tp(p.meas, 1)}"></i>`).join('');
+    fillArKv(r, o, single);
+  }
+  function stopArAnim() {
+    if (!arAnim) return;
+    cancelAnimationFrame(arAnim); arAnim = null; $('arFlags').style.opacity = '';
+    $('a_play').textContent = 'Play steering sweep';
+    keepScroll(() => renderView('components'));
+  }
+  $('a_play').addEventListener('click', () => {
+    if (arAnim) return stopArAnim();
+    if (!arLast) return;
+    const key = JSON.stringify(AR);
+    if (key !== arFramesKey) { arFrames = S.irArrayFrames(AR); arFramesKey = key; }
+    $('a_play').textContent = 'Stop'; $('arFlags').style.opacity = '0.4';
+    const t0 = performance.now();
+    let shown = null;
+    const step = now => {
+      const deg = Math.round(25 * Math.sin((now - t0) / 1000 * Math.PI / 2));   // ±25° every 4 s
+      if (deg !== shown) {
+        shown = deg; AR.steerDeg = deg;
+        $('a_steerDeg').value = deg; $('o_a_steerDeg').textContent = `${deg}°`;
+        keepScroll(() => drawArFrame(arFrame(deg)));
+      }
+      arAnim = requestAnimationFrame(step);
+    };
+    arAnim = requestAnimationFrame(step);
+  });
+  $('v-components').addEventListener('input', e => {
+    if (!arAnim || !e.isTrusted) return;
+    cancelAnimationFrame(arAnim); arAnim = null; $('arFlags').style.opacity = ''; $('a_play').textContent = 'Play steering sweep';
+  }, true);
+  // the sticky header's height, so each input rail can fill the rest of the screen and scroll on its own
+  const setHdr = () => { const h = document.querySelector('header.top'); if (h) document.documentElement.style.setProperty('--hdr', `${h.offsetHeight}px`); };
+  setHdr(); window.addEventListener('resize', setHdr);
+  if (window.ResizeObserver && document.querySelector('header.top')) new ResizeObserver(setHdr).observe(document.querySelector('header.top'));
+  function keepScroll(fn) { const y = window.scrollY; fn(); if (window.scrollY !== y) window.scrollTo(0, y); }
   function drawArSweep(r) {
     const key = $('arDof').value || 'distMM', sw = r.sweeps[key], isLen = /MM$/.test(key);
     const cols = ['--s1', '--s3', '--ink', '--s4', '--s2'];
@@ -1192,7 +1247,7 @@
     if (!irAnim) return;
     cancelAnimationFrame(irAnim); irAnim = null;
     $('i_play').textContent = 'Play steering sweep';
-    renderView('components');
+    keepScroll(() => renderView('components'));
   }
   $('i_play').addEventListener('click', () => {
     if (irAnim) return stopIrAnim();
