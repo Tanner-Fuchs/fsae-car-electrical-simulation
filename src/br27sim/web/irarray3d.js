@@ -1,5 +1,5 @@
 // IR array sensor around the tire in 3D: the tire (tread colored by its true temperature),
-// the sensor at its pose with roll / pitch / yaw arrows, and one ray per pixel colored by
+// the sensor at its mount position with its X / Y / Z arrows, and one ray per pixel colored by
 // what that pixel reads. window.BRIrArray3D.mount(stage, labels) returns { update(r, o), pause, resume, view(k) }.
 (function () {
   'use strict';
@@ -42,7 +42,7 @@
     const sensorGroup = new THREE.Group(); scene.add(sensorGroup);
     const rayGroup = new THREE.Group(); scene.add(rayGroup);
     const ground = new THREE.GridHelper(1.2, 24, 0x9aa4ad, 0xc4ccd3); scene.add(ground);
-    const lSensor = label('Sensor', 'node'), lRoll = label('roll', 'term'), lPitch = label('pitch', 'term'), lYaw = label('yaw', 'term');
+    const lSensor = label('Sensor', 'node');
 
     let tex = null, tireKey = '';
     function buildTire(r, o) {
@@ -74,19 +74,6 @@
       ground.position.y = -r.tireR;
     }
 
-    function arc(axis, center, radius, col, angle) {
-      // a 270 degree arrowed ring around an axis, showing which way + turns
-      const g = new THREE.TorusGeometry(radius, 0.003, 6, 40, Math.PI * 1.5);
-      const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: col }));
-      m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), axis.clone().normalize());
-      m.position.copy(center);
-      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.02, 10), new THREE.MeshBasicMaterial({ color: col }));
-      const end = new THREE.Vector3(0, radius, 0).applyAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI * 1.5 - Math.PI / 2);
-      tip.position.copy(end); tip.rotation.z = Math.PI;
-      m.add(tip);
-      return m;
-    }
-
     function update(r, o) {
       buildTire(r, o);
       tireGroup.rotation.y = (r.o.steerDeg * Math.PI) / 180;   // front of the tire swings outward for + steer
@@ -97,13 +84,7 @@
       box.quaternion.setFromRotationMatrix(basis); box.position.copy(S); sensorGroup.add(box);
       const ax = (v, col, len) => sensorGroup.add(new THREE.ArrowHelper(v.clone().normalize(), S, len, col, 0.015, 0.01));
       ax(look, 0xd03b3b, 0.07); ax(across, 0x1baf7a, 0.06); ax(up, 0x2a78d6, 0.06);
-      sensorGroup.add(arc(look, S.clone().addScaledVector(look, 0.075), 0.022, 0xd03b3b));
-      sensorGroup.add(arc(across, S.clone().addScaledVector(across, 0.065), 0.018, 0x1baf7a));
-      sensorGroup.add(arc(up, S.clone().addScaledVector(up, 0.065), 0.018, 0x2a78d6));
       lSensor.pos.copy(S).add(new THREE.Vector3(0, 0.05, 0));
-      lRoll.pos.copy(S).addScaledVector(look, 0.11); lRoll.d.textContent = `roll ${o.rollDeg}°`;
-      lPitch.pos.copy(S).addScaledVector(across, 0.1); lPitch.d.textContent = `pitch ${o.pitchDeg}°`;
-      lYaw.pos.copy(S).addScaledVector(up, 0.1); lYaw.d.textContent = `yaw ${o.yawDeg}°`;
       const lo = Math.min(o.bgC, ...r.truth.map(p => p.T)), hi = Math.max(...r.truth.map(p => p.T));
       r.pixels.forEach(p => {
         const end = M(p.end), col = heat(p.meas, lo, hi);
