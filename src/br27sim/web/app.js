@@ -986,6 +986,8 @@
     drawArLook(r, o);
     drawArTop(r, o);
     drawArRow(r, o);
+    $('arZoneCard').hidden = single;
+    if (!single) { drawArZones(r); drawArZoneChart(r); }
     const lo = Math.min(o.bgC, ...r.truth.map(p => p.T)), hi = Math.max(...r.truth.map(p => p.T));
     $('arStrip').innerHTML = r.pixels.map(p => `<i style="background:${heatCss(p.meas, lo, hi)}" title="pixel ${p.i + 1}: ${tp(p.meas, 1)}"></i>`).join('');
     $('arStripScale').textContent = `blue ${tp(lo)} · red ${tp(hi)}`;
@@ -1018,6 +1020,59 @@
     flags('arFlags', f);
     drawArSweep(r);
   }
+  // inner / centre / outer zone averages: the fixed pixel map against the one looked up from the steering angle
+  const ZCOL = ['--s1', '--s3', '--s2'], ZNAME = ['INNER', 'CENTRE', 'OUTER'];
+  function drawArZones(r) {
+    const o = r.o, mode = $('arZoneMode').value, z = r.zones, tru = r.zoneTrue;
+    const rows = mode === 'both' ? [['fixed', 'Fixed map'], ['steer', 'Steering corrected']] : mode === 'fixed' ? [['fixed', 'Fixed map']] : [['steer', 'Steering corrected']];
+    const lo = Math.min(o.bgC, ...r.truth.map(p => p.T)), hi = Math.max(...r.truth.map(p => p.T));
+    const x0 = 150, W = 730, n = o.pixels, pw = W / n;
+    const H = 34 + rows.length * 24 + rows.length * 86;
+    let g = '';
+    rows.forEach(([m, lab], k) => {
+      const y = 22 + k * 24, map = m === 'fixed' ? z.fixedMap : z.steerMap;
+      g += `<text x="10" y="${y + 13}" font-size="12" fill="var(--ink-2)">${lab}: pixels</text>`;
+      map.forEach((q, i) => { g += `<rect x="${(x0 + i * pw + 1).toFixed(1)}" y="${y}" width="${Math.max(1, pw - 2).toFixed(1)}" height="16" rx="2" fill="${q == null ? 'var(--rule)' : `var(${ZCOL[q]})`}"/>`; });
+    });
+    rows.forEach(([m, lab], k) => {
+      const y = 34 + rows.length * 24 + k * 86, vals = z[m], cnt = z[m + 'N'];
+      g += `<text x="10" y="${y + 32}" font-size="13" font-weight="600" fill="var(--ink)">${lab}</text>`;
+      g += `<text x="10" y="${y + 50}" font-size="11" fill="var(--ink-3)">${m === 'fixed' ? 'set with wheels straight' : `map for ${Math.round(o.steerDeg)}° steer`}</text>`;
+      for (let q = 0; q < 3; q++) {
+        const bx = x0 + q * (W / 3), v = vals[q], err = v == null ? null : v - tru[q];
+        const bad = err == null || Math.abs(err) > 5, meh = !bad && Math.abs(err) > 2;
+        g += `<rect x="${bx + 3}" y="${y}" width="${W / 3 - 6}" height="76" rx="6" fill="${v == null ? 'var(--bg)' : heatCss(v, lo, hi)}" fill-opacity="0.85" stroke="${bad ? 'var(--crit)' : `var(${ZCOL[q]})`}" stroke-width="${bad ? 3 : 2}"/>`;
+        g += `<text x="${bx + 14}" y="${y + 18}" font-size="11.5" font-weight="700" fill="#111" letter-spacing="1">${ZNAME[q]} · ${cnt[q]} px</text>`;
+        g += `<text x="${bx + W / 6}" y="${y + 47}" font-size="24" font-weight="700" text-anchor="middle" fill="#111" font-family="var(--f-mono)">${v == null ? 'no data' : tp(v, 1)}</text>`;
+        g += `<text x="${bx + W / 6}" y="${y + 67}" font-size="11.5" text-anchor="middle" fill="#111" font-family="var(--f-mono)">true ${tp(tru[q], 1)}${err == null ? '' : ` · ${err >= 0 ? '+' : '−'}${tdp(Math.abs(err), 1)}`}</text>`;
+      }
+    });
+    g = `<text x="${x0}" y="12" font-size="11" fill="var(--ink-3)">inner edge</text><text x="${x0 + W}" y="12" font-size="11" text-anchor="end" fill="var(--ink-3)">outer edge · steer ${o.steerDeg >= 0 ? '+' : ''}${Math.round(o.steerDeg)}°</text>` + g;
+    const svg = $('arZoneSvg');
+    if (svg.getAttribute('viewBox') !== `0 0 900 ${H}`) svg.setAttribute('viewBox', `0 0 900 ${H}`);
+    svg.innerHTML = g;
+  }
+  function drawArZoneChart(r) {
+    const mode = $('arZoneMode').value, sw = r.zoneSweep, tru = r.zoneTrue;
+    const ms = mode === 'both' ? ['steer', 'fixed'] : [mode];
+    const ds = [], leg = [];
+    for (let q = 0; q < 3; q++) {
+      ms.forEach(m => ds.push({ label: `${ZNAME[q].toLowerCase()} ${m === 'fixed' ? 'fixed' : 'corrected'}`, data: sw.map(p => ({ x: p.deg, y: p[m][q] == null ? null : tv(p[m][q]) })), color: ZCOL[q], width: m === 'steer' ? 2.5 : 1.5, dash: m === 'fixed' && mode === 'both' ? [6, 3] : undefined }));
+      ds.push({ label: `${ZNAME[q].toLowerCase()} true`, data: [{ x: -25, y: tv(tru[q]) }, { x: 25, y: tv(tru[q]) }], color: ZCOL[q], width: 1, dash: [2, 3] });
+      leg.push([ZNAME[q].toLowerCase(), ZCOL[q]]);
+    }
+    if (mode === 'both') leg.push(['corrected (solid)', '--ink'], ['fixed map', '--ink', true]);
+    leg.push(['true (dotted)', '--ink-3', true]);
+    C.legend('arZoneLegend', leg);
+    C.draw('c_arZone', ds, { xTitle: 'Front wheel steer (°)', yTitle: TU(), xMin: -25, xMax: 25, vrefs: [{ x: r.o.steerDeg, label: 'now' }] });
+    const worst = m => { let e = 0, at = 0; sw.forEach(p => p[m].forEach((v, q) => { if (v != null && Math.abs(v - tru[q]) > e) { e = Math.abs(v - tru[q]); at = p.deg; } })); return [e, at]; };
+    const lost = sw.filter(p => p.steer.some(v => v == null)).map(p => Math.abs(p.deg));
+    const [ef, af] = worst('fixed'), [es] = worst('steer');
+    $('arZoneFoot').textContent = r.o.mount === 'upright'
+      ? `On the upright the sensor turns with the tire, so both maps are the same and steering changes nothing (worst zone error ${tdp(ef, 1)}).`
+      : `On the chassis, the fixed map is off by up to ${tdp(ef, 1)} (at ${af > 0 ? '+' : ''}${af}°) because the tire turns under the row. Using the steering angle keeps every zone within ${tdp(es, 1)}${lost.length ? `, until a zone has no pixels left on the tread past ±${Math.min(...lost)}°` : ' across ±25°'}.`;
+  }
+  $('arZoneMode').addEventListener('input', () => { if (arLast) { drawArZones(arAnim && arFrames ? arFrame(AR.steerDeg) : arLast); drawArZoneChart(arLast); } });
   function fillArKv(r, o, single) {
     if (single) {
       const p0 = r.pixels[0], err = p0.meas - r.trueAvg;
@@ -1048,6 +1103,7 @@
   function drawArFrame(r) {
     const o = r.o, single = o.kind === 'single';
     drawArLook(r, o); drawArTop(r, o);
+    if (!single) drawArZones(r);
     const lo = Math.min(o.bgC, ...r.truth.map(p => p.T)), hi = Math.max(...r.truth.map(p => p.T));
     $('arStrip').innerHTML = r.pixels.map(p => `<i style="background:${heatCss(p.meas, lo, hi)}" title="pixel ${p.i + 1}: ${tp(p.meas, 1)}"></i>`).join('');
     fillArKv(r, o, single);
@@ -1078,7 +1134,7 @@
     arAnim = requestAnimationFrame(step);
   });
   $('v-components').addEventListener('input', e => {
-    if (!arAnim || !e.isTrusted) return;
+    if (!arAnim || !e.isTrusted || e.target.id === 'arZoneMode' || e.target.id === 'arDof') return;
     cancelAnimationFrame(arAnim); arAnim = null; $('arFlags').style.opacity = ''; $('a_play').textContent = 'Play steering sweep';
   }, true);
   // the sticky header's height, so each input rail can fill the rest of the screen and scroll on its own

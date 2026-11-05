@@ -774,6 +774,19 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
         <div class="kv" id="arKv"></div>
         <ul class="flags" id="arFlags"></ul>
       </div>
+      <div class="card" id="arZoneCard">
+        <div class="card-head"><h3>Inner / centre / outer averages</h3>
+          <div class="field" style="margin:0"><select id="arZoneMode" aria-label="How pixels are put in zones">
+            <option value="steer">Corrected with the steering angle</option>
+            <option value="fixed">Fixed pixel map (ignores steering)</option>
+            <option value="both">Compare both</option>
+          </select></div></div>
+        <div class="scroll"><svg id="arZoneSvg" viewBox="0 0 900 170" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="Pixels grouped into inner, centre and outer tread zones with their averages"></svg></div>
+        <p class="foot">The tread is split into three equal thirds. Each zone shows the average of the pixels in it, colored by temperature, and its error against the true tread average for that third. The squares on top show which pixels feed each zone (grey: dropped, not on the tread). <b>Fixed map</b>: the logger picks each zone's pixels once with the wheels straight and keeps them, so with the sensor on the chassis the tire turns under the row and the zones read the wrong part of the tread, or the track. <b>Corrected with the steering angle</b>: the logger reads the steering sensor and uses a table of which pixels land in each zone at each angle (made from this geometry or from a calibration sweep), and drops pixels that have left the tread.</p>
+        <div class="card-head" style="margin-top:10px"><h3 style="font-size:15px">Zone averages as the front wheel steers (<span class="tu">°F</span>)</h3><div class="legend" id="arZoneLegend"></div></div>
+        <div class="plot"><canvas id="c_arZone"></canvas></div>
+        <p class="foot" id="arZoneFoot"></p>
+      </div>
       <div class="grid2">
         <div class="card"><div class="card-head"><h3 id="arReadTitle">Reading across the tread (<span class="tu">°F</span>)</h3><div class="legend" id="arLegend"></div></div><div class="plot"><canvas id="c_arRead"></canvas></div><p class="foot">Each pixel's reading against the true tread temperature where it lands. Pixels at the ends that see the track or air read low.</p></div>
         <div class="card"><div class="card-head"><h3>Row width vs distance (<span class="lu">in</span>)</h3><div class="legend" id="arRowLegend"></div></div><div class="plot"><canvas id="c_arRow"></canvas></div><p class="foot">Width the pixel row covers, looking straight on, for each array's field of view, against the tread width it has to span.</p></div>
@@ -783,7 +796,7 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
         <div class="irtop"><svg id="arTopV" viewBox="0 0 560 470" role="img" aria-label="Top view of the front tire and where the pixel row lands"></svg>
           <div class="irtop-side">
             <div class="kv" id="arTopKv"></div>
-            <p class="foot">Play steering sweep (top of this tab) turns the wheel ±25° and moves this view, the footprints and the pixel strip together.</p>
+            <p class="foot">Play steering sweep (top of this tab) turns the wheel ±25° and moves this view, the footprints, the pixel strip and the inner / centre / outer averages together.</p>
             <p class="foot">Looking down on the front-left tire, front of the car up, car centreline to the left. The orange band is the tread (hotter inner edge darker). The dots are where each pixel lands, colored by what it reads; on the chassis the sensor stays put while the tire turns under it, on the upright it turns with the tire.</p>
           </div>
         </div>

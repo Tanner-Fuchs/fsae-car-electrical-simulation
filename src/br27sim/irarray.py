@@ -274,7 +274,15 @@ def simulate_ir_array(o=None):
             line.append({"v": v, "coverPct": rr["coverPct"], "onTread": rr["onTread"], "ioErr": err,
                          "onTreadPct": rr["pixels"][0]["treadFrac"] * 100 if o["pixels"] == 1 else None})
         sweeps[key] = {"label": label, "unit": unit, "now": o[key], "profiles": prof, "line": line}
+    ref = _read(dict(o, steerDeg=0))
+    zones = zone_averages(o, r, ref)
+    zsweep = []
+    for deg in range(-25, 26, 2):
+        rr = _read(dict(o, steerDeg=deg), sub=3)
+        z = zone_averages(o, rr, ref)
+        zsweep.append({"deg": deg, "fixed": z["fixed"], "steer": z["steer"]})
     return {"o": o, "preset": IR_ARRAY_PRESETS.get(o["preset"], IR_ARRAY_PRESETS["custom"]),
+            "zones": zones, "zoneTrue": zone_truth(o), "zoneSweep": zsweep,
             "tireR": R, "rimR": RIM_R, "halfW": w, "truth": truth, "needXMM": need, "spotMM": spot,
             "trueAvg": sum(p["T"] for p in truth) / len(truth), **r, "sweeps": sweeps}
 
@@ -283,9 +291,57 @@ def ir_array_frames(o=None):
     """The pixel row at each whole steer angle from -30 to +30 deg, for the steering sweep animation."""
     o = _opts(o)
     out = []
+    ref = _read(dict(o, steerDeg=0))
     for deg in range(-30, 31):
         q = dict(o); q["steerDeg"] = deg
         r = _read(q, rays=True)
         r["deg"] = deg
+        r["zones"] = zone_averages(o, r, ref)
         out.append(r)
     return out
+
+
+ZONES = ("inner", "centre", "outer")
+
+
+def _zone(y, w):
+    """Which third of the tread y (metres, + outward) is in: 0 inner, 1 centre, 2 outer."""
+    return 0 if y < -w / 3 else (1 if y <= w / 3 else 2)
+
+
+def zone_truth(o):
+    """True average tread temperature over each third of the tread."""
+    w = o["widthMM"] / 2000
+    out = []
+    for z in range(3):
+        ys = [-w + 2 * w * (z + (k + 0.5) / 20) / 3 for k in range(20)]
+        out.append(sum(tread_temp(o, y) for y in ys) / len(ys))
+    return out
+
+
+def _avg(r, zmap):
+    tot, n = [0.0, 0.0, 0.0], [0, 0, 0]
+    for p, z in zip(r["pixels"], zmap):
+        if z is not None:
+            tot[z] += p["meas"]; n[z] += 1
+    return [tot[k] / n[k] if n[k] else None for k in range(3)], n
+
+
+def zone_map(r, w):
+    """Pixel -> zone, from where each clean pixel lands on the tread (None = not on the tread)."""
+    return [_zone(p["yMM"] / 1000, w) if p["treadFrac"] >= 0.9 and p["yMM"] is not None else None for p in r["pixels"]]
+
+
+def zone_averages(o, r, ref):
+    """Inner / centre / outer averages two ways.
+
+    fixed: the pixel-to-zone map is set once with the wheel straight (ref) and used at every steer
+    angle, which is what a logger does if it ignores steering.
+    steer: the map is looked up for the current steering angle (from the steering sensor), so each
+    pixel is binned by where it lands on the tread now; pixels that left the tread are dropped.
+    """
+    w = o["widthMM"] / 2000
+    fmap, smap = zone_map(ref, w), zone_map(r, w)
+    fixed, fn = _avg(r, fmap)
+    steer, sn = _avg(r, smap)
+    return {"fixed": fixed, "fixedN": fn, "steer": steer, "steerN": sn, "fixedMap": fmap, "steerMap": smap}

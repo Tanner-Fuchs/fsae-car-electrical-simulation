@@ -227,13 +227,21 @@
       });
       return g + faultBar() + footer(s);
     }
+    // driver's autocross sketch: speed + gear in one centre panel, four panels around it, faults top right
     function modeAutocross(s) {
+      const box = (x, y, w, h) => `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h - 6}" rx="6" fill="#0f0f0f" stroke="#2a2a2a"/>`;
+      const pair = (x, y, label, rows) => box(x, y, 230, 205) + T(x + 14, y + 26, label, 14, 'fill="#9aa4b1" letter-spacing="1"') +
+        rows.map(([k, v, c], n) => T(x + 16, y + 92 + n * 72, k, 15, 'fill="#9aa4b1"') + T(x + 214, y + 92 + n * 72, v, 36, `text-anchor="end" fill="${c}" ${MONO} font-weight="700"`)).join('');
       return shiftLights(s.rpm) +
-        cell(0, 46, 400, 205, `SPEED (${su()})`, fmt(spd(s.v), 0), '#fff', 110) +
-        `<rect x="403" y="49" width="394" height="199" rx="6" fill="#0f0f0f" stroke="#2a2a2a"/>` + T(417, 73, 'TEMPS', 14, 'fill="#9aa4b1" letter-spacing="1"') +
-        T(430, 140, `W ${U.tp(s.waterC)}`, 40, `fill="${colTemp(s.waterC, 100, 110)}" ${MONO} font-weight="700"`) + T(430, 210, `O ${U.tp(s.oilC)}`, 40, `fill="${colTemp(s.oilC, 120, 130)}" ${MONO} font-weight="700"`) +
-        cell(0, 251, 400, 205, 'GEAR', s.gear || 'N', '#fff', 150) +
-        cell(400, 251, 400, 205, 'OIL P', pr(s.oilP), s.oilP < 1.0 ? RED : '#fff', 60) + faultBar() + footer(s);
+        pair(0, 46, 'TEMPS', [['WATER', U.tp(s.waterC), colTemp(s.waterC, 100, 110)], ['OIL', U.tp(s.oilC), colTemp(s.oilC, 120, 130)]]) +
+        cell(0, 251, 230, 205, 'OIL P', pr(s.oilP), s.oilP < 1.0 ? RED : s.oilP < 1.5 ? AMB : '#fff', 54) +
+        box(230, 46, 340, 410) + T(244, 72, `SPEED (${su()})`, 14, 'fill="#9aa4b1" letter-spacing="1"') +
+        T(400, 190, fmt(spd(s.v), 0), 120, `text-anchor="middle" fill="#fff" ${MONO} font-weight="700"`) +
+        `<line x1="250" y1="236" x2="550" y2="236" stroke="#2a2a2a" stroke-width="2"/>` + T(244, 262, 'GEAR', 14, 'fill="#9aa4b1" letter-spacing="1"') +
+        T(400, 420, s.gear || 'N', 170, `text-anchor="middle" fill="#fff" ${MONO} font-weight="700"`) +
+        faultBox(570, 46, 230, 205) +
+        pair(570, 251, 'POWER / FUEL', [['VOLTS', `${fmt(s.volts, 1)} V`, s.volts < 12.8 || s.volts > 15 ? AMB : '#fff'], ['FUEL P', pr(s.fuelP), s.fuelP < 2.8 ? AMB : '#fff']]) +
+        footer(s);
     }
     function fullWarning(code, s) {
       const f = FAULTS[code], crit = f.sev === 'critical', flash = crit && Math.floor(t * 3) % 2;
