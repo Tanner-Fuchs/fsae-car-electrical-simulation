@@ -136,7 +136,7 @@
         const st = fs[code] || (fs[code] = { active: false, lastTrue: -99, acked: false, ackT: 0 });
         if (f.test(s)) {
           st.lastTrue = t;
-          if (!st.active) { st.active = true; st.acked = false; st.since = t; history.push({ t, code, on: true }); }
+          if (!st.active) { st.active = true; st.acked = false; st.showT = null; st.since = t; history.push({ t, code, on: true }); }
         } else if (st.active && t - st.lastTrue > 3) {           // clears after 3 s without the condition
           st.active = false; st.acked = false; history.push({ t, code, on: false });
         }
@@ -144,10 +144,20 @@
       if (history.length > 60) history.splice(0, history.length - 60);
     }
     const activeFaults = () => Object.keys(fs).filter(c => fs[c].active).sort((a, b) => RANK[FAULTS[a].sev] - RANK[FAULTS[b].sev] || fs[b].since - fs[a].since);
+    const POP_S = { warning: 1.5, critical: 8 };   // longest a fault fills the screen [Tanner 2026-11-05: yellow < 2 s, red < 10 s]
     function popup() {
       // highest priority fault that should fill the screen: not cleared yet, or a critical fault
       // that was cleared more than 15 s ago and is still there
-      return activeFaults().find(c => FAULTS[c].sev !== 'info' && (!fs[c].acked || (FAULTS[c].sev === 'critical' && t - fs[c].ackT > 15)));
+      // it fills the screen for at most POP_S (yellow 1.5 s, red 8 s), then moves to the warning box by itself
+      for (let n = 0; n < 8; n++) {
+        const c = activeFaults().find(k => FAULTS[k].sev !== 'info' && (!fs[k].acked || (FAULTS[k].sev === 'critical' && t - fs[k].ackT > 15)));
+        if (!c) return undefined;
+        const st = fs[c];
+        if (st.showT == null || st.showT > t) st.showT = t;
+        if (t - st.showT < POP_S[FAULTS[c].sev]) return c;
+        st.acked = true; st.ackT = t; st.showT = null;
+      }
+      return undefined;
     }
 
     // ---------------------------------------------------------------- drawing helpers
@@ -270,7 +280,7 @@
         T(400, 306, `${code}${n > 1 ? `   ·   ${n - 1} more active` : ''}`, 20, `text-anchor="middle" fill="#000" ${MONO}`) +
         `<rect x="0" y="372" width="800" height="108" fill="#000" opacity="0.85"/>` +
         T(200, 450, s.gear || 'N', 72, `text-anchor="middle" fill="#fff" ${MONO} font-weight="700"`) + T(560, 432, `${fmt(spd(s.v), 0)} ${su()}`, 48, `text-anchor="middle" fill="#fff" ${MONO}`) +
-        T(400, 350, crit ? 'CLEAR to acknowledge · comes back in 15 s while active' : 'press CLEAR to dismiss', 17, `text-anchor="middle" fill="#000" font-weight="600"`);
+        T(400, 350, `CLEAR, or it moves to the warning box in ${fmt(Math.max(0, POP_S[f.sev] - (t - (fs[code].showT ?? t))), 1)} s${crit ? ' · back every 15 s while active' : ''}`, 17, `text-anchor="middle" fill="#000" font-weight="600"`);
     }
 
     // ---------------------------------------------------------------- menu and pages
@@ -473,7 +483,7 @@
       press(btn) {
         if (!PI || phase === 'boot') return;
         const pop = popup();
-        if (pop) { if (btn === 'clear') { fs[pop].acked = true; fs[pop].ackT = t; } draw(); return; }   // only CLEAR works while a fault fills the screen
+        if (pop) { if (btn === 'clear') { fs[pop].acked = true; fs[pop].ackT = t; fs[pop].showT = null; } draw(); return; }   // only CLEAR works while a fault fills the screen
         if (phase === 'dash') { if (btn === 'mode') mode = (mode + 1) % MODES.length; else if (btn === 'menu') { phase = 'menu'; menuIdx = 0; } }
         else if (phase === 'menu') {
           if (btn === 'mode') menuIdx = (menuIdx + 1) % MENU.length;
