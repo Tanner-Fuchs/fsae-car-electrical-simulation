@@ -172,7 +172,7 @@
   }
 
   // ------------------------------------------------------------ routing
-  const VIEWS = ['car', 'engine', 'power', 'shutdown', 'can', 'faults', 'wiring', 'harness', 'components', 'inputs'];
+  const VIEWS = ['car', 'engine', 'power', 'shutdown', 'can', 'faults', 'wiring', 'harness', 'components', 'dash', 'inputs'];
   let currentView = 'car';
   function route() {
     const h = location.hash.replace('#', '');
@@ -183,6 +183,7 @@
     if (car) { if (currentView === 'car') car.resume(); else car.pause(); }
     if (harness3d) { if (currentView === 'harness') harness3d.resume(); else harness3d.pause(); }
     if (ring && currentView !== 'components') ring.stop();
+    if (dashOS && currentView !== 'dash') dashOS.stop();
     renderView(currentView);
   }
   function renderView(v) {
@@ -190,7 +191,7 @@
     try { renderViewInner(v); } catch (e) { console.error(e); window.BRShowError && window.BRShowError('the ' + v + ' tab', e); }
   }
   function renderViewInner(v) {
-    ({ car: renderCar, engine: renderEngine, power: renderPower, shutdown: renderShutdown, can: renderCan, faults: renderFaults, wiring: renderWiring, harness: renderHarness, components: renderComponents, inputs: renderInputs })[v]();
+    ({ car: renderCar, engine: renderEngine, power: renderPower, shutdown: renderShutdown, can: renderCan, faults: renderFaults, wiring: renderWiring, harness: renderHarness, components: renderComponents, dash: renderDash, inputs: renderInputs })[v]();
   }
 
   const kv = (id, items) => { $(id).innerHTML = items.map(([k, v, cls]) => `<div><span>${k}</span><b class="${cls || ''}">${v}</b></div>`).join(''); };
@@ -736,7 +737,8 @@
   setTarget(IR.target);
   let wTimer = null;
   const syncers = [];
-  function bindGroup(prefix, obj, units, reset) {
+  function bindGroup(prefix, obj, units, reset, view) {
+    view = view || 'components';
     const els = [...document.querySelectorAll(`[id^="${prefix}_"]`)].filter(el => el.id.slice(2) in obj);
     els.forEach(el => { if (units[el.id.slice(2)]) FMT[el.id] = units[el.id.slice(2)]; });
     const sync = () => els.forEach(el => {
@@ -750,10 +752,10 @@
         obj[key] = el.type === 'checkbox' ? el.checked : el.type === 'range' || typeof obj[key] === 'number' ? +el.value : el.value;
         if (prefix === 'i' && key === 'target') sync();
         const out = $('o_' + el.id); if (out) out.textContent = units[key] ? units[key](el.value) : '';
-        clearTimeout(wTimer); wTimer = setTimeout(() => renderView('components'), 120);
+        clearTimeout(wTimer); wTimer = setTimeout(() => renderView(view), 120);
       });
     });
-    $(prefix + '_reset').addEventListener('click', () => { reset(); sync(); renderView('components'); });
+    $(prefix + '_reset').addEventListener('click', () => { reset(); sync(); renderView(view); });
     sync();
     syncers.push(sync);
     return sync;
@@ -1314,6 +1316,91 @@
     $('bSensFoot').textContent = `0 to ${pr(b.sensorMaxPsi)} sensors, 0.5 to 4.5 V (brake pressure sensors form), read by a ${b.adcBits}-bit ADC on a 5 V reference: one count is ${pr(r.psiPerCount, 2)}. Below 0.5 V or above 4.5 V means a broken wire or a short, which the node can flag.`;
   }
 
+  // ------------------------------------------------------------ dash computer (Raspberry Pi) view
+  const DP = Object.assign({}, S.PI_DEFAULTS);
+  const D_UNITS = {
+    fps: v => `${v} fps`, bufS: v => `${v} s`, viewerHistS: v => `${v} s`, imuHz: v => `${v} Hz`, gpsHz: v => `${v} Hz`,
+    loraHz: v => `${v} /s`, loraBytes: v => `${v} B`, specRamPct: v => `${v} %`, specCorePct: v => `${v} %`
+  };
+  const ramTxt = g => (g >= 1 ? `${g} GB` : `${Math.round(g * 1024)} MB`);
+  function piRamOpts() {
+    const b = S.PI_BOARDS[DP.board], el = $('d_ramGB');
+    if (b.linux) {
+      if (!b.ramGB.includes(DP.ramGB)) DP.ramGB = b.ramGB.includes(2) ? 2 : b.ramGB[0];
+      el.innerHTML = b.ramGB.map(g => `<option value="${g}">${ramTxt(g)} · $${b.price[g]}</option>`).join('');
+      el.disabled = false; el.value = DP.ramGB;
+    } else { el.innerHTML = `<option value="${DP.ramGB}">${b.ramKB} KB on the chip · $${b.price}</option>`; el.disabled = true; el.value = DP.ramGB; }
+    $('d_boardNote').textContent = `${b.cpu}. ${b.note}.`;
+  }
+  function bindDash() {
+    const opts = (id, obj) => { $(id).innerHTML = Object.entries(obj).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join(''); };
+    opts('d_board', S.PI_BOARDS); opts('d_os', S.PI_OS); opts('d_lang', S.PI_LANGS); opts('d_renderer', S.PI_RENDERERS); opts('d_display', S.PI_DISPLAYS); opts('d_canIface', S.PI_CAN);
+    piRamOpts();
+    const syncD = bindGroup('d', DP, D_UNITS, () => { Object.assign(DP, S.PI_DEFAULTS); piRamOpts(); }, 'dash');
+    $('d_board').addEventListener('input', () => { piRamOpts(); syncD(); });
+    $('piPlay').addEventListener('click', () => { piPlay = !piPlay; $('piPlay').textContent = piPlay ? 'Pause' : 'Play'; piGo(); });
+    $('piRestart').addEventListener('click', () => dashOS && dashOS.restart());
+    $('piTable').addEventListener('click', e => {
+      const tr = e.target.closest('tr[data-k]'); if (!tr) return;
+      const [k, g] = tr.dataset.k.split('|'); DP.board = k; if (g) DP.ramGB = +g;
+      piRamOpts(); syncD(); renderView('dash');
+    });
+    return syncD;
+  }
+  let dashOS = null, piPlay = true, piScrolling = false, piScrollT = null, piVisible = true;
+  function piGo() { if (!dashOS) return; if (piPlay && !piScrolling && piVisible && currentView === 'dash') dashOS.start(); else dashOS.stop(); }
+  window.addEventListener('scroll', () => {
+    if (!piScrolling) { piScrolling = true; piGo(); }
+    clearTimeout(piScrollT); piScrollT = setTimeout(() => { piScrolling = false; piGo(); }, 250);
+  }, { passive: true });
+  if (window.IntersectionObserver) new IntersectionObserver(es => { piVisible = es[0].isIntersecting; piGo(); }).observe($('osScreen'));
+  function renderDash() {
+    const r = S.simulatePi(params, DP), sel = r.sel, b = r.board, pico = !b.linux, o = r.o;
+    if (!dashOS && window.BRDashOS) dashOS = window.BRDashOS.mount($('osScreen'), { spv, SU, tp });
+    if (dashOS) dashOS.set(r, R.lap);
+    piGo();
+    const memTxt = x => (x.ramKB ? `${fmt(x.usedKB, 0)} of ${x.ramKB} KB` : `${fmt(x.usedMB, 0)} of ${fmt(x.ramMB, 0)} MB`);
+    $('piNote').textContent = `${b.label}${pico ? '' : ' ' + ramTxt(r.ramGB)} · ${r.fps} CAN frames/s · ${sel.ok ? 'inside spec' : 'outside spec'}`;
+    $('piSpecNote').textContent = `spec: memory ≤ ${o.specRamPct} %, busiest core ≤ ${o.specCorePct} %`;
+    $('piTable').innerHTML = '<thead><tr><th>Board</th><th>Memory</th><th class="num">Memory used</th><th class="num">Busiest core</th><th class="num">All cores</th><th class="num">5 V draw</th><th class="num">Price</th><th>Spec</th><th>Why</th></tr></thead><tbody>' +
+      r.rows.map(x => {
+        const bb = S.PI_BOARDS[x.key], isSel = x.key === r.boardKey && x.ramGB === r.ramGB;
+        const why = x.fails.concat(x.warns.filter(w => !/no operating system/.test(w))).join('; ') || 'fits with room to spare';
+        return `<tr data-k="${x.key}|${x.ramGB == null ? '' : x.ramGB}" aria-selected="${isSel}"><td>${bb.label}</td><td>${x.ramKB ? x.ramKB + ' KB' : ramTxt(x.ramGB)}</td><td class="num">${fmt(x.ramPct, 0)} %</td><td class="num">${fmt(x.busiest, 0)} %</td><td class="num">${fmt(x.totalCpu, 0)} %</td><td class="num">${fmt(x.amps, 1)} A</td><td class="num">$${x.price}</td><td class="${x.ok ? 'ok' : 'bad'}">${x.ok ? 'Yes' : 'No'}</td><td class="why">${why}</td></tr>`;
+      }).join('') + '</tbody>';
+    $('piSelTitle').textContent = `${b.label}${pico ? '' : ' ' + ramTxt(r.ramGB)}`;
+    kv('piKv', [
+      ['Memory used', memTxt(sel), sel.ramPct > o.specRamPct ? 'bad' : 'ok'],
+      ['Memory use', `${fmt(sel.ramPct, 0)} %`, sel.ramPct > o.specRamPct ? 'bad' : 'ok'],
+      ['Busiest core', `${fmt(sel.busiest, 0)} %`, sel.busiest > o.specCorePct ? 'bad' : 'ok'],
+      ['All cores', `${fmt(sel.totalCpu, 0)} %`],
+      ['CAN frames', `${r.fps} /s`],
+      ['Log rate', `${fmt(r.logKBs, 1)} KB/s`],
+      ['Log per endurance', `${fmt(r.logMBendur, 0)} MB`],
+      ['5 V draw with screen', `${fmt(sel.amps, 1)} A`, sel.amps > 4 ? 'meh' : ''],
+      ['LoRa air time', o.lora ? `${fmt(r.lora.airtimeMs, 1)} ms × ${o.loraHz}/s = ${fmt(r.lora.dutyPct, 0)} %` : 'off', o.lora && r.lora.dutyPct > 100 ? 'bad' : o.lora && r.lora.dutyPct > 50 ? 'meh' : '']
+    ]);
+    const f = [];
+    sel.fails.forEach(t => f.push(['crit', t[0].toUpperCase() + t.slice(1) + '.']));
+    sel.warns.forEach(t => f.push(['warn', t[0].toUpperCase() + t.slice(1) + '.']));
+    if (o.lora) {
+      if (r.lora.dutyPct > 100) f.push(['crit', `LoRa can't keep up: each ${o.loraBytes} B packet takes ${fmt(r.lora.airtimeMs, 0)} ms on air at SF${o.loraSF}, so at most ${fmt(r.lora.maxHz, 1)} packets a second. Send fewer bytes, less often, or use a lower SF or wider bandwidth (shorter range).`]);
+      else if (r.lora.dutyPct > 50) f.push(['warn', `LoRa is on air ${fmt(r.lora.dutyPct, 0)} % of the time; leave room for retries and the pit's replies.`]);
+      if (!r.lora.dwellOk) f.push(['warn', `Each packet is on air ${fmt(r.lora.airtimeMs, 0)} ms, over the 400 ms per channel that US 915 MHz hopping rules allow at 125 kHz. Use 500 kHz or a lower SF.`]);
+    }
+    if (sel.ok) f.unshift(['good', `${b.label}${pico ? '' : ' ' + ramTxt(r.ramGB)} runs all of it with ${fmt(100 - sel.ramPct, 0)} % of memory and ${fmt(100 - sel.busiest, 0)} % of its busiest core to spare.`]);
+    const smallest = r.rows.filter(x => x.ok && x.ramGB != null && x.key === r.boardKey).sort((a, c) => a.ramGB - c.ramGB)[0];
+    if (b.linux && smallest) f.push(['info', `Smallest ${b.label} that fits this setup: ${ramTxt(smallest.ramGB)} ($${smallest.price}).`]);
+    flags('piFlags', f);
+    const procs = sel.procs.slice().sort((a, c) => c.ram - a.ram), cols = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s7'];
+    $('piMemUnit').textContent = pico ? 'KB' : 'MB';
+    C.draw('c_piMem', [{ label: pico ? 'KB' : 'MB', data: procs.map(p => +p.ram.toFixed(pico ? 1 : 0)), colors: procs.map((p, i) => cols[i % cols.length]) }], { bar: true, labels: procs.map(p => p.name), ySugMin: 0 });
+    C.draw('c_piCpu', [{ label: '%', data: sel.cores.map(c => +c.toFixed(1)), colors: sel.cores.map(c => (c > o.specCorePct ? '--crit' : '--s1')) }], { bar: true, labels: sel.cores.map((c, i) => `core ${i}`), yMin: 0, ySugMax: 100, refs: [{ y: o.specCorePct, label: 'spec' }] });
+    $('piCpuFoot').textContent = pico
+      ? 'Firmware runs CAN, logging and the IMU on core 0 and the screen and LoRa on core 1.'
+      : `Each program is one thread (${o.renderer === 'chromium' ? 'Chromium uses two' : 'the dash too'}), so a Python program can only use one core; the busiest core is the limit, not the average.`;
+  }
+
   // ------------------------------------------------------------ inputs view
   const META = [
     ['Vehicle', 'massKg', 'Car + driver mass', 'kg', 'Master Timeline curb 216 kg + 160 lb driver [Tanner]'], ['Vehicle', 'tireD', 'Tire diameter (16x7.5-10)', 'm', 'VD Tire Model Data form'],
@@ -1473,6 +1560,7 @@
 
   bindInputs();
   bindComponents();
+  bindDash();
   FMT.rSpeed = v => `${v}`;
   makeEditable();
   function showUnits() {

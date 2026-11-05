@@ -11,6 +11,7 @@ component choices such as the wheel speed sensor.
 from .components import (IR_DEFAULTS, IR_TARGETS, STEER_DEFAULTS, WHEEL_DEFAULTS, simulate_ir, simulate_steering,
                          simulate_wheel_speed)
 from .brakes import BRAKE_DEFAULTS, simulate_brakes
+from .pi import PI_DEFAULTS, simulate_pi
 from .can import (BUS_INFO, CAN_LAYOUTS, arbitrate, can_messages, can_physical, frame_bits, frame_time,
                   simulate_can, simulate_can_all)
 from .daq import alias_demo
@@ -47,4 +48,5 @@ JS_API = {
     "simulateIrArray": simulate_ir_array,
     "simulateSteering": simulate_steering,
     "simulateBrakes": simulate_brakes,
+    "simulatePi": simulate_pi,
 }

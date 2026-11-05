@@ -132,6 +132,24 @@ td.wrap { white-space: normal; min-width: 220px; }
 #hscene canvas { display: block; }
 #hscene .hlabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 #hscene .hint { position: absolute; right: 10px; bottom: 8px; font-size: 11.5px; color: var(--ink-3); pointer-events: none; }
+.osscreen { background: #0d0f12; color: #d7dde5; border-radius: 10px; padding: 0 0 10px; border: 8px solid #1d2126; font-size: 12px; contain: layout paint; }
+.os-bar { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding: 6px 12px; background: #1a1e24; border-radius: 3px 3px 0 0; font-family: var(--f-mono); font-size: 11.5px; }
+.os-host { font-weight: 700; color: #fff; } .os-board { color: #9aa4b1; flex: 1; } .os-stat { color: #d7dde5; }
+.os-desk { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 10px; padding: 10px; }
+@media (max-width: 760px) { .os-desk { grid-template-columns: minmax(0, 1fr); } }
+.os-win { background: #14171c; border: 1px solid #2a2f37; border-radius: 6px; overflow: hidden; min-width: 0; }
+.os-title { display: flex; gap: 6px; align-items: center; padding: 4px 8px; background: #20252c; font-family: var(--f-mono); font-size: 11px; color: #9aa4b1; }
+.os-title i { width: 9px; height: 9px; border-radius: 50%; background: #3a4048; display: inline-block; } .os-title i:first-child { background: #ef4444; } .os-title i:nth-child(2) { background: #f59e0b; } .os-title i:nth-child(3) { background: #22c55e; margin-right: 6px; }
+.os-body { padding: 8px; font-family: var(--f-mono); font-size: 11px; display: grid; gap: 5px; max-height: 300px; overflow: auto; }
+.os-dash svg { display: block; width: 100%; height: auto; }
+.os-can { grid-column: 1 / -1; } .os-can .os-body { max-height: 260px; }
+.os-body table { font-size: 11px; } .os-body th, .os-body td { padding: 2px 6px; border-color: #2a2f37; color: #d7dde5; } .os-body th { color: #7d8794; }
+.os-cores, .os-mem { display: grid; gap: 3px; } .os-cores div, .os-mem { display: grid; grid-template-columns: 26px 1fr 92px; gap: 6px; align-items: center; }
+.os-cores b, .os-mem b { height: 9px; background: #262b33; border-radius: 2px; overflow: hidden; display: block; } .os-cores i, .os-mem i { display: block; height: 100%; }
+.os-cores em, .os-mem em { font-style: normal; text-align: right; color: #9aa4b1; } .os-cores span, .os-mem span { color: #38bdf8; }
+.os-kv { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 2px 10px; } .os-kv span { color: #7d8794; } .os-kv b { font-weight: 500; color: #fff; } .os-kv b.bad { color: #ef4444; }
+.os-line { color: #9aa4b1; } .os-line b { color: #fff; font-weight: 500; word-break: break-all; }
+#piTable tr[data-k] { cursor: pointer; } #piTable tr[aria-selected="true"] td { background: var(--bg); font-weight: 600; } #piTable td.ok { color: var(--good-ink); font-weight: 600; } #piTable td.bad { color: var(--crit-ink); font-weight: 600; } #piTable td.why { white-space: normal; min-width: 240px; color: var(--ink-2); font-size: 12px; }
 .hlb { position: absolute; left: 0; top: 0; font: 600 11px/1.2 var(--f-mono); padding: 2px 5px; border-radius: 3px; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); white-space: nowrap; opacity: .94; }
 .hlb.node { font-family: var(--f-display); font-size: 13px; border-color: var(--accent); }
 .hlb.term { color: var(--crit-ink); }
@@ -208,6 +226,7 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
       <a href="#wiring">Wiring</a>
       <a href="#harness">Harness 3D</a>
       <a href="#components">Components</a>
+      <a href="#dash">Dash computer</a>
       <a href="#inputs">Inputs</a>
     </nav>
   </div>
@@ -794,6 +813,67 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
         <div class="card"><h3>Bias knob: front share of the braking</h3><div class="plot"><canvas id="c_bBias"></canvas></div><p class="foot" id="bBiasFoot"></p></div>
         <div class="card"><h3>Sensor to CAN</h3><div class="scroll"><table id="bSens"></table></div><p class="foot" id="bSensFoot"></p></div>
       </div>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="view" id="v-dash" hidden>
+  <div class="view-head">
+    <h2>Dash computer</h2>
+    <p class="lede">How hard a Raspberry Pi works as the dash computer: logging every CAN frame, drawing the driver's display, a live CAN viewer and LoRa telemetry to the pits. The mock screen plays the simulated lap through the programs that would run on the board. Pick a board and the software on the left; the table says which boards stay inside the team's spec. Costs per task are estimates until the real software is measured on the bench.</p>
+  </div>
+  <div class="split">
+    <aside class="rail">
+      <h3>Board</h3>
+      <div class="field"><label for="d_board">Board</label><select id="d_board"></select><span class="src" id="d_boardNote"></span></div>
+      <div class="field"><label for="d_ramGB">Memory</label><select id="d_ramGB"></select><span class="src" id="d_ramGBNote"></span></div>
+      <h3>Software</h3>
+      <div class="field"><label for="d_os">Operating system</label><select id="d_os"></select><span class="src" id="d_osNote"></span></div>
+      <div class="field"><label for="d_lang">Apps written in</label><select id="d_lang"></select><span class="src" id="d_langNote"></span></div>
+      <div class="field"><label for="d_renderer">Dash drawn with</label><select id="d_renderer"></select><span class="src" id="d_rendererNote"></span></div>
+      <h3>Screen</h3>
+      <div class="field"><label for="d_display">Screen</label><select id="d_display"></select><span class="src" id="d_displayNote"></span></div>
+      <div class="field"><label for="d_fps">Dash refresh <output id="o_d_fps"></output></label><input type="range" id="d_fps" min="10" max="60" step="5"></div>
+      <h3>CAN and logging</h3>
+      <div class="field"><label for="d_canIface">CAN interface</label><select id="d_canIface"></select><span class="src" id="d_canIfaceNote"></span></div>
+      <div class="field"><label for="d_logFormat">Log format</label><select id="d_logFormat"><option value="binary">Binary (raw frames, decode later)</option><option value="csv">CSV text</option></select></div>
+      <div class="field"><label for="d_bufS">Write buffer <output id="o_d_bufS"></output></label><input type="range" id="d_bufS" min="1" max="30" step="1"><span class="src">Seconds of data held in memory between SD writes</span></div>
+      <label class="chk"><input type="checkbox" id="d_viewer"> Live CAN viewer</label>
+      <div class="field"><label for="d_viewerHistS">Viewer history <output id="o_d_viewerHistS"></output></label><input type="range" id="d_viewerHistS" min="10" max="300" step="10"></div>
+      <label class="chk"><input type="checkbox" id="d_imu"> IMU on the dash computer (I2C)</label>
+      <div class="field"><label for="d_imuHz">IMU rate <output id="o_d_imuHz"></output></label><input type="range" id="d_imuHz" min="50" max="1000" step="50"></div>
+      <label class="chk"><input type="checkbox" id="d_gps"> GPS on the dash computer (UART)</label>
+      <div class="field"><label for="d_gpsHz">GPS rate <output id="o_d_gpsHz"></output></label><input type="range" id="d_gpsHz" min="1" max="25" step="1"></div>
+      <h3>LoRa telemetry (optional)</h3>
+      <label class="chk"><input type="checkbox" id="d_lora"> Send live telemetry to the pits</label>
+      <div class="field"><label for="d_loraHz">Packets per second <output id="o_d_loraHz"></output></label><input type="range" id="d_loraHz" min="1" max="20" step="1"></div>
+      <div class="field"><label for="d_loraBytes">Bytes per packet <output id="o_d_loraBytes"></output></label><input type="range" id="d_loraBytes" min="8" max="200" step="4"></div>
+      <div class="field"><label for="d_loraSF">Spreading factor</label><select id="d_loraSF"><option value="7">SF7 (fastest, shortest range)</option><option value="8">SF8</option><option value="9">SF9</option><option value="10">SF10</option><option value="11">SF11</option><option value="12">SF12 (slowest, longest range)</option></select></div>
+      <div class="field"><label for="d_loraBW">Bandwidth</label><select id="d_loraBW"><option value="125">125 kHz</option><option value="250">250 kHz</option><option value="500">500 kHz</option></select></div>
+      <h3>Our spec</h3>
+      <div class="field"><label for="d_specRamPct">Most memory in use <output id="o_d_specRamPct"></output></label><input type="range" id="d_specRamPct" min="30" max="95" step="5"><span class="src">Headroom kept free for updates and bugs [assumption, set to suit]</span></div>
+      <div class="field"><label for="d_specCorePct">Busiest core at most <output id="o_d_specCorePct"></output></label><input type="range" id="d_specCorePct" min="30" max="95" step="5"></div>
+      <button class="btn ghost" id="d_reset" type="button">Reset to defaults</button>
+    </aside>
+    <div class="stack">
+      <div class="card">
+        <div class="card-head"><h3>Mock dash OS</h3><span class="note" id="piNote"></span></div>
+        <div class="hctrl"><button type="button" id="piPlay">Pause</button><button type="button" id="piRestart">Restart lap</button><span class="foot" style="margin:0">Plays the simulated lap through every program on the board, 10 updates a second.</span></div>
+        <div class="osscreen" id="osScreen"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Which boards fit the spec</h3><span class="note" id="piSpecNote"></span></div>
+        <div class="scroll"><table id="piTable"></table></div>
+        <p class="foot">Same software and settings on every board. Tap a row to load it on the mock screen. Prices are list prices in USD for the bare board.</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3 id="piSelTitle">This board</h3></div>
+        <div class="kv" id="piKv"></div>
+        <ul class="flags" id="piFlags"></ul>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Memory by program (<span id="piMemUnit">MB</span>)</h3><div class="plot"><canvas id="c_piMem"></canvas></div><p class="foot">Linux uses free memory as file cache, so "free" on a real board looks lower; that cache is given back when a program needs it.</p></div>
+        <div class="card"><h3>Load on each core (%)</h3><div class="plot"><canvas id="c_piCpu"></canvas></div><p class="foot" id="piCpuFoot"></p></div>
       </div>
     </div>
   </div>
