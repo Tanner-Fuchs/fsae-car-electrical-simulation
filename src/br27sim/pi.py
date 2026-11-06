@@ -81,6 +81,7 @@ PI_DEFAULTS = {
     "imu": True, "imuHz": 200, "gps": True, "gpsHz": 10,
     "lora": True, "loraHz": 5, "loraBytes": 32, "loraSF": 7, "loraBW": 125,
     "endurMin": 30,
+    "touchButtons": False,  # capacitive touch screen: MENU and CLEAR are tapped on screen, only MODE stays a wheel button
     "tireZones": False,   # IR arrays send inner / centre / outer tire temps; dash shows all three
     "specRamPct": 70, "specCorePct": 70,     # the team's spec: headroom kept free [assumption, change to suit]
 }

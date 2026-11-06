@@ -65,8 +65,9 @@
       wire([[662, Math.min(410, py + k * 6)], [690, Math.min(410, py + k * 6)], [690, by + 27], [720, by + 27]], C.sig, 2);
     });
     // buttons
-    const bx = [380, 480, 580], names = ['MODE', 'CLEAR', 'MENU'], gp = ['GPIO5 (pin 29)', 'GPIO6 (pin 31)', 'GPIO13 (pin 33)'];
-    box(330, 500, 330, 120, 'Steering wheel buttons', ['momentary, sealed, switch to ground']);
+    const touch = !!o.touchButtons;          // capacitive touch: MENU and CLEAR are on the screen, only MODE is wired
+    const bx = touch ? [480] : [380, 480, 580], names = ['MODE', 'CLEAR', 'MENU'], gp = ['GPIO5 (pin 29)', 'GPIO6 (pin 31)', 'GPIO13 (pin 33)'];
+    box(330, 500, 330, 120, touch ? 'Steering wheel button' : 'Steering wheel buttons', [touch ? 'MODE only; MENU and CLEAR are tapped on the touch screen' : 'momentary, sealed, switch to ground']);
     bx.forEach((x, k) => {
       g += `<circle cx="${x}" cy="580" r="20" fill="${k === 1 ? '#7f1d1d' : '#222'}" stroke="#666" stroke-width="2"/><text x="${x}" y="584" font-size="10" text-anchor="middle" fill="#fff" font-weight="700">${names[k]}</text>`;
       wire([[x, 560], [x, 470 - k * 10], [675 + k * 8, 470 - k * 10], [675 + k * 8, 395 + k * 9], [662, 395 + k * 9]], C.btn, 2);
@@ -95,9 +96,8 @@
       ...(o.imu ? [['IMU SDA', 'pin 3', 'GPIO2', 'IMU SDA', 'I2C, keep the wires short'], ['IMU SCL', 'pin 5', 'GPIO3', 'IMU SCL', '']] : []),
       ...(o.gps ? [['GPS', 'pins 8 / 10', 'GPIO14 TX / GPIO15 RX', 'GPS RX / TX', 'crossed over; 3.3 V logic']] : []),
       ['MODE (button 1)', 'pin 29', 'GPIO5', 'button → GND', 'internal pull-up, 100 nF to GND'],
-      ['CLEAR (button 2)', 'pin 31', 'GPIO6', 'button → GND', ''],
-      ['MENU', 'pin 33', 'GPIO13', 'button → GND', ''],
-      ['Button common', 'pin 34', 'GND', 'all three buttons', 'through the wheel quick-release connector'],
+      ...(o.touchButtons ? [] : [['CLEAR (button 2)', 'pin 31', 'GPIO6', 'button → GND', ''], ['MENU', 'pin 33', 'GPIO13', 'button → GND', '']]),
+      ['Button common', 'pin 34', 'GND', o.touchButtons ? 'MODE button' : 'all three buttons', 'through the wheel quick-release connector'],
       ['Power-loss sense (optional)', 'pin 37', 'GPIO26', 'supercap UPS "power lost" out', 'lets the Pi close the log before the power dies']
     ];
     el.table.innerHTML = '<thead><tr><th>Signal</th><th>Pi pin</th><th>GPIO</th><th>Goes to</th><th>Note</th></tr></thead><tbody>' +
@@ -120,8 +120,8 @@
     if (o.gps) cfg.push('enable_uart=1');
     cfg.push('# buttons as keys for the dash program (active low, pull-up)',
       'dtoverlay=gpio-key,gpio=5,active_low=1,gpio_pull=up,keycode=50,label="MODE"',
-      'dtoverlay=gpio-key,gpio=6,active_low=1,gpio_pull=up,keycode=46,label="CLEAR"',
-      'dtoverlay=gpio-key,gpio=13,active_low=1,gpio_pull=up,keycode=28,label="MENU"');
+      ...(o.touchButtons ? ['# MENU and CLEAR: on-screen buttons on the capacitive touch screen'] : ['dtoverlay=gpio-key,gpio=6,active_low=1,gpio_pull=up,keycode=46,label="CLEAR"',
+        'dtoverlay=gpio-key,gpio=13,active_low=1,gpio_pull=up,keycode=28,label="MENU"']));
     if (pi5) cfg.push('# only if the screen is powered from the Pi\'s USB', '# usb_max_current_enable=1');
     if (!dsi) cfg.push('# if the 5 in screen shows the wrong size, add to cmdline.txt: video=HDMI-A-1:800x480@60D');
     cfg.push('', '# bring the bus up at boot (systemd-networkd or /etc/network/interfaces):', '# ip link set can0 up type can bitrate 1000000');

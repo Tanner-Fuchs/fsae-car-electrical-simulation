@@ -102,6 +102,8 @@
     const scr = el.querySelector(".dev-scr");
     el.querySelectorAll('[data-btn]').forEach(b => b.addEventListener('click', () => api.press(b.dataset.btn)));
     scr.addEventListener('click', e => {
+      const tb = e.target.closest('[data-touch]');
+      if (tb) { api.press(tb.dataset.touch); return; }
       const hit = e.target.closest('[data-tap]'); if (!hit) return;
       if (phase === 'menu') { menuIdx = +hit.dataset.tap; api.press('menu'); }
       else if (phase === 'page' && page === 'Settings') { pageIdx = +hit.dataset.tap; api.press('menu'); }
@@ -185,11 +187,12 @@
       return g;
     }
     function footer(s) {
-      return `<rect y="456" width="800" height="24" fill="#0b0b0b"/>` + T(10, 473, MODES[mode], 13, `fill="${GOLD}" ${DISP} font-weight="700" letter-spacing="1"`) +
-        T(200, 473, `LAP ${lapNo()}/${SESSION_LAPS} · ${lapTxt(lapT())}`, 13, `fill="#bbb" ${MONO}`) +
+      const tk = PI.o.touchButtons;   // leave the bottom corners to the touch keys
+      return `<rect y="456" width="800" height="24" fill="#0b0b0b"/>` + T(tk ? 130 : 10, 473, MODES[mode], 13, `fill="${GOLD}" ${DISP} font-weight="700" letter-spacing="1"`) +
+        T(tk ? 250 : 200, 473, `LAP ${lapNo()}/${SESSION_LAPS} · ${lapTxt(lapT())}`, 13, `fill="#bbb" ${MONO}`) +
         `<circle cx="470" cy="468" r="5" fill="${RED}" opacity="${logging ? (Math.floor(t * 2) % 2 ? 1 : 0.35) : 0.15}"/>` + T(480, 473, logging ? 'LOG' : 'LOG OFF', 12, `fill="#ccc" ${MONO}`) +
         (PI.o.lora ? T(560, 473, 'LoRa', 12, `fill="${(t * PI.o.loraHz) % 1 < 0.3 ? GRN : '#666'}" ${MONO}`) : '') +
-        T(790, 473, `CAN ${PI.fps}/s`, 12, `text-anchor="end" fill="${s.nodeOff ? AMB : GRN}" ${MONO}`);
+        T(tk ? 670 : 790, 473, `CAN ${PI.fps}/s`, 12, `text-anchor="end" fill="${s.nodeOff ? AMB : GRN}" ${MONO}`);
     }
     function cell(x, y, w, h, label, val, col, big) {
       return `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h - 6}" rx="6" fill="#0f0f0f" stroke="#2a2a2a"/>` +
@@ -334,7 +337,9 @@
 
     // ---------------------------------------------------------------- menu and pages
     const status = () => `<rect width="800" height="34" fill="#0b0b0b"/>` + T(14, 23, 'BR27 DASH', 15, `fill="${GOLD}" ${DISP} font-weight="700"`) + T(786, 23, `LAP ${lapNo()}/${SESSION_LAPS} · CAN ${PI.fps}/s`, 13, `text-anchor="end" fill="#9aa4b1" ${MONO}`);
-    const hint = (a, b, c) => `<rect y="446" width="800" height="34" fill="#0b0b0b"/>` + T(14, 468, `MODE: ${a}`, 13, `fill="#9aa4b1" ${MONO}`) + T(400, 468, `CLEAR: ${c || 'back'}`, 13, `text-anchor="middle" fill="#9aa4b1" ${MONO}`) + T(786, 468, `MENU: ${b}`, 13, `text-anchor="end" fill="#9aa4b1" ${MONO}`);
+    const hint = (a, b, c) => PI.o.touchButtons
+      ? `<rect y="446" width="800" height="34" fill="#0b0b0b"/>` + T(400, 468, `MODE: ${a} · tap an item or SELECT · BACK: ${c || 'back'}`, 13, `text-anchor="middle" fill="#9aa4b1" ${MONO}`)
+      : `<rect y="446" width="800" height="34" fill="#0b0b0b"/>` + T(14, 468, `MODE: ${a}`, 13, `fill="#9aa4b1" ${MONO}`) + T(400, 468, `CLEAR: ${c || 'back'}`, 13, `text-anchor="middle" fill="#9aa4b1" ${MONO}`) + T(786, 468, `MENU: ${b}`, 13, `text-anchor="end" fill="#9aa4b1" ${MONO}`);
     const head = title => status() + T(30, 76, title, 26, `fill="${GOLD}" ${DISP} font-weight="700"`);
     function menu() {
       let g = head('MENU');
@@ -470,6 +475,17 @@
       return g;
     }
 
+    // capacitive touch option: MENU and CLEAR become tap targets in the bottom corners (big enough for a gloved finger)
+    function touchKeys() {
+      const pop = popup(), act = activeFaults().length;
+      const key = (x, id, label, fill, stroke, txt) => `<g data-touch="${id}" style="cursor:pointer"><rect x="${x}" y="428" width="118" height="48" rx="10" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="0.94"/>` +
+        T(x + 59, 459, label, 19, `text-anchor="middle" fill="${txt}" font-weight="700" ${DISP} letter-spacing="1.5" pointer-events="none"`) + '</g>';
+      let g = '';
+      if (!pop) g += key(4, 'menu', phase === 'dash' ? 'MENU' : 'SELECT', '#1d1d22', GOLD, '#fff');
+      const back = !pop && phase !== 'dash';
+      g += key(678, 'clear', back ? 'BACK' : 'CLEAR', pop || (act && !back) ? '#7f1d1d' : '#1d1d22', pop ? '#fff' : act && !back ? RED : '#555', '#fff');
+      return g;
+    }
     function draw() {
       if (!PI || !LAP) return;
       let g;
@@ -481,6 +497,7 @@
         else if (phase === 'menu') g = menu();
         else g = ({ 'CAN data': pageCan, 'Fault log': pageFaults, Logging: pageLog, System: pageSys, 'LoRa telemetry': pageLora, Settings: pageSettings })[page](s, i);
       }
+      if (phase !== 'boot' && PI.o.touchButtons) g += touchKeys();
       scr.innerHTML = `<rect width="800" height="480" fill="#050505"/>${g}<rect width="800" height="480" fill="#000" opacity="${(100 - set.bright) / 100 * 0.7}" pointer-events="none"/>`;
     }
 
@@ -512,6 +529,7 @@
       set(pi, lap, extra) {
         const reboot = !PI || PI.boardKey !== pi.boardKey || PI.ramGB !== pi.ramGB || PI.o.os !== pi.o.os || PI.o.renderer !== pi.o.renderer;
         PI = pi; X = extra || {};
+        el.querySelectorAll('.dev-btns [data-btn="clear"], .dev-btns [data-btn="menu"]').forEach(btn => { btn.hidden = !!pi.o.touchButtons; });
         if (LAP !== lap) {
           LAP = lap; cum = []; let c = 0;
           lap.series.fuelGs.forEach(gs => { c += gs / lap.fs / 740; cum.push(c); });   // litres, gasoline ~740 g/L
