@@ -9,6 +9,16 @@
 (async function () {
   'use strict';
   const BOOT = window.BR27_BOOT;
+  // a cached copy of the page from before the last update: reload once, bypassing the cache
+  try {
+    const live = await (await fetch('version.json', { cache: 'no-store' })).json();
+    const u = new URL(location.href);
+    if (BOOT.version && live.version && live.version !== BOOT.version && u.searchParams.get('v') !== live.version) {
+      u.searchParams.set('v', live.version);
+      location.replace(u.toString());
+      return;
+    }
+  } catch (e) { /* offline or local build: carry on with this copy */ }
   const box = document.createElement('div');
   box.id = 'pyLoading';
   // the same Bobcat Racing boot screen as the dash computer (splash.js), while Python loads

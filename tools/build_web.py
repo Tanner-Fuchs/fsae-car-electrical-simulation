@@ -89,7 +89,11 @@ def build(pyodide_dir, out):
         "pyodide": "pyodide/",
         "pkg": f"br27sim.zip?v={v}",
         "scripts": [f"{s}?v={v}" for s in server.LIBS + server.SCRIPTS],
+        "version": v,
     }
+    # GitHub Pages lets browsers cache index.html for 10 minutes; pyboot.js checks this file (never cached)
+    # and reloads once if the site has been updated since the cached page
+    (out / "version.json").write_text(json.dumps({"version": v}), encoding="utf-8")
     page = (server.WEB / "page.html").read_text(encoding="utf-8")
     html = (HEAD + page + "\n" + server.ERROR_BOX + "\n"
             + f"<script>window.BR27_BOOT = {json.dumps(boot)};</script>\n"
