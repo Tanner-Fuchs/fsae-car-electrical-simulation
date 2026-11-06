@@ -81,6 +81,7 @@ PI_DEFAULTS = {
     "imu": True, "imuHz": 200, "gps": True, "gpsHz": 10,
     "lora": True, "loraHz": 5, "loraBytes": 32, "loraSF": 7, "loraBW": 125,
     "endurMin": 30,
+    "pixelTrue": True,      # mock screen drawn at the display's real pixel count
     "touchButtons": False,  # capacitive touch screen: MENU and CLEAR are tapped on screen, only MODE stays a wheel button
     "revPaws": False,       # shift lights drawn as paw prints instead of circles
     "tireZones": False,   # IR arrays send inner / centre / outer tire temps; dash shows all three

@@ -82,6 +82,29 @@
   const bobcat = op => window.BRSplash.bobcat(op);
 
   let mounts = 0;
+  // fonts for the rasterized screen: an SVG drawn as an image can't see the page's web fonts, so embed them once (latin only)
+  let FONT_CSS = '', fontsAsked = false;
+  function screenCss() {
+    if (!fontsAsked) { fontsAsked = true; loadFonts(); }
+    const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue(k).trim();
+    return `${FONT_CSS} svg { --f-mono: ${v('--f-mono') || 'monospace'}; --f-display: ${v('--f-display') || 'sans-serif'}; font-family: ${v('--f-body') || 'sans-serif'}; }`;
+  }
+  async function loadFonts() {
+    try {
+      const link = document.querySelector('link[href*="fonts.googleapis.com/css"]');
+      if (!link) return;
+      const css = await (await fetch(link.href)).text();
+      const blocks = css.split('/* ').filter(b => b.startsWith('latin */'));
+      const toData = async url => { const b = await (await fetch(url)).blob(); return await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); }); };
+      let out = '';
+      for (const b of blocks) {
+        const m = b.match(/url\(([^)]+)\)/);
+        if (!m) continue;
+        out += b.replace('latin */', '').replace(m[1], await toData(m[1]));
+      }
+      FONT_CSS = out;
+    } catch (e) { /* offline: the rasterized screen falls back to system fonts */ }
+  }
   function mount(el, U, hooks) {
     hooks = hooks || {};
     const UID = 'd' + (++mounts);              // unique SVG ids when more than one dash is on the page
@@ -92,7 +115,7 @@
     const history = [];                  // fault log: { t, code, on }
     const set = { shiftRpm: 12500, bright: 100, speedUnit: null, bootMode: 0 };
     el.innerHTML = `<div class="dev">
-        <div class="dev-bezel"><svg class="dev-scr" viewBox="0 0 800 480" role="img" aria-label="Mock 5 inch dash screen"></svg></div>
+        <div class="dev-bezel"><div class="dev-glass"><canvas class="dev-px" hidden></canvas><svg class="dev-scr" viewBox="0 0 800 480" role="img" aria-label="Mock 5 inch dash screen"></svg></div></div>
         <div class="dev-btns">
           <button type="button" data-btn="mode"><b>MODE</b><span>button 1 · display / down</span></button>
           <button type="button" data-btn="clear"><b>CLEAR</b><span>button 2 · clear warning / back</span></button>
@@ -495,6 +518,26 @@
       g += key(686, 'clear', back ? 'BACK' : 'CLEAR', pop || (act && !back) ? '#7f1d1d' : '#1d1d22', pop ? '#fff' : act && !back ? RED : '#555', '#fff');
       return g;
     }
+    // real pixels: draw the frame into a canvas the size of the chosen display (800 × 480 for the 5 in TFT) and blow it up
+    // with nearest-neighbour scaling, so the preview shows the screen's actual resolution. The SVG stays on top, invisible, for taps.
+    const px = el.querySelector('.dev-px');
+    let rasterBusy = false, rasterNext = false;
+    function rasterize() {
+      if (rasterBusy) { rasterNext = true; return; }
+      const w = (PI.display && PI.display.w) || 800, h = (PI.display && PI.display.h) || 480;
+      if (px.width !== w || px.height !== h) { px.width = w; px.height = h; }
+      px.style.aspectRatio = `${w} / ${h}`;
+      rasterBusy = true;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" width="${w}" height="${h}" preserveAspectRatio="none"><style>${screenCss()}</style>${scr.innerHTML}</svg>`;
+      const img = new Image();
+      img.onload = () => {
+        const c = px.getContext('2d'); c.imageSmoothingEnabled = true; c.clearRect(0, 0, w, h); c.drawImage(img, 0, 0, w, h);
+        if (px.hidden) { px.hidden = false; scr.style.opacity = '0'; }
+        rasterBusy = false; if (rasterNext) { rasterNext = false; rasterize(); }
+      };
+      img.onerror = () => { rasterBusy = false; px.hidden = true; scr.style.opacity = ''; };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
     function draw() {
       if (!PI || !LAP) return;
       let g;
@@ -508,6 +551,7 @@
       }
       if (phase !== 'boot' && PI.o.touchButtons) g += touchKeys();
       scr.innerHTML = `<rect width="800" height="480" fill="#050505"/>${g}<rect width="800" height="480" fill="#000" opacity="${(100 - set.bright) / 100 * 0.7}" pointer-events="none"/>`;
+      if (PI.o.pixelTrue !== false) rasterize(); else if (!px.hidden) { px.hidden = true; scr.style.opacity = ''; }
     }
 
     function resetSession() {
