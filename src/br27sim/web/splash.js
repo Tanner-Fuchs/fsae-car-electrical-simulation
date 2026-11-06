@@ -6,18 +6,30 @@
   const T = (x, y, txt, size, o) => `<text x="${x}" y="${y}" font-size="${size}" ${o || ''}>${txt}</text>`;
   const MONO = 'font-family="var(--f-mono, ui-monospace, monospace)"', DISP = 'font-family="var(--f-display, system-ui, sans-serif)"';
   function bobcat(op) {
-    // an original, geometric bobcat head in team colors
-    return `<g opacity="${op}">
-      <polygon points="330,120 352,168 448,168 470,120 486,190 480,240 450,278 400,296 350,278 320,240 314,190" fill="${MAROON}" stroke="${GOLD}" stroke-width="4" stroke-linejoin="round"/>
-      <line x1="330" y1="120" x2="324" y2="96" stroke="${GOLD}" stroke-width="4" stroke-linecap="round"/><line x1="470" y1="120" x2="476" y2="96" stroke="${GOLD}" stroke-width="4" stroke-linecap="round"/>
-      <polygon points="336,136 350,164 324,170" fill="${GOLD}" opacity="0.55"/><polygon points="464,136 450,164 476,170" fill="${GOLD}" opacity="0.55"/>
-      <polyline points="314,212 292,232 320,238" fill="none" stroke="${GOLD}" stroke-width="3"/><polyline points="486,212 508,232 480,238" fill="none" stroke="${GOLD}" stroke-width="3"/>
-      <polyline points="320,240 300,258 330,262" fill="none" stroke="${GOLD}" stroke-width="3"/><polyline points="480,240 500,258 470,262" fill="none" stroke="${GOLD}" stroke-width="3"/>
-      <line x1="388" y1="176" x2="393" y2="192" stroke="${GOLD}" stroke-width="3"/><line x1="400" y1="172" x2="400" y2="192" stroke="${GOLD}" stroke-width="3"/><line x1="412" y1="176" x2="407" y2="192" stroke="${GOLD}" stroke-width="3"/>
+    // the boot-screen bobcat in an open-face racing helmet (same artwork as web/icon.svg)
+    return `<g opacity="${op}" stroke-linejoin="round" stroke-linecap="round">
+      <!-- ears poking through the helmet -->
+      <polygon points="318,128 312,62 362,108" fill="#501214" stroke="#c9a86a" stroke-width="4"/>
+      <polygon points="482,128 488,62 438,108" fill="#501214" stroke="#c9a86a" stroke-width="4"/>
+      <polygon points="321,112 318,80 344,104" fill="#c9a86a" opacity="0.55"/>
+      <polygon points="479,112 482,80 456,104" fill="#c9a86a" opacity="0.55"/>
+      <!-- the boot-screen bobcat face -->
+      <polygon points="330,120 352,168 448,168 470,120 486,190 480,240 450,278 400,296 350,278 320,240 314,190" fill="#501214" stroke="#c9a86a" stroke-width="4"/>
+      <polyline points="314,212 292,232 320,238" fill="none" stroke="#c9a86a" stroke-width="3"/><polyline points="486,212 508,232 480,238" fill="none" stroke="#c9a86a" stroke-width="3"/>
+      <polyline points="320,240 300,258 330,262" fill="none" stroke="#c9a86a" stroke-width="3"/><polyline points="480,240 500,258 470,262" fill="none" stroke="#c9a86a" stroke-width="3"/>
       <polygon points="356,206 386,198 389,214 364,218" fill="#ffcc33"/><polygon points="444,206 414,198 411,214 436,218" fill="#ffcc33"/>
       <line x1="374" y1="201" x2="376" y2="216" stroke="#111" stroke-width="3"/><line x1="426" y1="201" x2="424" y2="216" stroke="#111" stroke-width="3"/>
-      <polygon points="388,238 412,238 400,252" fill="#111" stroke="${GOLD}" stroke-width="2"/>
-      <polyline points="400,252 400,264 386,274" fill="none" stroke="${GOLD}" stroke-width="3"/><polyline points="400,264 414,274" fill="none" stroke="${GOLD}" stroke-width="3"/>
+      <polygon points="388,238 412,238 400,252" fill="#111" stroke="#c9a86a" stroke-width="2"/>
+      <polyline points="400,252 400,264 386,274" fill="none" stroke="#c9a86a" stroke-width="3"/><polyline points="400,264 414,274" fill="none" stroke="#c9a86a" stroke-width="3"/>
+      <!-- open-face racing helmet: shell, cheek pads, raised visor, stripe -->
+      <path d="M304,244 L302,186 C302,124 344,92 400,92 C456,92 498,124 498,186 L496,244 C486,248 478,240 476,226 C472,202 450,188 400,188 C350,188 328,202 324,226 C322,240 314,248 304,244 Z" fill="#e9e9ee" stroke="#c9a86a" stroke-width="5"/>
+      <path d="M388,93 L412,93 L413,187 L387,187 Z" fill="#501214"/>
+      <path d="M380,94 L384,94 L383,187 L379,187 Z M416,94 L420,94 L421,187 L417,187 Z" fill="#c9a86a"/>
+      <path d="M318,150 C340,128 460,128 482,150 L478,170 C452,156 348,156 322,170 Z" fill="#121216" stroke="#c9a86a" stroke-width="4"/>
+      <path d="M334,148 C356,136 400,133 430,135" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="3"/>
+      <circle cx="318" cy="160" r="6" fill="#c9a86a"/><circle cx="482" cy="160" r="6" fill="#c9a86a"/>
+      <circle cx="452" cy="116" r="13" fill="#501214" stroke="#c9a86a" stroke-width="2.5"/>
+      <text x="452" y="121.5" font-size="14" font-weight="800" text-anchor="middle" fill="#e6cf9b" font-family="Arial, Helvetica, sans-serif">27</text>
     </g>`;
   }
 
