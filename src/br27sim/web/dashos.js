@@ -180,19 +180,25 @@
     }
 
     // ---------------------------------------------------------------- drawing helpers
+    // a paw print: main pad and four toe beans, fitted in a circle of radius r
+    const paw = (cx, cy, r, col) => `<g fill="${col}"><ellipse cx="${cx}" cy="${cy + r * 0.32}" rx="${r * 0.52}" ry="${r * 0.42}"/>` +
+      [[-0.62, -0.2], [-0.23, -0.6], [0.23, -0.6], [0.62, -0.2]].map(([u, v]) => `<ellipse cx="${(cx + u * r).toFixed(1)}" cy="${(cy + v * r).toFixed(1)}" rx="${r * 0.2}" ry="${r * 0.25}"/>`).join('') + '</g>';
     function shiftLights(rpm) {
       const n = 14, on = Math.round(clamp((rpm - (set.shiftRpm - 3500)) / 3500, 0, 1) * n), flash = rpm >= set.shiftRpm && Math.floor(t * 8) % 2;
+      const tk = PI.o.touchButtons, x0 = tk ? 140 : 43, dx = tk ? 40 : 55, rr = tk ? 14 : 15;   // touch: lights sit between the corner keys
       let g = '<rect width="800" height="46" fill="#000"/>';
-      for (let k = 0; k < n; k++) g += `<circle cx="${43 + k * 55}" cy="23" r="15" fill="${flash ? '#3b82f6' : k < on ? (k < 5 ? GRN : k < 10 ? AMB : RED) : '#1a1a1a'}"/>`;
+      for (let k = 0; k < n; k++) {
+        const col = flash ? '#3b82f6' : k < on ? (k < 5 ? GRN : k < 10 ? AMB : RED) : '#1a1a1a', cx = x0 + k * dx;
+        g += PI.o.revPaws ? paw(cx, 24, rr + 3, col) : `<circle cx="${cx}" cy="23" r="${rr}" fill="${col}"/>`;
+      }
       return g;
     }
     function footer(s) {
-      const tk = PI.o.touchButtons;   // leave the bottom corners to the touch keys
-      return `<rect y="456" width="800" height="24" fill="#0b0b0b"/>` + T(tk ? 130 : 10, 473, MODES[mode], 13, `fill="${GOLD}" ${DISP} font-weight="700" letter-spacing="1"`) +
-        T(tk ? 250 : 200, 473, `LAP ${lapNo()}/${SESSION_LAPS} · ${lapTxt(lapT())}`, 13, `fill="#bbb" ${MONO}`) +
+      return `<rect y="456" width="800" height="24" fill="#0b0b0b"/>` + T(10, 473, MODES[mode], 13, `fill="${GOLD}" ${DISP} font-weight="700" letter-spacing="1"`) +
+        T(200, 473, `LAP ${lapNo()}/${SESSION_LAPS} · ${lapTxt(lapT())}`, 13, `fill="#bbb" ${MONO}`) +
         `<circle cx="470" cy="468" r="5" fill="${RED}" opacity="${logging ? (Math.floor(t * 2) % 2 ? 1 : 0.35) : 0.15}"/>` + T(480, 473, logging ? 'LOG' : 'LOG OFF', 12, `fill="#ccc" ${MONO}`) +
         (PI.o.lora ? T(560, 473, 'LoRa', 12, `fill="${(t * PI.o.loraHz) % 1 < 0.3 ? GRN : '#666'}" ${MONO}`) : '') +
-        T(tk ? 670 : 790, 473, `CAN ${PI.fps}/s`, 12, `text-anchor="end" fill="${s.nodeOff ? AMB : GRN}" ${MONO}`);
+        T(790, 473, `CAN ${PI.fps}/s`, 12, `text-anchor="end" fill="${s.nodeOff ? AMB : GRN}" ${MONO}`);
     }
     function cell(x, y, w, h, label, val, col, big) {
       return `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h - 6}" rx="6" fill="#0f0f0f" stroke="#2a2a2a"/>` +
@@ -262,6 +268,8 @@
         cell(550, 250, 250, 102, 'FUEL P', pr(s.fuelP), s.fuelP < 2.8 ? AMB : '#fff') +
         cell(550, 352, 250, 104, 'TIRES', tiresReady ? 'READY ✓' : 'COLD', tiresReady ? GRN : '#60a5fa', 30) + footer(s);
     }
+    // rev lights on top with the content scaled to fit under them: always on Check tires, and on Debug when the touch keys need the top corners
+    const touchFit = (g, s, always) => (always || PI.o.touchButtons ? shiftLights(s.rpm) + `<g transform="translate(44 46) scale(0.89)">${g}</g>` : g);
     function modeTires(s) {
       let g = `<rect width="800" height="456" fill="#050505"/>`;
       g += T(20, 40, 'BRAKE BIAS', 16, 'fill="#9aa4b1" letter-spacing="1"') + T(20, 120, `${fmt(s.biasPct, 0)}%`, 76, `fill="#fff" font-weight="700" ${MONO}`) + T(20, 146, 'front', 16, 'fill="#9aa4b1"');
@@ -287,7 +295,8 @@
         g += T(tx, y + 18, nm, 16, `text-anchor="${anchor}" fill="${GOLD}" font-weight="700"`) + T(tx, y + 50, U.tp(tr.c), 26, `text-anchor="${anchor}" fill="#fff" ${MONO}`) +
           T(tx, y + 80, `${fmt(U.IMP() ? tr.psi : tr.psi / 14.5038, U.IMP() ? 1 : 2)} ${U.IMP() ? 'psi' : 'bar'}`, 20, `text-anchor="${anchor}" fill="#ccc" ${MONO}`);
       });
-      return g + (PI.o.tireZones ? T(400, 30, `tire temps ${U.IMP() ? '°F' : '°C'}: I inner · C centre · O outer`, 13, 'text-anchor="middle" fill="#9aa4b1"') : '') + T(400, 440, 'tire pressure / temperature: mock values until sensors are chosen', 12, 'text-anchor="middle" fill="#555"') + faultBar() + footer(s);
+      g += (PI.o.tireZones ? T(400, 30, `tire temps ${U.IMP() ? '°F' : '°C'}: I inner · C centre · O outer`, 13, 'text-anchor="middle" fill="#9aa4b1"') : '') + T(400, 440, 'tire pressure / temperature: mock values until sensors are chosen', 12, 'text-anchor="middle" fill="#555"');
+      return touchFit(g, s, true) + faultBar() + footer(s);
     }
     function modeDebug(s) {
       const items = [
@@ -304,7 +313,7 @@
         const c = n % 4, r = Math.floor(n / 4), x = 6 + c * 197, y = 8 + r * 58;
         g += `<rect x="${x}" y="${y}" width="191" height="52" rx="4" fill="#0f0f0f" stroke="#262626"/>` + T(x + 8, y + 17, k, 12, 'fill="#9aa4b1"') + T(x + 183, y + 43, v, 20, `text-anchor="end" fill="${/FAULT|OFFLINE/.test(v) ? AMB : '#fff'}" ${MONO}`);
       });
-      return g + faultBar() + footer(s);
+      return touchFit(g, s) + faultBar() + footer(s);
     }
     // driver's autocross sketch: speed + gear in one centre panel, four panels around it, faults bottom right
     function modeAutocross(s) {
@@ -336,7 +345,7 @@
     }
 
     // ---------------------------------------------------------------- menu and pages
-    const status = () => `<rect width="800" height="34" fill="#0b0b0b"/>` + T(14, 23, 'BR27 DASH', 15, `fill="${GOLD}" ${DISP} font-weight="700"`) + T(786, 23, `LAP ${lapNo()}/${SESSION_LAPS} · CAN ${PI.fps}/s`, 13, `text-anchor="end" fill="#9aa4b1" ${MONO}`);
+    const status = () => `<rect width="800" height="${PI.o.touchButtons ? 46 : 34}" fill="#0b0b0b"/>` + T(PI.o.touchButtons ? 130 : 14, 23, 'BR27 DASH', 15, `fill="${GOLD}" ${DISP} font-weight="700"`) + T(PI.o.touchButtons ? 670 : 786, 23, `LAP ${lapNo()}/${SESSION_LAPS} · CAN ${PI.fps}/s`, 13, `text-anchor="end" fill="#9aa4b1" ${MONO}`);
     const hint = (a, b, c) => PI.o.touchButtons
       ? `<rect y="446" width="800" height="34" fill="#0b0b0b"/>` + T(400, 468, `MODE: ${a} · tap an item or SELECT · BACK: ${c || 'back'}`, 13, `text-anchor="middle" fill="#9aa4b1" ${MONO}`)
       : `<rect y="446" width="800" height="34" fill="#0b0b0b"/>` + T(14, 468, `MODE: ${a}`, 13, `fill="#9aa4b1" ${MONO}`) + T(400, 468, `CLEAR: ${c || 'back'}`, 13, `text-anchor="middle" fill="#9aa4b1" ${MONO}`) + T(786, 468, `MENU: ${b}`, 13, `text-anchor="end" fill="#9aa4b1" ${MONO}`);
@@ -475,15 +484,15 @@
       return g;
     }
 
-    // capacitive touch option: MENU and CLEAR become tap targets in the bottom corners (big enough for a gloved finger)
+    // capacitive touch option: MENU and CLEAR become tap targets in the top corners, either side of the rev lights (big enough for a gloved finger)
     function touchKeys() {
       const pop = popup(), act = activeFaults().length;
-      const key = (x, id, label, fill, stroke, txt) => `<g data-touch="${id}" style="cursor:pointer"><rect x="${x}" y="428" width="118" height="48" rx="10" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="0.94"/>` +
-        T(x + 59, 459, label, 19, `text-anchor="middle" fill="${txt}" font-weight="700" ${DISP} letter-spacing="1.5" pointer-events="none"`) + '</g>';
+      const key = (x, id, label, fill, stroke, txt) => `<g data-touch="${id}" style="cursor:pointer"><rect x="${x}" y="3" width="110" height="40" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="0.94"/>` +
+        T(x + 55, 30, label, 18, `text-anchor="middle" fill="${txt}" font-weight="700" ${DISP} letter-spacing="1.5" pointer-events="none"`) + '</g>';
       let g = '';
       if (!pop) g += key(4, 'menu', phase === 'dash' ? 'MENU' : 'SELECT', '#1d1d22', GOLD, '#fff');
       const back = !pop && phase !== 'dash';
-      g += key(678, 'clear', back ? 'BACK' : 'CLEAR', pop || (act && !back) ? '#7f1d1d' : '#1d1d22', pop ? '#fff' : act && !back ? RED : '#555', '#fff');
+      g += key(686, 'clear', back ? 'BACK' : 'CLEAR', pop || (act && !back) ? '#7f1d1d' : '#1d1d22', pop ? '#fff' : act && !back ? RED : '#555', '#fff');
       return g;
     }
     function draw() {
