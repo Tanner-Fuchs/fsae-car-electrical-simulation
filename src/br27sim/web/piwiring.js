@@ -144,7 +144,7 @@
       wire([[662, Math.min(410, py + k * 6)], [690, Math.min(410, py + k * 6)], [690, by + 27], [720, by + 27]], C.sig, 2);
     });
     // buttons
-    const touch = !!o.touchButtons;          // capacitive touch: MENU and CLEAR are on the screen, only MODE is wired
+    const touch = !!o.touchButtons;          // resistive touch: MENU and CLEAR are on the screen, only MODE is wired
     const bx = touch ? [480] : [380, 480, 580], names = ['MODE', 'CLEAR', 'MENU'], gp = ['GPIO5 (pin 29)', 'GPIO6 (pin 31)', 'GPIO13 (pin 33)'];
     box(330, 500, 330, 120, touch ? 'Steering wheel button' : 'Steering wheel buttons', [touch ? 'MODE only; MENU and CLEAR are tapped on the touch screen' : 'momentary, sealed, switch to ground']);
     bx.forEach((x, k) => {
@@ -201,7 +201,7 @@
     if (o.gps) cfg.push('enable_uart=1');
     cfg.push('# buttons as keys for the dash program (active low, pull-up)',
       'dtoverlay=gpio-key,gpio=5,active_low=1,gpio_pull=up,keycode=50,label="MODE"',
-      ...(o.touchButtons ? ['# MENU and CLEAR: on-screen buttons on the capacitive touch screen'] : ['dtoverlay=gpio-key,gpio=6,active_low=1,gpio_pull=up,keycode=46,label="CLEAR"',
+      ...(o.touchButtons ? ['# MENU and CLEAR: on-screen buttons on the resistive touch screen'] : ['dtoverlay=gpio-key,gpio=6,active_low=1,gpio_pull=up,keycode=46,label="CLEAR"',
         'dtoverlay=gpio-key,gpio=13,active_low=1,gpio_pull=up,keycode=28,label="MENU"']));
     if (pi5) cfg.push('# only if the screen is powered from the Pi\'s USB', '# usb_max_current_enable=1');
     if (!dsi) cfg.push('# if the 5 in screen shows the wrong size, add to cmdline.txt: video=HDMI-A-1:800x480@60D');

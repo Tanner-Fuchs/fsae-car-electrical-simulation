@@ -555,7 +555,7 @@
       return g;
     }
 
-    // capacitive touch option: MENU and CLEAR become tap targets in the top corners, either side of the rev lights (big enough for a gloved finger)
+    // resistive touch option: MENU and CLEAR become tap targets in the top corners, either side of the rev lights (big enough for a gloved finger)
     function touchKeys() {
       const pop = popup(), act = activeFaults().length;
       const key = (x, id, label, fill, stroke, txt) => `<g data-touch="${id}" style="cursor:pointer"><rect x="${x}" y="3" width="110" height="40" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="2.5" opacity="0.94"/>` +

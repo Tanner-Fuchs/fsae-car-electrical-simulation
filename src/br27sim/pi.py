@@ -43,7 +43,7 @@ BOARDS = {
 DISPLAYS = {
     "5in-hdmi": {"label": '5 in 800 × 480 TFT, HDMI + USB touch [Tanner: 5 in TFT]', "w": 800, "h": 480, "port": "hdmi", "W": 2.5},
     "5in-dsi": {"label": '5 in 800 × 480 TFT, DSI ribbon', "w": 800, "h": 480, "port": "dsi", "W": 2.0},
-    "5in-eve": {"label": '5 in 800 × 480 EVE (BT817) TFT, SPI + touch: graphics chip on the screen', "w": 800, "h": 480, "port": "eve", "W": 2.0},
+    "5in-eve": {"label": '5 in 800 × 480 EVE (BT817) TFT, SPI + resistive touch: graphics chip on the screen', "w": 800, "h": 480, "port": "eve", "W": 2.0},
     "800x480": {"label": '7 in 800 × 480 (official DSI touch screen)', "w": 800, "h": 480, "port": "dsi", "W": 2.5},
     "1024x600": {"label": '7 in 1024 × 600 (HDMI)', "w": 1024, "h": 600, "port": "hdmi", "W": 3.0},
     "1280x720": {"label": '1280 × 720 (HDMI)', "w": 1280, "h": 720, "port": "hdmi", "W": 4.0},
@@ -96,7 +96,7 @@ PI_DEFAULTS = {
     "lora": True, "loraHz": 5, "loraBytes": 32, "loraSF": 7, "loraBW": 125,
     "endurMin": 30,
     "pixelTrue": True,      # mock screen drawn at the display's real pixel count
-    "touchButtons": False,  # capacitive touch screen: MENU and CLEAR are tapped on screen, only MODE stays a wheel button
+    "touchButtons": False,  # resistive touch screen (Tanner): MENU and CLEAR are tapped on screen, only MODE stays a wheel button
     "revPaws": False,       # shift lights drawn as paw prints instead of circles
     "tireZones": False,   # IR arrays send inner / centre / outer tire temps; dash shows all three
     "rootRO": False,        # Linux: read-only root file system (overlay), logs on their own partition
