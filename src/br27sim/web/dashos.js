@@ -114,15 +114,61 @@
     const fs = {};                       // per fault: { since, lastTrue, acked, ackT }
     const history = [];                  // fault log: { t, code, on }
     const set = { shiftRpm: 12500, bright: 100, speedUnit: null, bootMode: 0 };
-    el.innerHTML = `<div class="dev">
+    el.innerHTML = `<div class="devwrap">
+      <div class="dev-size">
+        <span class="dev-size-note"></span>
+        <button type="button" data-cal aria-pressed="false">Check the scale</button>
+      </div>
+      <div class="dev-cal" hidden>
+        <span>Hold a bank card against the screen and drag until the bar matches its long edge (85.6 mm):</span>
+        <input type="range" min="60" max="260" step="1" aria-label="Pixels per inch on this screen">
+        <div class="dev-card"></div>
+      </div>
+      <div class="dev">
         <div class="dev-bezel"><div class="dev-glass"><canvas class="dev-px" hidden></canvas><svg class="dev-scr" viewBox="0 0 800 480" role="img" aria-label="Mock 5 inch dash screen"></svg></div></div>
         <div class="dev-btns">
           <button type="button" data-btn="mode"><b>MODE</b><span>button 1 · display / down</span></button>
           <button type="button" data-btn="clear"><b>CLEAR</b><span>button 2 · clear warning / back</span></button>
           <button type="button" data-btn="menu"><b>MENU</b><span>open / select</span></button>
         </div>
-      </div>`;
+      </div></div>`;
     const scr = el.querySelector(".dev-scr");
+    // ---------------------------------------------------------------- screen size: always drawn at the real size of the car's screen
+    // Browsers don't report the screen's physical size, so the scale starts from a guess for the device
+    // (CSS pixels per inch) and can be checked against a bank card; the setting is kept on this device.
+    const dev = el.querySelector('.dev'), glass = el.querySelector('.dev-glass');
+    const sizeNote = el.querySelector('.dev-size-note'), cal = el.querySelector('.dev-cal'), calIn = cal.querySelector('input'), card = cal.querySelector('.dev-card');
+    function guessPpi() {
+      const ua = navigator.userAgent, dpr = window.devicePixelRatio || 1, sm = Math.min(screen.width, screen.height);
+      const ipad = /iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+      if (ipad) return { ppi: sm <= 744 ? 163 : 132, dev: sm <= 744 ? 'iPad mini' : 'iPad' };
+      if (/iPhone/.test(ua)) return { ppi: dpr >= 3 ? 153 : 163, dev: 'iPhone' };
+      if (/Android/.test(ua)) return { ppi: 160, dev: 'phone' };
+      return { ppi: 96, dev: 'computer' };
+    }
+    let ppi = guessPpi().ppi, calibrated = false;
+    try { const v = +localStorage.getItem('br27.dashPpi'); if (v > 40) { ppi = v; calibrated = true; } } catch (e) { /* storage blocked */ }
+    // physical size of the active area from the display's diagonal (inches in its label) and pixel shape
+    function screenIn() {
+      const d = (PI && PI.display) || { w: 800, h: 480, label: '5 in' };
+      const m = /(\d+(?:\.\d+)?)\s*in\b/.exec(d.label || ''), diag = m ? +m[1] : 5, k = Math.hypot(d.w, d.h);
+      return { w: diag * d.w / k, h: diag * d.h / k, diag };
+    }
+    function layout() {
+      const si = screenIn();
+      calIn.value = ppi; card.style.width = `${3.370 * ppi}px`;
+      glass.style.width = `${si.w * ppi}px`;
+      sizeNote.textContent = `Real size: ${si.diag} in screen, ${fmt(si.w * 25.4, 0)} × ${fmt(si.h * 25.4, 0)} mm${calibrated ? '' : ` (scale estimated for this ${guessPpi().dev})`}`;
+    }
+    el.querySelector('[data-cal]').addEventListener('click', e => {
+      cal.hidden = !cal.hidden; e.currentTarget.setAttribute('aria-pressed', String(!cal.hidden));
+    });
+    calIn.addEventListener('input', () => {
+      ppi = +calIn.value; calibrated = true;
+      try { localStorage.setItem('br27.dashPpi', String(ppi)); } catch (e) { /* storage blocked */ }
+      layout();
+    });
+    layout();
     el.querySelectorAll('[data-btn]').forEach(b => b.addEventListener('click', () => api.press(b.dataset.btn)));
     scr.addEventListener('click', e => {
       const tb = e.target.closest('[data-touch]');
@@ -583,7 +629,9 @@
     const api = {
       set(pi, lap, extra) {
         const reboot = !PI || PI.boardKey !== pi.boardKey || PI.ramGB !== pi.ramGB || PI.o.os !== pi.o.os || PI.o.renderer !== pi.o.renderer;
+        const dispChanged = !PI || PI.display !== pi.display;
         PI = pi; X = extra || {};
+        if (dispChanged) layout();
         el.querySelectorAll('.dev-btns [data-btn="clear"], .dev-btns [data-btn="menu"]').forEach(btn => { btn.hidden = !!pi.o.touchButtons; });
         if (LAP !== lap) {
           LAP = lap; cum = []; let c = 0;
