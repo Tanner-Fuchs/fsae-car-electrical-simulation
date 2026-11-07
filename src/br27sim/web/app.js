@@ -1450,11 +1450,11 @@
   // keep the screen sensible when the board changes: firmware boards need the EVE screen, Pis an HDMI/DSI one
   function piFitScreen() {
     const b = S.PI_BOARDS[DP.board], port = S.PI_DISPLAYS[DP.display].port;
-    if (!b.linux && !['spi', 'eve'].includes(port)) DP.display = '5in-eve';
-    if (b.linux && port === 'eve') DP.display = '5in-dsi';
+    if (!b.linux && !['spi', 'eve', 'uart'].includes(port)) DP.display = '5in-hmi';
+    if (b.linux && port === 'eve') DP.display = '5in-hmi';
   }
   const PI_PRESETS = {
-    teensy: { board: 'teensy41', display: '5in-eve', lang: 'c', holdUp: 'cap', bufS: 1, rootRO: false, bootTuned: false },
+    teensy: { board: 'teensy41', display: '5in-hmi', lang: 'c', holdUp: 'cap', bufS: 1, rootRO: false, bootTuned: false },
     piStock: { board: 'pi5', ramGB: 2, os: 'lite', lang: 'python', renderer: 'pygame', display: '5in-dsi', canIface: 'mcp2518fd', holdUp: 'none', bufS: 5, rootRO: false, bootTuned: false },
     piHard: { board: 'pi5', ramGB: 2, os: 'lite', lang: 'python', renderer: 'pygame', display: '5in-dsi', canIface: 'mcp2518fd', holdUp: 'supercap', bufS: 1, rootRO: true, bootTuned: true },
     piKiosk: { board: 'pi5', ramGB: 2, os: 'lite', lang: 'python', renderer: 'chromium', display: '5in-dsi', canIface: 'mcp2518fd', holdUp: 'none', bufS: 1, rootRO: true, bootTuned: true }

@@ -9,7 +9,7 @@
   // Teensy 4.1 dash: EVE screen on SPI, CAN1 + CAN Pal, GPS on Serial2, IMU on I2C, LoRa on SPI1, hold-up cap on the 12 V feed.
   // Pin numbers are the Teensy 4.1 pinout card; all I/O is 3.3 V and NOT 5 V tolerant.
   function drawTeensy(el, r) {
-    const o = r.o, disp = r.display, cut = r.sel.cut, hold = o.holdUp !== 'none';
+    const o = r.o, disp = r.display, cut = r.sel.cut, hold = o.holdUp !== 'none', hmi = disp.port === 'uart';
     let g = `<defs><marker id="pwDot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5"><circle cx="5" cy="5" r="4" fill="var(--ink)"/></marker></defs>`;
     const box = (x, y, w, h, title, sub, fill) => {
       g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${fill || 'var(--panel)'}" stroke="var(--ink-2)" stroke-width="1.5"/>`;
@@ -25,13 +25,13 @@
     box(20, 240, 220, 62, '5 V 5 A module (screen + dash)', ['Universal-Solder, 9–35 V in']);
     wire([[90, 92], [90, 130]], C.p5, 3, '+12 V', 96, 115); wire([[90, 192], [90, 240]], C.p5, 3, '+12 V held', 96, 220);
     wire([[200, 92], [200, 110], [270, 110], [270, 470], [330, 470]], C.sig, 1.5, 'power-fail divider → pin 41', 262, 492, 'end');
-    box(330, 10, 330, 120, disp.label.split(':')[0], ['SPI + INT + PD, 5 V from the module', 'the BT817 chip draws the pixels and reads touch'], '#1b1d22');
+    box(330, 10, 330, 120, hmi ? '5 in HMI ER-TFT050-6-5975' : disp.label.split(':')[0], hmi ? ['UART (JST SH 4-pin: GND, VDD, RXD, TXD), 5 V 0.36–0.52 A', 'pages built in UI_Editor-II, stored on the screen'] : ['SPI + INT + PD, 5 V from the module', 'the BT817 chip draws the pixels and reads touch'], '#1b1d22');
     g += `<rect x="350" y="66" width="200" height="54" rx="3" fill="#050505"/><text x="450" y="98" font-size="12" text-anchor="middle" fill="#c9a86a" font-family="var(--f-display)">BR27 DASH</text>`;
     box(330, 230, 300, 260, 'Teensy 4.1', ['C++ firmware, 600 MHz Cortex-M7', 'microSD in the on-board SDIO slot', 'VIN 5 V (cut the VIN/VUSB pad if', 'USB and 5 V are both connected)'], '#163a24');
     wire([[240, 270], [300, 270], [300, 330], [330, 330]], C.p5, 3, 'VIN', 296, 262, 'end');
     wire([[240, 286], [286, 286], [286, 346], [330, 346]], C.gnd, 3);
     wire([[240, 254], [310, 254], [310, 100], [330, 100]], C.p5, 2.5, 'screen 5 V', 314, 170);
-    wire([[560, 230], [560, 130]], C.sig, 2, 'SPI 11/12/13, CS 10, INT 6, PD 9', 568, 185);
+    wire([[560, 230], [560, 130]], C.sig, 2, hmi ? 'Serial1: TX1 1 → RXD, RX1 0 ← TXD' : 'SPI 11/12/13, CS 10, INT 6, PD 9', 568, 185);
     box(760, 230, 220, 62, 'Adafruit CAN Pal', ['TJA1051T/3, 120 Ω on (bus end)']);
     wire([[630, 270], [760, 270]], C.sig, 2, 'CTX1 22 / CRX1 23', 640, 262);
     wire([[980, 260], [995, 260], [995, 214]], C.can, 3, 'CAN_H / CAN_L', 990, 208, 'end');
@@ -46,12 +46,15 @@
       g += `<line x1="20" y1="${378 + k * 18}" x2="50" y2="${378 + k * 18}" stroke="${c}" stroke-width="3"/><text x="58" y="${382 + k * 18}" font-size="11" fill="var(--ink-2)">${t}</text>`;
     });
     el.svg.innerHTML = g;
-    el.note.textContent = `Teensy 4.1 · ${disp.label.split(':')[0]}`;
+    el.note.textContent = `Teensy 4.1 · ${hmi ? '5 in HMI ER-TFT050-6-5975' : disp.label.split(':')[0]}`;
     const rows = [
       ['5 V in', 'VIN', '—', '5 V 5 A module +', 'cut the VIN/VUSB pad, or USB programming back-feeds the 5 V rail'],
       ['GND', 'GND', '—', '5 V module −', ''],
-      ['EVE SPI MOSI / MISO / SCK', '11 / 12 / 13', 'SPI', 'EVE screen', 'up to ~30 MHz; keep the ribbon short and clamped'],
-      ['EVE chip select', '10', 'CS', 'EVE CS#', ''], ['EVE interrupt', '6', 'INT', 'EVE INT#', 'touch and display-list done'], ['EVE power down', '9', 'PD', 'EVE PD#', 'hold low to reset the screen'],
+      ...(hmi ? [['Screen data out', '1', 'TX1', 'HMI RXD (pin 3)', '3.3 V is enough (VIH 2.0 V); run it at 921600 baud (ships at 115200, max 1,382,400)'],
+        ['Screen data in', '0', 'RX1', 'HMI TXD (pin 4)', 'touch events and replies, 3.3 V levels'],
+        ['Screen power', '—', '—', 'HMI VDD / GND (pins 2 / 1)', '5 V from the module (4.8–5.5 V), 360 mA typ, 520 mA max']] : [
+        ['EVE SPI MOSI / MISO / SCK', '11 / 12 / 13', 'SPI', 'EVE screen', 'up to ~30 MHz; keep the ribbon short and clamped'],
+        ['EVE chip select', '10', 'CS', 'EVE CS#', ''], ['EVE interrupt', '6', 'INT', 'EVE INT#', 'touch and display-list done'], ['EVE power down', '9', 'PD', 'EVE PD#', 'hold low to reset the screen']]),
       ['CAN TX / RX', '22 / 23', 'CTX1 / CRX1', 'CAN Pal TX / RX', 'CAN Pal VCC 5 V, VIO 3.3 V'],
       ['CAN_H / CAN_L', 'CAN Pal terminal', '—', 'car CAN bus', '120 Ω on: the dash is the front end'],
       ...(o.gps ? [['GPS', '7 / 8', 'RX2 / TX2', 'GPS TX / RX', 'crossed over; UBX binary at 10–25 Hz'], ['GPS PPS', '32', 'interrupt', 'GPS PPS', 'lines up the log clock to GPS time']] : []),
@@ -68,10 +71,13 @@
       ['good', `5 V budget: Teensy and screen about ${fmt(r.sel.amps, 1)} A, CAN Pal and modules about ${fmt(amps - r.sel.amps, 2)} A: ${fmt(amps, 1)} A of the module's 5 A.`],
       [cut.clean ? 'good' : 'warn', cut.clean ? `On a power cut the hold-up gives ${fmt(cut.holdS, 2)} s; the power-fail interrupt needs about ${fmt(cut.needS, 2)} s to sync and close the log. Turn the screen backlight off first to stretch it.` : `With no hold-up the last ~${fmt(cut.lostS, 0)} s of log is lost on every switch-off. A 2,200 µF capacitor behind a diode on the 12 V feed is enough to close the file.`],
       ['warn', 'Teensy 4.1 pins are 3.3 V and not 5 V tolerant: use 3.3 V modules or level shifters, and never feed a 5 V signal into a pin.'],
-      ['info', 'The program lives in the Teensy\'s flash, so a power cut can\'t stop it booting; only the log file on the SD card is at risk.']
+      ['info', 'The program lives in the Teensy\'s flash, so a power cut can\'t stop it booting; only the log file on the SD card is at risk.'],
+      ...(hmi ? [['warn', 'The screen plugs in with a small JST SH cable: add strain relief and a dab of RTV or a cable tie so vibration can\'t unseat it.'],
+        ['info', 'The HMI screen stores its own pages, so the Teensy only sends the values that changed. Static pages can leave image sticking on IPS panels; change the screen now and then and dim it when parked.']] : [])
     ].map(([l, t]) => `<li class="${l}">${t}</li>`).join('');
     el.cfg.textContent = [
-      '// Libraries: FlexCAN_T4, SdFat (SDIO), an FT81x/BT81x EVE library, TinyGPSPlus or SparkFun u-blox, RadioLib',
+      hmi ? '// Libraries: FlexCAN_T4, SdFat (SDIO), TinyGPSPlus or SparkFun u-blox, RadioLib; screen pages made in UI_Editor-II' : '// Libraries: FlexCAN_T4, SdFat (SDIO), an FT81x/BT81x EVE library, TinyGPSPlus or SparkFun u-blox, RadioLib',
+      ...(hmi ? ['Serial1.begin(921600);                              // HMI screen: set the same baud in UI_Editor-II (ships at 115200)'] : []),
       'FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> can1;   // pins 22/23',
       'can1.begin(); can1.setBaudRate(1000000); can1.enableFIFO(); can1.enableFIFOInterrupt();',
       'SdFs sd; sd.begin(SdioConfig(FIFO_SDIO));          // built-in slot',
@@ -104,7 +110,7 @@
     box(20, 170, 220, 76, '5 V 5 A module (screen + dash)', ['Universal-Solder, 9–35 V in,', 'screw terminals [central 5 V supply]']);
     wire([[90, 92], [90, 170]], C.p5, 3, '', '+12 V', 96, 135); wire([[150, 92], [150, 170]], C.gnd, 3, '', 'GND', 156, 135);
     // screen
-    box(330, 10, 330, 130, `${disp.label.split('[')[0].trim()}`, [dsi ? 'DSI ribbon for video, 5 V from the module' : 'HDMI for video, USB for touch,', dsi ? '' : '5 V from the module (not the Pi\'s USB)'], '#1b1d22');
+    box(330, 10, 330, 130, `${disp.label.split('[')[0].trim()}`, disp.port === 'uart' ? ['UART commands; pages stored on the screen', '5 V from the module, 360 mA typ'] : [dsi ? 'DSI ribbon for video, 5 V from the module' : 'HDMI for video, USB for touch,', dsi ? '' : '5 V from the module (not the Pi\'s USB)'], '#1b1d22');
     g += `<rect x="350" y="74" width="200" height="56" rx="3" fill="#050505"/><text x="450" y="107" font-size="12" text-anchor="middle" fill="#c9a86a" font-family="var(--f-display)">BR27 DASH</text>`;
     // Pi
     const piLabel = `${b.label}${r.ramGB ? ` · ${r.ramGB >= 1 ? r.ramGB + ' GB' : r.ramGB * 1024 + ' MB'}` : ''}`;
@@ -117,7 +123,9 @@
     wire([[240, 226], [280, 226], [280, 316], [330, 316]], C.gnd, 3);
     wire([[240, 186], [300, 186], [300, 110], [330, 110]], C.p5, 2.5, '', 'screen 5 V', 304, 150);
     // video and touch
-    if (dsi) wire([[480, 230], [480, 140]], C.usb, 8, '', `DSI ribbon (${pi5 ? '22-pin' : '15-pin'})`, 490, 185);
+    const hmi = disp.port === 'uart';
+    if (hmi) wire([[600, 230], [600, 140]], C.usb, 2, '', 'USB-A → 3.3 V USB-UART → HMI RXD/TXD', 606, 190);
+    else if (dsi) wire([[480, 230], [480, 140]], C.usb, 8, '', `DSI ribbon (${pi5 ? '22-pin' : '15-pin'})`, 490, 185);
     else {
       wire([[460, 230], [460, 140]], C.hdmi, 5, '', `${hdmiPort} → HDMI`, 470, 175);
       wire([[600, 230], [600, 140]], C.usb, 2, '5 4', 'USB-A: touch', 606, 200);
@@ -165,8 +173,9 @@
     const rows = [
       ['5 V in', pi5 ? 'USB-C (or pins 2 + 4)' : 'USB (or pins 2 + 4)', '—', '5 V 5 A module +', 'USB-C pigtail keeps the Pi\'s input protection; pins 2/4 bypass it'],
       ['GND', 'USB-C (or pins 6 + 14)', '—', '5 V module −', ''],
-      ['Video', dsi ? 'DSI connector' : hdmiPort, '—', '5 in TFT', dsi ? 'ribbon, clamp it against vibration' : 'locking or glued connector against vibration'],
-      ...(dsi ? [] : [['Touch', 'USB-A', '—', '5 in TFT USB', 'touch only; the screen\'s 5 V comes from the module']]),
+      ...(hmi ? [['Screen data', 'USB-A', '—', '3.3 V USB-UART adapter → HMI RXD / TXD', 'appears as /dev/ttyUSB0; the Pi\'s own UART is used by the GPS']] : [
+        ['Video', dsi ? 'DSI connector' : hdmiPort, '—', '5 in TFT', dsi ? 'ribbon, clamp it against vibration' : 'locking or glued connector against vibration'],
+        ...(dsi ? [] : [['Touch', 'USB-A', '—', '5 in TFT USB', 'touch only; the screen\'s 5 V comes from the module']])]),
       ...(usbCan ? [['CAN', 'USB-A', '—', 'USB CAN adapter', 'shows up as can0 (gs_usb)']] : [
         ['CAN HAT SPI MOSI', 'pin 19', 'GPIO10', 'HAT', 'through the stacking header'], ['CAN HAT SPI MISO', 'pin 21', 'GPIO9', 'HAT', ''], ['CAN HAT SPI SCLK', 'pin 23', 'GPIO11', 'HAT', ''],
         ['CAN HAT chip select', 'pin 24', 'GPIO8 (CE0)', 'HAT', ''], ['CAN HAT interrupt', 'pin 22', 'GPIO25', 'HAT', 'check the HAT\'s pin map'], ['CAN HAT power', 'pins 1, 2, 6', '3.3 V, 5 V, GND', 'HAT', '']]),
@@ -204,7 +213,7 @@
       ...(o.touchButtons ? ['# MENU and CLEAR: on-screen buttons on the resistive touch screen'] : ['dtoverlay=gpio-key,gpio=6,active_low=1,gpio_pull=up,keycode=46,label="CLEAR"',
         'dtoverlay=gpio-key,gpio=13,active_low=1,gpio_pull=up,keycode=28,label="MENU"']));
     if (pi5) cfg.push('# only if the screen is powered from the Pi\'s USB', '# usb_max_current_enable=1');
-    if (!dsi) cfg.push('# if the 5 in screen shows the wrong size, add to cmdline.txt: video=HDMI-A-1:800x480@60D');
+    if (!dsi && !hmi) cfg.push('# if the 5 in screen shows the wrong size, add to cmdline.txt: video=HDMI-A-1:800x480@60D');
     cfg.push('', '# bring the bus up at boot (systemd-networkd or /etc/network/interfaces):', '# ip link set can0 up type can bitrate 1000000');
     el.cfg.textContent = cfg.join('\n');
   }
