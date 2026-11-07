@@ -263,48 +263,49 @@
       return g;
     }
     function footer(s) {
-      return `<rect y="456" width="800" height="24" fill="#0b0b0b"/>` + T(10, 473, MODES[mode], 13, `fill="${GOLD}" ${DISP} font-weight="700" letter-spacing="1"`) +
-        T(200, 473, `LAP ${lapNo()}/${SESSION_LAPS} · ${lapTxt(lapT())}`, 13, `fill="#bbb" ${MONO}`) +
-        `<circle cx="470" cy="468" r="5" fill="${RED}" opacity="${logging ? (Math.floor(t * 2) % 2 ? 1 : 0.35) : 0.15}"/>` + T(480, 473, logging ? 'LOG' : 'LOG OFF', 12, `fill="#ccc" ${MONO}`) +
-        (PI.o.lora ? T(560, 473, 'LoRa', 12, `fill="${(t * PI.o.loraHz) % 1 < 0.3 ? GRN : '#666'}" ${MONO}`) : '') +
-        T(790, 473, `CAN ${PI.fps}/s`, 12, `text-anchor="end" fill="${s.nodeOff ? AMB : GRN}" ${MONO}`);
+      // sizes are in screen pixels on the 800 × 480 panel (~7.4 px per mm): 18 px text is about 2.4 mm tall, the least that reads at arm's length
+      return `<rect y="456" width="800" height="24" fill="#0b0b0b"/>` + T(8, 476, MODES[mode], 21, `fill="${GOLD}" ${DISP} font-weight="700" letter-spacing="0.5"`) +
+        T(185, 475, `LAP ${lapNo()}/${SESSION_LAPS} · ${lapTxt(lapT())}`, 19, `fill="#ddd" ${MONO} font-weight="700"`) +
+        `<circle cx="452" cy="468" r="7" fill="${RED}" opacity="${logging ? (Math.floor(t * 2) % 2 ? 1 : 0.35) : 0.15}"/>` + T(464, 475, logging ? 'LOG' : 'LOG OFF', 18, `fill="#ddd" ${MONO} font-weight="700"`) +
+        (PI.o.lora ? T(560, 475, 'LoRa', 18, `fill="${(t * PI.o.loraHz) % 1 < 0.3 ? GRN : '#777'}" ${MONO} font-weight="700"`) : '') +
+        T(792, 475, `CAN ${PI.fps}/s`, 18, `text-anchor="end" fill="${s.nodeOff ? AMB : GRN}" ${MONO} font-weight="700"`);
     }
     function cell(x, y, w, h, label, val, col, big) {
       return `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h - 6}" rx="6" fill="#0f0f0f" stroke="#2a2a2a"/>` +
-        T(x + 14, y + 24, label, 14, 'fill="#9aa4b1" letter-spacing="1"') + T(x + w / 2, y + h / 2 + (big || 34) / 2 + 8, val, big || 34, `text-anchor="middle" fill="${col || '#fff'}" ${MONO} font-weight="700"`);
+        T(x + 12, y + 28, label, 20, 'fill="#b4bcc8" font-weight="700" letter-spacing="0.5"') + T(x + w / 2, y + h / 2 + (big || 42) / 2 + 10, val, big || 42, `text-anchor="middle" fill="${col || '#fff'}" ${MONO} font-weight="700"`);
     }
     const colTemp = (c, warn, crit) => (c >= crit ? RED : c >= warn ? AMB : '#fff');
     const sevCol = f => (f.sev === 'critical' ? RED : f.sev === 'warning' ? AMB : '#38bdf8');
     const cut = (txt, n) => (txt.length > n ? txt.slice(0, n - 1) + '…' : txt);
     function faultBox(x, y, w, h) {
       const act = activeFaults();
-      if (!act.length) return cell(x, y, w, h, 'WARNINGS', 'none', '#3a3a3a', 24);
+      if (!act.length) return cell(x, y, w, h, 'WARNINGS', 'none', '#4a4a4a', 28);
       const c = act[0], f = FAULTS[c], col = sevCol(f), blink = f.sev === 'critical' && Math.floor(t * 2) % 2 ? 0.75 : 1;
       if (act.length === 1) {
         return `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h - 6}" rx="6" fill="${col}" opacity="${blink}"/>` +
-          T(x + 12, y + 26, `⚠ ${c}`, 15, `fill="#000" font-weight="700" ${MONO}`) +
-          T(x + 12, y + 56, cut(f.name, 17), 17, 'fill="#000" font-weight="700"') + T(x + 12, y + 82, f.val(lastSig, UU), 17, `fill="#000" ${MONO}`);
+          T(x + 12, y + 28, `⚠ ${c}`, 20, `fill="#000" font-weight="700" ${MONO}`) +
+          T(x + 12, y + 58, cut(f.name, Math.floor((w - 24) / 11.5)), 21, 'fill="#000" font-weight="700"') + T(x + 12, y + 88, f.val(lastSig, UU), 21, `fill="#000" ${MONO} font-weight="700"`);
       }
       // several at once: one row each, most important on top
       let g = `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h - 6}" rx="6" fill="#0f0f0f" stroke="${col}" stroke-width="2"/>`;
       if (h < 150) {
         // short box: the most important fault on top, the rest as code chips under it
-        g += `<rect x="${x + 7}" y="${y + 7}" width="${w - 14}" height="30" rx="4" fill="${col}" opacity="${blink}"/>` +
-          T(x + 13, y + 27, c.slice(3), 14, `fill="#000" font-weight="700" ${MONO}`) + T(x + 54, y + 27, cut(f.name, Math.floor((w - 70) / 8.6)), 14, 'fill="#000" font-weight="700"');
-        const rest = act.slice(1), fit = Math.floor((w - 14) / 56), chips = rest.length > fit ? rest.slice(0, fit - 1) : rest;
-        chips.forEach((k, i) => { g += `<rect x="${x + 7 + i * 56}" y="${y + 42}" width="52" height="26" rx="4" fill="${sevCol(FAULTS[k])}"/>` + T(x + 33 + i * 56, y + 60, k.slice(3), 13, `text-anchor="middle" fill="#000" font-weight="700" ${MONO}`); });
-        if (chips.length < rest.length) g += T(x + 33 + chips.length * 56, y + 60, `+${rest.length - chips.length}`, 15, `text-anchor="middle" fill="#fff" font-weight="700" ${MONO}`);
-        return g + T(x + 9, y + h - 14, `${act.length} active · MENU › Fault log`, 11.5, 'fill="#aaa"');
+        g += `<rect x="${x + 7}" y="${y + 7}" width="${w - 14}" height="36" rx="4" fill="${col}" opacity="${blink}"/>` +
+          T(x + 13, y + 32, c.slice(3), 19, `fill="#000" font-weight="700" ${MONO}`) + T(x + 62, y + 32, cut(f.name, Math.floor((w - 76) / 10.5)), 19, 'fill="#000" font-weight="700"');
+        const rest = act.slice(1), fit = Math.floor((w - 14) / 62), chips = rest.length > fit ? rest.slice(0, fit - 1) : rest;
+        chips.forEach((k, i) => { g += `<rect x="${x + 7 + i * 62}" y="${y + 50}" width="58" height="34" rx="4" fill="${sevCol(FAULTS[k])}"/>` + T(x + 36 + i * 62, y + 74, k.slice(3), 19, `text-anchor="middle" fill="#000" font-weight="700" ${MONO}`); });
+        if (chips.length < rest.length) g += T(x + 36 + chips.length * 62, y + 74, `+${rest.length - chips.length}`, 20, `text-anchor="middle" fill="#fff" font-weight="700" ${MONO}`);
+        return g;
       }
-      const rowH = 33, n = Math.floor((h - 12) / rowH), show = act.length > n ? n - 1 : act.length;
-      const chars = Math.floor((w - 70) / 8.6);
+      const rowH = 38, n = Math.floor((h - 12) / rowH), show = act.length > n ? n - 1 : act.length;
+      const chars = Math.floor((w - 76) / 10.5);
       act.slice(0, show).forEach((k, i) => {
         const fk = FAULTS[k], ry = y + 6 + i * rowH;
         g += `<rect x="${x + 7}" y="${ry}" width="${w - 14}" height="${rowH - 3}" rx="4" fill="${sevCol(fk)}" opacity="${i === 0 ? blink : 1}"/>` +
-          T(x + 13, ry + rowH * 0.66, k.slice(3), rowH > 24 ? 14 : 12, `fill="#000" font-weight="700" ${MONO}`) +
-          T(x + 54, ry + rowH * 0.66, cut(fk.name, chars), rowH > 24 ? 14 : 12, 'fill="#000" font-weight="700"');
+          T(x + 13, ry + rowH * 0.66, k.slice(3), 19, `fill="#000" font-weight="700" ${MONO}`) +
+          T(x + 62, ry + rowH * 0.66, cut(fk.name, chars), 19, 'fill="#000" font-weight="700"');
       });
-      if (show < act.length) g += T(x + 13, y + 6 + show * rowH + rowH * 0.66, `+${act.length - show} more (MENU › Fault log)`, 12, 'fill="#ccc"');
+      if (show < act.length) g += T(x + 13, y + 6 + show * rowH + rowH * 0.66, `+${act.length - show} more`, 19, 'fill="#ddd" font-weight="700"');
       return g;
     }
     function faultBar() {
@@ -312,12 +313,12 @@
       if (!act.length) return '';
       const c = act[0], f = FAULTS[c], rest = act.slice(1), chips = rest.slice(0, 4);
       let g = `<rect x="0" y="414" width="800" height="40" fill="${sevCol(f)}"/>` +
-        T(14, 441, `⚠ ${c}  ${cut(f.name, rest.length ? 20 : 40)}  ${f.val(lastSig, UU)}`, rest.length ? 16 : 19, `fill="#000" font-weight="700" ${MONO}`);
+        T(12, 442, `⚠ ${c} ${cut(f.name, rest.length ? 16 : 34)}  ${f.val(lastSig, UU)}`, rest.length ? 19 : 22, `fill="#000" font-weight="700" ${MONO}`);
       chips.forEach((k, i) => {
         const x = 800 - (chips.length - i) * 62 - (rest.length > 4 ? 44 : 4);
-        g += `<rect x="${x}" y="419" width="58" height="30" rx="4" fill="${sevCol(FAULTS[k])}" stroke="#000" stroke-width="1.5"/>` + T(x + 29, 440, k.slice(3), 14, `text-anchor="middle" fill="#000" font-weight="700" ${MONO}`);
+        g += `<rect x="${x}" y="419" width="58" height="30" rx="4" fill="${sevCol(FAULTS[k])}" stroke="#000" stroke-width="1.5"/>` + T(x + 29, 441, k.slice(3), 19, `text-anchor="middle" fill="#000" font-weight="700" ${MONO}`);
       });
-      if (rest.length > 4) g += T(796, 440, `+${rest.length - 4}`, 15, `text-anchor="end" fill="#000" font-weight="700" ${MONO}`);
+      if (rest.length > 4) g += T(796, 441, `+${rest.length - 4}`, 20, `text-anchor="end" fill="#000" font-weight="700" ${MONO}`);
       return g;
     }
 
@@ -341,9 +342,10 @@
     const touchFit = (g, s, always) => (always || PI.o.touchButtons ? shiftLights(s.rpm) + `<g transform="translate(44 46) scale(0.89)">${g}</g>` : g);
     function modeTires(s) {
       let g = `<rect width="800" height="456" fill="#050505"/>`;
-      g += T(20, 40, 'BRAKE BIAS', 16, 'fill="#9aa4b1" letter-spacing="1"') + T(20, 120, `${fmt(s.biasPct, 0)}%`, 76, `fill="#fff" font-weight="700" ${MONO}`) + T(20, 146, 'front', 16, 'fill="#9aa4b1"');
-      g += T(20, 220, 'FRONT BRAKE P', 14, 'fill="#9aa4b1"') + T(20, 258, pr(s.brakeF), 32, `fill="#fff" ${MONO}`);
-      g += T(20, 320, 'REAR BRAKE P', 14, 'fill="#9aa4b1"') + T(20, 358, s.brakeR == null ? 'FAULT' : pr(s.brakeR), 32, `fill="${s.brakeR == null ? AMB : '#fff'}" ${MONO}`);
+      const lb = 'fill="#b4bcc8" font-weight="700" letter-spacing="0.5"';
+      g += T(20, 40, 'BRAKE BIAS', 22, lb) + T(20, 118, `${fmt(s.biasPct, 0)}%`, 76, `fill="#fff" font-weight="700" ${MONO}`) + T(20, 150, 'front', 22, lb);
+      g += T(20, 222, 'FRONT BRAKE', 22, lb) + T(20, 266, pr(s.brakeF), 40, `fill="#fff" ${MONO} font-weight="700"`);
+      g += T(20, 330, 'REAR BRAKE', 22, lb) + T(20, 374, s.brakeR == null ? 'FAULT' : pr(s.brakeR), 40, `fill="${s.brakeR == null ? AMB : '#fff'}" ${MONO} font-weight="700"`);
       g += `<rect x="440" y="60" width="160" height="350" rx="70" fill="none" stroke="#555" stroke-width="3"/><line x1="470" y1="120" x2="570" y2="120" stroke="#333" stroke-width="2"/><line x1="470" y1="350" x2="570" y2="350" stroke="#333" stroke-width="2"/>`;
       const pos = [[392, 80, 'FL', 'end', 370], [608, 80, 'FR', 'start', 690], [392, 300, 'RL', 'end', 370], [608, 300, 'RR', 'start', 690]];
       pos.forEach(([x, y, nm, anchor, tx], k) => {
@@ -354,17 +356,17 @@
           const order = k % 2 === 0 ? [2, 1, 0] : [0, 1, 2], lab = ['I', 'C', 'O'];
           g += `<clipPath id="tz${UID}${k}"><rect x="${x}" y="${y}" width="40" height="90" rx="8"/></clipPath><g clip-path="url(#tz${UID}${k})" opacity="0.9">` +
             order.map((z, n) => `<rect x="${x + n * 40 / 3}" y="${y}" width="${40 / 3 + 0.5}" height="90" fill="${heat(tr.z[z])}"/>`).join('') + '</g>';
-          const xs = k % 2 === 0 ? [266, 312, 358] : [680, 723, 766];
-          g += T(k % 2 === 0 ? 370 : 690, y + 18, nm, 16, `text-anchor="${anchor}" fill="${GOLD}" font-weight="700"`);
-          order.forEach((z, n) => { g += T(xs[n], y + 36, lab[z], 11, 'text-anchor="middle" fill="#9aa4b1"') + T(xs[n], y + 58, fmt(tv(tr.z[z]), 0), 20, `text-anchor="middle" fill="${tcol(tr.z[z]) === GRN ? '#fff' : tcol(tr.z[z])}" ${MONO} font-weight="700"`); });
-          g += T(tx, y + 84, `${fmt(U.IMP() ? tr.psi : tr.psi / 14.5038, U.IMP() ? 1 : 2)} ${U.IMP() ? 'psi' : 'bar'}`, 18, `text-anchor="${anchor}" fill="#ccc" ${MONO}`);
+          const xs = k % 2 === 0 ? [246, 300, 354] : [674, 727, 780];
+          g += T(k % 2 === 0 ? 370 : 690, y + 20, nm, 22, `text-anchor="${anchor}" fill="${GOLD}" font-weight="700"`);
+          order.forEach((z, n) => { g += T(xs[n], y + 42, lab[z], 18, 'text-anchor="middle" fill="#b4bcc8" font-weight="700"') + T(xs[n], y + 66, fmt(tv(tr.z[z]), 0), 22, `text-anchor="middle" fill="${tcol(tr.z[z]) === GRN ? '#fff' : tcol(tr.z[z])}" ${MONO} font-weight="700"`); });
+          g += T(tx, y + 94, `${fmt(U.IMP() ? tr.psi : tr.psi / 14.5038, U.IMP() ? 1 : 2)} ${U.IMP() ? 'psi' : 'bar'}`, 22, `text-anchor="${anchor}" fill="#ddd" ${MONO} font-weight="700"`);
           return;
         }
         g += `<rect x="${x}" y="${y}" width="40" height="90" rx="8" fill="${col}" opacity="0.85"/>`;
-        g += T(tx, y + 18, nm, 16, `text-anchor="${anchor}" fill="${GOLD}" font-weight="700"`) + T(tx, y + 50, U.tp(tr.c), 26, `text-anchor="${anchor}" fill="#fff" ${MONO}`) +
-          T(tx, y + 80, `${fmt(U.IMP() ? tr.psi : tr.psi / 14.5038, U.IMP() ? 1 : 2)} ${U.IMP() ? 'psi' : 'bar'}`, 20, `text-anchor="${anchor}" fill="#ccc" ${MONO}`);
+        g += T(tx, y + 20, nm, 22, `text-anchor="${anchor}" fill="${GOLD}" font-weight="700"`) + T(tx, y + 56, U.tp(tr.c), 32, `text-anchor="${anchor}" fill="#fff" ${MONO} font-weight="700"`) +
+          T(tx, y + 90, `${fmt(U.IMP() ? tr.psi : tr.psi / 14.5038, U.IMP() ? 1 : 2)} ${U.IMP() ? 'psi' : 'bar'}`, 24, `text-anchor="${anchor}" fill="#ddd" ${MONO} font-weight="700"`);
       });
-      g += (PI.o.tireZones ? T(400, 30, `tire temps ${U.IMP() ? '°F' : '°C'}: I inner · C centre · O outer`, 13, 'text-anchor="middle" fill="#9aa4b1"') : '') + T(400, 440, 'tire pressure / temperature: mock values until sensors are chosen', 12, 'text-anchor="middle" fill="#555"');
+      g += PI.o.tireZones ? T(520, 438, `${U.IMP() ? '°F' : '°C'} · I inner · C centre · O outer`, 18, 'text-anchor="middle" fill="#b4bcc8"') : '';
       return touchFit(g, s, true) + faultBar() + footer(s);
     }
     function modeDebug(s) {
@@ -375,28 +377,30 @@
         ['FUEL LEVEL', `${fmt(s.fuelL, 2)} L`], ['BRAKE F', pr(s.brakeF)], ['BRAKE R', s.brakeR == null ? 'FAULT' : pr(s.brakeR)], ['BIAS', `${fmt(s.biasPct, 1)} %`],
         ['WS FL', fmt(spd(s.wheels[0]), 1)], ['WS FR', s.nodeOff === 'FR' ? 'OFFLINE' : fmt(spd(s.wheels[1]), 1)], ['WS RL', fmt(spd(s.wheels[2]), 1)], ['WS RR', fmt(spd(s.wheels[3]), 1)],
         ...['FL', 'FR', 'RL', 'RR'].map((nm, k) => [PI.o.tireZones ? `TIRE ${nm} I/C/O` : `TIRE ${nm}`, PI.o.tireZones ? s.tires[k].z.map(c => fmt(tv(c), 0)).join('/') : U.tp(s.tires[k].c)]),
-        ['CAN', `${PI.fps}/s`], ['CPU', `${fmt(PI.sel.busiest, 0)} % max`], ['RAM', `${fmt(PI.sel.ramPct, 0)} %`], ['FAULTS', `${activeFaults().length}`]
+        ['CAN', `${PI.fps}/s`], ['CPU MAX', `${fmt(PI.sel.busiest, 0)} %`], ['RAM', `${fmt(PI.sel.ramPct, 0)} %`], ['FAULTS', `${activeFaults().length}`]
       ];
       let g = `<rect width="800" height="456" fill="#050505"/>`;
       items.forEach(([k, v], n) => {
         const c = n % 4, r = Math.floor(n / 4), x = 6 + c * 197, y = 8 + r * 58;
-        g += `<rect x="${x}" y="${y}" width="191" height="52" rx="4" fill="#0f0f0f" stroke="#262626"/>` + T(x + 8, y + 17, k, 12, 'fill="#9aa4b1"') + T(x + 183, y + 43, v, 20, `text-anchor="end" fill="${/FAULT|OFFLINE/.test(v) ? AMB : '#fff'}" ${MONO}`);
+        g += `<rect x="${x}" y="${y}" width="191" height="52" rx="4" fill="#0f0f0f" stroke="#262626"/>` + T(x + 7, y + 19, k, 16, 'fill="#b4bcc8" font-weight="700"') + T(x + 184, y + 47, v, 25, `text-anchor="end" fill="${/FAULT|OFFLINE/.test(v) ? AMB : '#fff'}" ${MONO} font-weight="700"`);
       });
       return touchFit(g, s) + faultBar() + footer(s);
     }
     // driver's autocross sketch: speed + gear in one centre panel, four panels around it, faults bottom right
     function modeAutocross(s) {
       const box = (x, y, w, h) => `<rect x="${x + 3}" y="${y + 3}" width="${w - 6}" height="${h - 6}" rx="6" fill="#0f0f0f" stroke="#2a2a2a"/>`;
-      const pair = (x, y, label, rows) => box(x, y, 230, 205) + T(x + 14, y + 26, label, 14, 'fill="#9aa4b1" letter-spacing="1"') +
-        rows.map(([k, v, c], n) => T(x + 16, y + 92 + n * 72, k, 15, 'fill="#9aa4b1"') + T(x + 214, y + 92 + n * 72, v, 36, `text-anchor="end" fill="${c}" ${MONO} font-weight="700"`)).join('');
+      const lb = 'fill="#b4bcc8" font-weight="700" letter-spacing="0.5"';
+      const pair = (x, y, rows) => box(x, y, 230, 205) +
+        rows.map(([k, v, c], n) => T(x + 15, y + 32 + n * 96, k, 20, lb) + T(x + 215, y + 82 + n * 96, v, 44, `text-anchor="end" fill="${c}" ${MONO} font-weight="700"`)).join('') +
+        `<line x1="${x + 14}" y1="${y + 102}" x2="${x + 216}" y2="${y + 102}" stroke="#2a2a2a" stroke-width="2"/>`;
       return shiftLights(s.rpm) +
-        pair(0, 46, 'TEMPS', [['WATER', U.tp(s.waterC), colTemp(s.waterC, 100, 110)], ['OIL', U.tp(s.oilC), colTemp(s.oilC, 120, 130)]]) +
+        pair(0, 46, [['WATER TEMP', U.tp(s.waterC), colTemp(s.waterC, 100, 110)], ['OIL TEMP', U.tp(s.oilC), colTemp(s.oilC, 120, 130)]]) +
         cell(0, 251, 230, 205, 'OIL P', pr(s.oilP), s.oilP < 1.0 ? RED : s.oilP < 1.5 ? AMB : '#fff', 54) +
-        box(230, 46, 340, 410) + T(400, 72, `SPEED (${su()})`, 14, 'text-anchor="middle" fill="#9aa4b1" letter-spacing="1"') +
+        box(230, 46, 340, 410) + T(400, 76, `SPEED (${su()})`, 20, `text-anchor="middle" ${lb}`) +
         T(400, 190, fmt(spd(s.v), 0), 120, `text-anchor="middle" fill="#fff" ${MONO} font-weight="700"`) +
-        `<line x1="250" y1="236" x2="550" y2="236" stroke="#2a2a2a" stroke-width="2"/>` + T(400, 262, 'GEAR', 14, 'text-anchor="middle" fill="#9aa4b1" letter-spacing="1"') +
+        `<line x1="250" y1="236" x2="550" y2="236" stroke="#2a2a2a" stroke-width="2"/>` + T(400, 264, 'GEAR', 20, `text-anchor="middle" ${lb}`) +
         T(400, 420, s.gear || 'N', 170, `text-anchor="middle" fill="#fff" ${MONO} font-weight="700"`) +
-        pair(570, 46, 'POWER / FUEL', [['VOLTS', `${fmt(s.volts, 1)} V`, s.volts < 12.8 || s.volts > 15 ? AMB : '#fff'], ['FUEL', `${fmt(s.fuelL, 2)} L`, s.fuelL < 1 ? AMB : '#fff']]) +
+        pair(570, 46, [['VOLTAGE', `${fmt(s.volts, 1)} V`, s.volts < 12.8 || s.volts > 15 ? AMB : '#fff'], ['FUEL LEVEL', `${fmt(s.fuelL, 2)} L`, s.fuelL < 1 ? AMB : '#fff']]) +
         faultBox(570, 251, 230, 205) +
         footer(s);
     }
@@ -407,26 +411,26 @@
         T(400, 110, crit ? '⚠ STOP SAFELY' : '⚠ WARNING', 40, `text-anchor="middle" fill="#000" font-weight="700" ${DISP} letter-spacing="2"`) +
         T(400, 200, f.name, 60, `text-anchor="middle" fill="#000" font-weight="700" ${DISP}`) +
         T(400, 268, f.val(s, UU), 48, `text-anchor="middle" fill="#000" ${MONO} font-weight="700"`) +
-        T(400, 306, `${code}${n > 1 ? `   ·   ${n - 1} more active` : ''}`, 20, `text-anchor="middle" fill="#000" ${MONO}`) +
+        T(400, 308, `${code}${n > 1 ? `   ·   ${n - 1} more active` : ''}`, 24, `text-anchor="middle" fill="#000" ${MONO} font-weight="700"`) +
         `<rect x="0" y="372" width="800" height="108" fill="#000" opacity="0.85"/>` +
         T(200, 450, s.gear || 'N', 72, `text-anchor="middle" fill="#fff" ${MONO} font-weight="700"`) + T(560, 432, `${fmt(spd(s.v), 0)} ${su()}`, 48, `text-anchor="middle" fill="#fff" ${MONO}`) +
-        T(400, 350, `CLEAR, or it moves to the warning box in ${fmt(Math.max(0, POP_S[f.sev] - (t - (fs[code].showT ?? t))), 1)} s${crit ? ' · back every 15 s while active' : ''}`, 17, `text-anchor="middle" fill="#000" font-weight="600"`);
+        T(400, 352, `CLEAR to hide · to warning box in ${fmt(Math.max(0, POP_S[f.sev] - (t - (fs[code].showT ?? t))), 1)} s${crit ? ' · back every 15 s' : ''}`, 21, `text-anchor="middle" fill="#000" font-weight="700"`);
     }
 
     // ---------------------------------------------------------------- menu and pages
-    const status = () => `<rect width="800" height="${PI.o.touchButtons ? 46 : 34}" fill="#0b0b0b"/>` + T(PI.o.touchButtons ? 130 : 14, 23, 'BR27 DASH', 15, `fill="${GOLD}" ${DISP} font-weight="700"`) + T(PI.o.touchButtons ? 670 : 786, 23, `LAP ${lapNo()}/${SESSION_LAPS} · CAN ${PI.fps}/s`, 13, `text-anchor="end" fill="#9aa4b1" ${MONO}`);
+    const status = () => `<rect width="800" height="${PI.o.touchButtons ? 46 : 34}" fill="#0b0b0b"/>` + T(PI.o.touchButtons ? 130 : 14, 26, 'BR27 DASH', 19, `fill="${GOLD}" ${DISP} font-weight="700"`) + T(PI.o.touchButtons ? 672 : 786, 26, `LAP ${lapNo()}/${SESSION_LAPS} · CAN ${PI.fps}/s`, 17, `text-anchor="end" fill="#b4bcc8" ${MONO} font-weight="700"`);
     const hint = (a, b, c) => PI.o.touchButtons
-      ? `<rect y="446" width="800" height="34" fill="#0b0b0b"/>` + T(400, 468, `MODE: ${a} · tap an item or SELECT · BACK: ${c || 'back'}`, 13, `text-anchor="middle" fill="#9aa4b1" ${MONO}`)
-      : `<rect y="446" width="800" height="34" fill="#0b0b0b"/>` + T(14, 468, `MODE: ${a}`, 13, `fill="#9aa4b1" ${MONO}`) + T(400, 468, `CLEAR: ${c || 'back'}`, 13, `text-anchor="middle" fill="#9aa4b1" ${MONO}`) + T(786, 468, `MENU: ${b}`, 13, `text-anchor="end" fill="#9aa4b1" ${MONO}`);
+      ? `<rect y="446" width="800" height="34" fill="#0b0b0b"/>` + T(400, 470, `MODE: ${a} · tap or SELECT · BACK: ${c || 'back'}`, 18, `text-anchor="middle" fill="#b4bcc8" ${MONO} font-weight="700"`)
+      : `<rect y="446" width="800" height="34" fill="#0b0b0b"/>` + T(10, 470, `MODE: ${a}`, 18, `fill="#b4bcc8" ${MONO} font-weight="700"`) + T(415, 470, `CLEAR: ${c || 'back'}`, 18, `text-anchor="middle" fill="#b4bcc8" ${MONO} font-weight="700"`) + T(790, 470, `MENU: ${b}`, 18, `text-anchor="end" fill="#b4bcc8" ${MONO} font-weight="700"`);
     const head = title => status() + T(30, 76, title, 26, `fill="${GOLD}" ${DISP} font-weight="700"`);
     function menu() {
       let g = head('MENU');
       MENU.forEach((m, k) => {
         const y = 92 + k * 50, on = k === menuIdx;
         g += `<g data-tap="${k}" style="cursor:pointer"><rect x="30" y="${y}" width="740" height="42" rx="6" fill="${on ? MAROON : '#141414'}" stroke="${on ? GOLD : '#262626'}" stroke-width="${on ? 2 : 1}"/>` +
-          T(50, y + 28, m, 20, `fill="${on ? '#fff' : '#ccc'}"`) + (m === 'Fault log' && activeFaults().length ? T(700, y + 28, `${activeFaults().length} active`, 15, `text-anchor="end" fill="${AMB}" ${MONO}`) : '') + (on ? T(750, y + 29, '›', 26, `text-anchor="end" fill="${GOLD}"`) : '') + '</g>';
+          T(50, y + 29, m, 23, `fill="${on ? '#fff' : '#ddd'}" font-weight="600"`) + (m === 'Fault log' && activeFaults().length ? T(700, y + 29, `${activeFaults().length} active`, 19, `text-anchor="end" fill="${AMB}" ${MONO}`) : '') + (on ? T(750, y + 29, '›', 26, `text-anchor="end" fill="${GOLD}"`) : '') + '</g>';
       });
-      return g + hint('move down', 'select', 'back to dash');
+      return g + hint('down', 'select', 'dash');
     }
     function frameBytes(m, i, cnt, s) {
       const b = [0, 0, 0, 0, 0, 0, 0, 0];
