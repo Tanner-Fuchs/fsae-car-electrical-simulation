@@ -146,6 +146,15 @@ td.wrap { white-space: normal; min-width: 220px; }
 .dev-glass .dev-px:not([hidden]) + svg { position: absolute; inset: 0; height: 100%; }
 .dev-bezel svg { display: block; width: 100%; height: auto; border-radius: 4px; user-select: none; -webkit-user-select: none; }
 .dev-btns { display: grid; gap: 12px; }
+.dev-size { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-bottom: 8px; font-size: 12px; }
+.dev-size-note { color: var(--ink-3); font-family: var(--f-mono); }
+.dev-size button { font: inherit; font-size: 12px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line, #ccc); background: var(--panel, #fff); color: var(--ink); cursor: pointer; }
+.dev-size button[aria-pressed="true"] { background: var(--maroon, #501214); border-color: var(--maroon, #501214); color: #fff; }
+.dev-cal { display: grid; gap: 6px; margin-bottom: 10px; font-size: 12px; color: var(--ink-2); }
+.dev-cal input { width: 100%; max-width: 420px; }
+.dev-card { height: 14px; background: repeating-linear-gradient(90deg, var(--gold, #8d734a) 0 10px, #c9a86a 10px 20px); border-radius: 3px; }
+.dev { overflow-x: auto; }
+.dev .dev-bezel { justify-self: center; }
 .dev-btns button { display: grid; gap: 2px; justify-items: center; padding: 12px 8px; border-radius: 999px; border: 3px solid #333; background: radial-gradient(circle at 50% 35%, #3a3a3a, #111); color: #fff; cursor: pointer; font: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .dev-btns button:active { transform: translateY(1px); border-color: var(--gold, #8d734a); }
 .dev-btns button b { font-family: var(--f-display); font-size: 17px; letter-spacing: 1px; } .dev-btns button span { font-size: 10.5px; color: #bbb; text-align: center; }
@@ -858,19 +867,26 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
 <section class="view" id="v-dash" hidden>
   <div class="view-head">
     <h2>Dash test</h2>
-    <p class="lede">How hard a Raspberry Pi works as the dash computer: logging every CAN frame, drawing the driver's display, a live CAN viewer and LoRa telemetry to the pits. The mock screen plays the simulated lap through the programs that would run on the board. Pick a board and the software on the left; the table says which boards stay inside the team's spec. Costs per task are estimates until the real software is measured on the bench.</p>
+    <p class="lede">How hard a Raspberry Pi or a Teensy 4.1 works as the dash computer: logging every CAN frame, drawing the driver's display, a live CAN viewer and LoRa telemetry to the pits. The mock screen plays the simulated lap through the programs that would run on the board. Pick a board and the software on the left; the table says which boards stay inside the team's spec. Costs per task are estimates until the real software is measured on the bench.</p>
   </div>
   <div class="split">
     <aside class="rail">
       <h3>Dash screen options</h3>
       <label class="chk"><input type="checkbox" id="d_pixelTrue"> Show the screen at its real resolution</label>
       <span class="src" style="font-size:11px;color:var(--ink-3);margin-top:-8px">Drawn at the display's own pixel count (800 × 480 on the 5 in) and scaled up with square pixels.</span>
-      <label class="chk"><input type="checkbox" id="d_touchButtons"> Capacitive touch: MENU and CLEAR on the screen</label>
+      <label class="chk"><input type="checkbox" id="d_touchButtons"> Touch screen (resistive, works with gloves): MENU and CLEAR on the screen</label>
       <span class="src" style="font-size:11px;color:var(--ink-3);margin-top:-8px">Tap MENU (top left) and CLEAR (top right) on the screen, either side of the rev lights; only MODE stays a wheel button.</span>
       <label class="chk"><input type="checkbox" id="d_revPaws"> Rev lights as bobcat paw prints</label>
       <label class="chk"><input type="checkbox" id="d_tireZones"> Tire temps: inner / centre / outer</label>
       <span class="src" style="font-size:11px;color:var(--ink-3);margin-top:-8px">From IR arrays. Check tires and Debug show all three zones per tire; adds 4 CAN frames at 10 Hz.</span>
       <h3>Board</h3>
+      <div class="field"><label for="piPreset">Quick setup</label><select id="piPreset">
+        <option value="">Choose a setup from the comparison sheet…</option>
+        <option value="teensy">Teensy 4.1 + 5 in HMI screen (ER-TFT050), C++ (recommended)</option>
+        <option value="piStock">Pi 5 2 GB, stock Pi OS, Python</option>
+        <option value="piHard">Pi 5 2 GB hardened: read-only root, tuned boot, supercap</option>
+        <option value="piKiosk">Pi 5 2 GB running the simulator's dash page in Chromium</option>
+      </select><span class="src">Sets the board, screen, software and power-cut options below in one go.</span></div>
       <div class="field"><label for="d_board">Board</label><select id="d_board"></select><span class="src" id="d_boardNote"></span></div>
       <div class="field"><label for="d_ramGB">Memory</label><select id="d_ramGB"></select><span class="src" id="d_ramGBNote"></span></div>
       <h3>Software</h3>
@@ -884,6 +900,11 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
       <div class="field"><label for="d_canIface">CAN interface</label><select id="d_canIface"></select><span class="src" id="d_canIfaceNote"></span></div>
       <div class="field"><label for="d_logFormat">Log format</label><select id="d_logFormat"><option value="binary">Binary (raw frames, decode later)</option><option value="csv">CSV text</option></select></div>
       <div class="field"><label for="d_bufS">Write buffer <output id="o_d_bufS"></output></label><input type="range" id="d_bufS" min="1" max="30" step="1"><span class="src">Seconds of data held in memory between SD writes</span></div>
+      <h3>Power cut (master switch off)</h3>
+      <div class="field"><label for="d_holdUp">Hold-up energy</label><select id="d_holdUp"></select><span class="src">On the dash's 12 V feed behind a diode, so the board can close its log after the master switch opens.</span></div>
+      <label class="chk"><input type="checkbox" id="d_rootRO"> Read-only root file system (Pi)</label>
+      <label class="chk"><input type="checkbox" id="d_bootTuned"> Tuned boot: trimmed bootloader, kernel and services (Pi)</label>
+      <h3>Viewer and sensors</h3>
       <label class="chk"><input type="checkbox" id="d_viewer"> Live CAN viewer</label>
       <div class="field"><label for="d_viewerHistS">Viewer history <output id="o_d_viewerHistS"></output></label><input type="range" id="d_viewerHistS" min="10" max="300" step="10"></div>
       <label class="chk"><input type="checkbox" id="d_imu"> IMU on the dash computer (I2C)</label>
@@ -912,11 +933,11 @@ nav.tabs a[aria-current="page"] { border-bottom-color: var(--gold); }
         <p class="foot">It boots, then goes straight to the dash. <b>MODE</b> (button 1) steps through the driver's displays: Endurance, Check tires, Debug and Autocross, from the driver's dash preferences sheet. <b>CLEAR</b> (button 2) clears a warning. <b>MENU</b> opens CAN data, the fault log, logging, system load, LoRa and settings. In the menu, MODE moves down, MENU selects and CLEAR goes back; you can also tap the screen. A new fault takes the whole screen, even over the menu: a yellow warning for 1.5 s, a red critical fault for up to 8 s. Then, or sooner if you press CLEAR, it moves to the warning box until it goes away. A red fault comes back to the full screen every 15 s while it is still active. Each session is 5 laps, then it starts over. Oil, water, fuel and tire values are mock signals until those sensors are chosen.</p>
       </div>
       <div class="card">
-        <div class="card-head"><h3>Wiring: Pi, buttons, screen, CAN HAT and power</h3><span class="note" id="pwNote"></span></div>
+        <div class="card-head"><h3 id="pwTitle">Wiring: Pi, buttons, screen, CAN HAT and power</h3><span class="note" id="pwNote"></span></div>
         <div class="scroll"><svg id="pwSvg" viewBox="0 0 1000 640" style="width:100%;min-width:720px;height:auto;display:block" role="img" aria-label="Wiring schematic for the dash computer"></svg></div>
         <div class="scroll"><table id="pwPins"></table></div>
         <ul class="flags" id="pwFlags"></ul>
-        <p class="foot">Setup in <code>/boot/firmware/config.txt</code>:</p>
+        <p class="foot" id="pwCfgHead">Setup in <code>/boot/firmware/config.txt</code>:</p>
         <pre class="cfg" id="pwCfg"></pre>
       </div>
       <div class="card">

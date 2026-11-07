@@ -40,7 +40,7 @@ def test_chromium_desktop_breaks_1gb():
 
 
 def test_pico_needs_spi_screen():
-    assert not rows(simulate_pi(), "pico")[None]["ok"]
+    assert not rows(simulate_pi(None, {"display": "5in-dsi"}), "pico")[None]["ok"]
     r = simulate_pi(None, {"display": "480x320", "board": "pico"})
     assert r["sel"]["key"] == "pico" and r["sel"]["usedKB"] < 264
 
@@ -56,3 +56,37 @@ def test_tire_zones_add_can_frames():
     off, on = simulate_pi(o={"tireZones": False}), simulate_pi(o={"tireZones": True})
     assert on["fps"] == off["fps"] + 40
     assert sum("I/C/O" in m["name"] for m in on["msgs"]) == 4
+
+
+def test_teensy_needs_eve_screen_and_boots_fast():
+    assert not rows(simulate_pi(None, {"display": "5in-dsi"}), "teensy41")[None]["ok"]          # DSI screen: no
+    t = rows(simulate_pi(None, {"display": "5in-eve", "bufS": 1}), "teensy41")[None]
+    assert t["ok"] and t["bootS"] < 1 and t["usedKB"] < 1024 * 0.7
+    assert not rows(simulate_pi(None, {"display": "5in-eve"}), "pi5")[2]["ok"]   # a Pi can't use the EVE screen here
+
+
+def test_power_cut_hold_up_and_read_only_root():
+    stock = rows(simulate_pi(), "pi5")[2]["cut"]
+    assert not stock["clean"] and not stock["osSafe"]
+    ro = rows(simulate_pi(None, {"rootRO": True}), "pi5")[2]["cut"]
+    assert ro["osSafe"] and not ro["clean"]
+    sc = rows(simulate_pi(None, {"holdUp": "supercap"}), "pi5")[2]["cut"]
+    assert sc["clean"] and sc["osSafe"]
+    t = rows(simulate_pi(None, {"display": "5in-eve", "holdUp": "cap"}), "teensy41")[None]["cut"]
+    assert t["clean"] and t["osSafe"] and t["lostS"] == 0
+
+
+def test_tuned_boot_is_faster():
+    assert rows(simulate_pi(None, {"bootTuned": True}), "pi5")[2]["bootS"] < rows(simulate_pi(), "pi5")[2]["bootS"]
+
+
+def test_hmi_uart_screen_works_on_every_board():
+    r = simulate_pi(None, {"display": "5in-hmi", "bufS": 1})
+    t, p5 = rows(r, "teensy41")[None], rows(r, "pi5")[2]
+    assert t["ok"] and p5["ok"] and t["busiest"] < 10
+    assert any("cd/m" in w for w in t["warns"])
+    import br27sim.pi as pim
+    old, pim.HMI_BAUD = pim.HMI_BAUD, 115200
+    fast = simulate_pi(None, {"display": "5in-hmi", "fps": 30})
+    pim.HMI_BAUD = old
+    assert any("UART" in w for w in rows(fast, "teensy41")[None]["warns"])
