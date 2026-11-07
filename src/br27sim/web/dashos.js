@@ -499,7 +499,9 @@
 
     function boot() {
       const L = bootLen(), u = clamp(bootT / L, 0, 1), pico = !PI.board.linux;
-      const lines = pico
+      const lines = PI.boardKey === 'teensy41'
+        ? ['i.MX RT1062 boot ROM', 'firmware from flash', 'SD card (SDIO) mounted, log file preallocated', 'CAN1 (FlexCAN) 1 Mbit/s', 'EVE BT817 display ready', 'dash']
+        : pico
         ? ['RP2040 boot ROM', 'flash XIP ok', 'SD card mounted (FatFs)', 'MCP2515 1 Mbit/s', 'LVGL display ready', 'dash']
         : ['Raspberry Pi bootloader', `Linux on ${PI.board.cpu}`, 'mounting /data (SD card)', 'can0: 1 Mbit/s, up', 'starting can-reader, logger, fault monitor', PI.o.lora ? 'lora-telemetry: SX1276 ok' : 'lora-telemetry: off', 'starting dash'];
       const shown = lines.slice(0, Math.max(1, Math.ceil(u * lines.length))).slice(-3);

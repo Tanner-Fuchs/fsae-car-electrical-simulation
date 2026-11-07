@@ -1443,13 +1443,32 @@
       el.disabled = false; el.value = DP.ramGB;
     } else { el.innerHTML = `<option value="${DP.ramGB}">${b.ramKB} KB on the chip · $${b.price}</option>`; el.disabled = true; el.value = DP.ramGB; }
     $('d_boardNote').textContent = `${b.cpu}. ${b.note}.`;
+    // firmware boards have no OS, language or renderer choice; Pi-only power-cut options greyed out
+    ['d_os', 'd_lang', 'd_renderer', 'd_canIface', 'd_rootRO', 'd_bootTuned'].forEach(id => { $(id).disabled = !b.linux; });
+    $('d_canIfaceNote').textContent = DP.board === 'teensy41' ? 'Teensy: CAN controller on the chip + Adafruit CAN Pal transceiver' : '';
   }
+  // keep the screen sensible when the board changes: firmware boards need the EVE screen, Pis an HDMI/DSI one
+  function piFitScreen() {
+    const b = S.PI_BOARDS[DP.board], port = S.PI_DISPLAYS[DP.display].port;
+    if (!b.linux && !['spi', 'eve'].includes(port)) DP.display = '5in-eve';
+    if (b.linux && port === 'eve') DP.display = '5in-dsi';
+  }
+  const PI_PRESETS = {
+    teensy: { board: 'teensy41', display: '5in-eve', lang: 'c', holdUp: 'cap', bufS: 1, rootRO: false, bootTuned: false },
+    piStock: { board: 'pi5', ramGB: 2, os: 'lite', lang: 'python', renderer: 'pygame', display: '5in-dsi', canIface: 'mcp2518fd', holdUp: 'none', bufS: 5, rootRO: false, bootTuned: false },
+    piHard: { board: 'pi5', ramGB: 2, os: 'lite', lang: 'python', renderer: 'pygame', display: '5in-dsi', canIface: 'mcp2518fd', holdUp: 'supercap', bufS: 1, rootRO: true, bootTuned: true },
+    piKiosk: { board: 'pi5', ramGB: 2, os: 'lite', lang: 'python', renderer: 'chromium', display: '5in-dsi', canIface: 'mcp2518fd', holdUp: 'none', bufS: 1, rootRO: true, bootTuned: true }
+  };
   function bindDash() {
     const opts = (id, obj) => { $(id).innerHTML = Object.entries(obj).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join(''); };
-    opts('d_board', S.PI_BOARDS); opts('d_os', S.PI_OS); opts('d_lang', S.PI_LANGS); opts('d_renderer', S.PI_RENDERERS); opts('d_display', S.PI_DISPLAYS); opts('d_canIface', S.PI_CAN);
+    opts('d_board', S.PI_BOARDS); opts('d_holdUp', S.PI_HOLDUPS); opts('d_os', S.PI_OS); opts('d_lang', S.PI_LANGS); opts('d_renderer', S.PI_RENDERERS); opts('d_display', S.PI_DISPLAYS); opts('d_canIface', S.PI_CAN);
     piRamOpts();
     const syncD = bindGroup('d', DP, D_UNITS, () => { Object.assign(DP, S.PI_DEFAULTS); piRamOpts(); }, 'dash');
-    $('d_board').addEventListener('input', () => { piRamOpts(); syncD(); });
+    $('d_board').addEventListener('input', () => { piFitScreen(); piRamOpts(); syncD(); renderView('dash'); });
+    $('piPreset').addEventListener('input', () => {
+      const pr = PI_PRESETS[$('piPreset').value]; if (!pr) return;
+      Object.assign(DP, pr); piRamOpts(); syncD(); renderView('dash');
+    });
     $('piPlay').addEventListener('click', () => { piPlay = !piPlay; $('piPlay').textContent = piPlay ? 'Pause' : 'Play'; piGo(); });
     $('piRestart').addEventListener('click', () => dashOS && dashOS.reboot());
     $('piSkip').addEventListener('click', () => dashOS && dashOS.skip(30));
@@ -1458,7 +1477,7 @@
     $('piTable').addEventListener('click', e => {
       const tr = e.target.closest('tr[data-k]'); if (!tr) return;
       const [k, g] = tr.dataset.k.split('|'); DP.board = k; if (g) DP.ramGB = +g;
-      piRamOpts(); syncD(); renderView('dash');
+      piFitScreen(); piRamOpts(); syncD(); renderView('dash');
     });
     return syncD;
   }
@@ -1494,14 +1513,18 @@
     if (dashOS) dashOS.set(r, R.lap, { biasPct: bias });
     if (window.BRPiWiring) window.BRPiWiring.draw({ svg: $('pwSvg'), table: $('pwPins'), flags: $('pwFlags'), cfg: $('pwCfg'), note: $('pwNote') }, r, { tp });
     piGo();
+    const cutTxt = c => `${c.osSafe ? '' : 'OS at risk, '}${c.clean ? 'closes cleanly' : 'loses ~' + fmt(c.lostS, 0) + ' s'}`;
+    const cut = sel.cut, teensy = r.boardKey === 'teensy41';
+    $('pwTitle').textContent = b.linux ? 'Wiring: Pi, buttons, screen, CAN HAT and power' : teensy ? 'Wiring: Teensy 4.1, buttons, EVE screen, CAN Pal and power' : 'Wiring';
+    $('pwCfgHead').innerHTML = b.linux ? 'Setup in <code>/boot/firmware/config.txt</code>:' : 'Firmware setup (Arduino / Teensyduino):';
     const memTxt = x => (x.ramKB ? `${fmt(x.usedKB, 0)} of ${x.ramKB} KB` : `${fmt(x.usedMB, 0)} of ${fmt(x.ramMB, 0)} MB`);
     $('piNote').textContent = `${b.label}${pico ? '' : ' ' + ramTxt(r.ramGB)} · ${r.fps} CAN frames/s · ${sel.ok ? 'inside spec' : 'outside spec'}`;
     $('piSpecNote').textContent = `spec: memory ≤ ${o.specRamPct} %, busiest core ≤ ${o.specCorePct} %`;
-    $('piTable').innerHTML = '<thead><tr><th>Board</th><th>Memory</th><th class="num">Boot to dash</th><th class="num">Memory used</th><th class="num">Busiest core</th><th class="num">All cores</th><th class="num">5 V draw</th><th class="num">Price</th><th>Spec</th><th>Why</th></tr></thead><tbody>' +
+    $('piTable').innerHTML = '<thead><tr><th>Board</th><th>Memory</th><th class="num">Boot to dash</th><th class="num">Memory used</th><th class="num">Busiest core</th><th class="num">All cores</th><th class="num">5 V draw</th><th>Power cut</th><th class="num">Price</th><th>Spec</th><th>Why</th></tr></thead><tbody>' +
       r.rows.map(x => {
         const bb = S.PI_BOARDS[x.key], isSel = x.key === r.boardKey && x.ramGB === r.ramGB;
         const why = x.fails.concat(x.warns.filter(w => !/no operating system/.test(w))).join('; ') || 'fits with room to spare';
-        return `<tr data-k="${x.key}|${x.ramGB == null ? '' : x.ramGB}" aria-selected="${isSel}"><td>${bb.label}</td><td>${x.ramKB ? x.ramKB + ' KB' : ramTxt(x.ramGB)}</td><td class="num">${fmt(x.bootS, 1)} s</td><td class="num">${fmt(x.ramPct, 0)} %</td><td class="num">${fmt(x.busiest, 0)} %</td><td class="num">${fmt(x.totalCpu, 0)} %</td><td class="num">${fmt(x.amps, 1)} A</td><td class="num">$${x.price}</td><td class="${x.ok ? 'ok' : 'bad'}">${x.ok ? 'Yes' : 'No'}</td><td class="why">${why}</td></tr>`;
+        return `<tr data-k="${x.key}|${x.ramGB == null ? '' : x.ramGB}" aria-selected="${isSel}"><td>${bb.label}</td><td>${x.ramKB ? x.ramKB + ' KB' : ramTxt(x.ramGB)}</td><td class="num">${fmt(x.bootS, 1)} s</td><td class="num">${fmt(x.ramPct, 0)} %</td><td class="num">${fmt(x.busiest, 0)} %</td><td class="num">${fmt(x.totalCpu, 0)} %</td><td class="num">${fmt(x.amps, 1)} A</td><td class="${x.cut.osSafe ? '' : 'bad'}">${cutTxt(x.cut)}</td><td class="num">$${x.price}</td><td class="${x.ok ? 'ok' : 'bad'}">${x.ok ? 'Yes' : 'No'}</td><td class="why">${why}</td></tr>`;
       }).join('') + '</tbody>';
     $('piSelTitle').textContent = `${b.label}${pico ? '' : ' ' + ramTxt(r.ramGB)}`;
     kv('piKv', [
@@ -1514,6 +1537,9 @@
       ['Log rate', `${fmt(r.logKBs, 1)} KB/s`],
       ['Log per endurance', `${fmt(r.logMBendur, 0)} MB`],
       ['5 V draw with screen', `${fmt(sel.amps, 1)} A`, sel.amps > 4 ? 'meh' : ''],
+      ['Hold-up after master switch', cut.holdS > 0 ? `${fmt(cut.holdS, cut.holdS < 1 ? 2 : 0)} s (needs ${fmt(cut.needS, 2)} s)` : 'none', cut.clean ? 'ok' : 'meh'],
+      ['Data lost on a power cut', cut.clean ? 'none, file closed' : `last ~${fmt(cut.lostS, 0)} s`, cut.clean ? 'ok' : cut.lostS > 3 ? 'bad' : 'meh'],
+      ['Boots after a power cut', cut.osSafe ? (b.linux ? 'yes' : 'yes, firmware in flash') : 'at risk (SD root can corrupt)', cut.osSafe ? 'ok' : 'bad'],
       ['LoRa air time', o.lora ? `${fmt(r.lora.airtimeMs, 1)} ms × ${o.loraHz}/s = ${fmt(r.lora.dutyPct, 0)} %` : 'off', o.lora && r.lora.dutyPct > 100 ? 'bad' : o.lora && r.lora.dutyPct > 50 ? 'meh' : '']
     ]);
     const f = [];
@@ -1524,6 +1550,9 @@
       else if (r.lora.dutyPct > 50) f.push(['warn', `LoRa is on air ${fmt(r.lora.dutyPct, 0)} % of the time; leave room for retries and the pit's replies.`]);
       if (!r.lora.dwellOk) f.push(['warn', `Each packet is on air ${fmt(r.lora.airtimeMs, 0)} ms, over the 400 ms per channel that US 915 MHz hopping rules allow at 125 kHz. Use 500 kHz or a lower SF.`]);
     }
+    if (!cut.clean && cut.holdUp === 'none') f.push(['warn', `The master switch cuts power with no warning every time the car is turned off (IC.9.3.2a). With no hold-up the last ~${fmt(cut.lostS, 0)} s of log is lost${b.linux ? '' : '; a shorter write buffer or a 2,200 µF hold-up capacitor fixes it'}.`]);
+    if (!cut.clean && cut.holdUp !== 'none') f.push(['warn', `The hold-up lasts ${fmt(cut.holdS, 2)} s but ${b.linux ? 'a clean shutdown' : 'closing the file'} needs about ${fmt(cut.needS, 2)} s: about ${fmt(cut.needF, cut.needF < 0.1 ? 4 : 2)} F on the 12 V feed is enough.`]);
+    if (cut.clean) f.push(['good', `On a power cut the hold-up runs it ${fmt(cut.holdS, cut.holdS < 1 ? 2 : 0)} s, enough to ${b.linux ? 'sync and shut down cleanly' : 'finish the log and close the file'}. Wire the 12 V feed through a divider to a ${b.linux ? 'GPIO (power-lost signal)' : 'Teensy pin (power-fail interrupt)'}.`]);
     if (sel.ok) f.unshift(['good', `${b.label}${pico ? '' : ' ' + ramTxt(r.ramGB)} runs all of it with ${fmt(100 - sel.ramPct, 0)} % of memory and ${fmt(100 - sel.busiest, 0)} % of its busiest core to spare.`]);
     const smallest = r.rows.filter(x => x.ok && x.ramGB != null && x.key === r.boardKey).sort((a, c) => a.ramGB - c.ramGB)[0];
     if (b.linux && smallest) f.push(['info', `Smallest ${b.label} that fits this setup: ${ramTxt(smallest.ramGB)} ($${smallest.price}).`]);
@@ -1532,7 +1561,9 @@
     $('piMemUnit').textContent = pico ? 'KB' : 'MB';
     C.draw('c_piMem', [{ label: pico ? 'KB' : 'MB', data: procs.map(p => +p.ram.toFixed(pico ? 1 : 0)), colors: procs.map((p, i) => cols[i % cols.length]) }], { bar: true, labels: procs.map(p => p.name), ySugMin: 0 });
     C.draw('c_piCpu', [{ label: '%', data: sel.cores.map(c => +c.toFixed(1)), colors: sel.cores.map(c => (c > o.specCorePct ? '--crit' : '--s1')) }], { bar: true, labels: sel.cores.map((c, i) => `core ${i}`), yMin: 0, ySugMax: 100, refs: [{ y: o.specCorePct, label: 'spec' }] });
-    $('piCpuFoot').textContent = pico
+    $('piCpuFoot').textContent = teensy
+      ? 'One 600 MHz core runs everything from interrupts: CAN frames, IMU and GPS samples are timestamped in microseconds, and the EVE screen draws its own pixels.'
+      : pico
       ? 'Firmware runs CAN, logging and the IMU on core 0 and the screen and LoRa on core 1.'
       : `Each program is one thread (${o.renderer === 'chromium' ? 'Chromium uses two' : 'the dash too'}), so a Python program can only use one core; the busiest core is the limit, not the average.`;
   }

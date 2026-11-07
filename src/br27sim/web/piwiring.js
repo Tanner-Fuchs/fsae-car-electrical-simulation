@@ -6,7 +6,86 @@
   const fmt = (x, d) => (x == null || !isFinite(x) ? '–' : Number(x).toFixed(d));
   const C = { p5: '#d63b30', gnd: '#222', sig: '#2a78d6', can: '#1baf7a', can2: '#e8e8e8', hdmi: '#6250d6', usb: '#8a8f98', btn: '#eda100' };
 
+  // Teensy 4.1 dash: EVE screen on SPI, CAN1 + CAN Pal, GPS on Serial2, IMU on I2C, LoRa on SPI1, hold-up cap on the 12 V feed.
+  // Pin numbers are the Teensy 4.1 pinout card; all I/O is 3.3 V and NOT 5 V tolerant.
+  function drawTeensy(el, r) {
+    const o = r.o, disp = r.display, cut = r.sel.cut, hold = o.holdUp !== 'none';
+    let g = `<defs><marker id="pwDot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5"><circle cx="5" cy="5" r="4" fill="var(--ink)"/></marker></defs>`;
+    const box = (x, y, w, h, title, sub, fill) => {
+      g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${fill || 'var(--panel)'}" stroke="var(--ink-2)" stroke-width="1.5"/>`;
+      g += `<text x="${x + 10}" y="${y + 20}" font-size="13" font-weight="600" fill="${fill ? '#f2f2f2' : 'var(--ink)'}">${title}</text>`;
+      (sub || []).forEach((t, k) => { g += `<text x="${x + 10}" y="${y + 37 + k * 15}" font-size="11" fill="${fill ? '#c4c8cf' : 'var(--ink-2)'}">${t}</text>`; });
+    };
+    const wire = (pts, col, w, label, lx, ly, anchor) => {
+      g += `<polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="${w || 2}" stroke-linejoin="round" marker-start="url(#pwDot)" marker-end="url(#pwDot)"/>`;
+      if (label) g += `<text x="${lx}" y="${ly}" font-size="10.5" fill="var(--ink-2)" text-anchor="${anchor || 'start'}" font-family="var(--f-mono)">${label}</text>`;
+    };
+    box(20, 30, 220, 62, 'Switched 12 V bus', ['after the master switch and kill relay,', 'fused in the electrical box']);
+    box(20, 130, 220, 62, hold ? 'Hold-up' : 'No hold-up', hold ? [o.holdUp === 'cap' ? 'Schottky diode + 2,200 µF 25 V' : 'diode + supercap bank', `about ${fmt(cut.holdS, cut.holdS < 1 ? 2 : 0)} s after the switch opens`] : ['the log loses its last buffer', 'on every switch-off']);
+    box(20, 240, 220, 62, '5 V 5 A module (screen + dash)', ['Universal-Solder, 9–35 V in']);
+    wire([[90, 92], [90, 130]], C.p5, 3, '+12 V', 96, 115); wire([[90, 192], [90, 240]], C.p5, 3, '+12 V held', 96, 220);
+    wire([[200, 92], [200, 110], [270, 110], [270, 470], [330, 470]], C.sig, 1.5, 'power-fail divider → pin 41', 262, 492, 'end');
+    box(330, 10, 330, 120, disp.label.split(':')[0], ['SPI + INT + PD, 5 V from the module', 'the BT817 chip draws the pixels and reads touch'], '#1b1d22');
+    g += `<rect x="350" y="66" width="200" height="54" rx="3" fill="#050505"/><text x="450" y="98" font-size="12" text-anchor="middle" fill="#c9a86a" font-family="var(--f-display)">BR27 DASH</text>`;
+    box(330, 230, 300, 260, 'Teensy 4.1', ['C++ firmware, 600 MHz Cortex-M7', 'microSD in the on-board SDIO slot', 'VIN 5 V (cut the VIN/VUSB pad if', 'USB and 5 V are both connected)'], '#163a24');
+    wire([[240, 270], [300, 270], [300, 330], [330, 330]], C.p5, 3, 'VIN', 296, 262, 'end');
+    wire([[240, 286], [286, 286], [286, 346], [330, 346]], C.gnd, 3);
+    wire([[240, 254], [310, 254], [310, 100], [330, 100]], C.p5, 2.5, 'screen 5 V', 314, 170);
+    wire([[560, 230], [560, 130]], C.sig, 2, 'SPI 11/12/13, CS 10, INT 6, PD 9', 568, 185);
+    box(760, 230, 220, 62, 'Adafruit CAN Pal', ['TJA1051T/3, 120 Ω on (bus end)']);
+    wire([[630, 270], [760, 270]], C.sig, 2, 'CTX1 22 / CRX1 23', 640, 262);
+    wire([[980, 260], [995, 260], [995, 214]], C.can, 3, 'CAN_H / CAN_L', 990, 208, 'end');
+    let y = 310;
+    if (o.gps) { box(760, y, 220, 46, 'GPS (u-blox M10)', ['Serial2 RX2 7 / TX2 8, PPS → 32']); wire([[630, y + 22], [760, y + 22]], C.sig, 1.5); y += 56; }
+    if (o.imu) { box(760, y, 220, 46, 'IMU', ['I2C SDA 18 / SCL 19, INT → 31']); wire([[630, y + 22], [760, y + 22]], C.sig, 1.5); y += 56; }
+    if (o.lora) { box(760, y, 220, 46, 'LoRa RFM95W 915 MHz', ['SPI1 26/39/27, CS 38, DIO0 36']); wire([[630, y + 22], [760, y + 22]], C.sig, 1.5); y += 56; }
+    box(330, 530, 300, 70, 'Wheel buttons', [o.touchButtons ? 'MODE → pin 2 (MENU / CLEAR on screen)' : 'MODE → 2, CLEAR → 3, MENU → 4', 'to GND, internal pull-ups']);
+    wire([[480, 530], [480, 490]], C.btn, 2.5);
+    g += `<text x="20" y="360" font-size="12" font-weight="600" fill="var(--ink)">Wire colors</text>`;
+    [['5 V / 12 V', C.p5], ['GND', C.gnd], ['signal / SPI / I2C / UART', C.sig], ['buttons', C.btn], ['CAN_H / CAN_L', C.can]].forEach(([t, c], k) => {
+      g += `<line x1="20" y1="${378 + k * 18}" x2="50" y2="${378 + k * 18}" stroke="${c}" stroke-width="3"/><text x="58" y="${382 + k * 18}" font-size="11" fill="var(--ink-2)">${t}</text>`;
+    });
+    el.svg.innerHTML = g;
+    el.note.textContent = `Teensy 4.1 · ${disp.label.split(':')[0]}`;
+    const rows = [
+      ['5 V in', 'VIN', '—', '5 V 5 A module +', 'cut the VIN/VUSB pad, or USB programming back-feeds the 5 V rail'],
+      ['GND', 'GND', '—', '5 V module −', ''],
+      ['EVE SPI MOSI / MISO / SCK', '11 / 12 / 13', 'SPI', 'EVE screen', 'up to ~30 MHz; keep the ribbon short and clamped'],
+      ['EVE chip select', '10', 'CS', 'EVE CS#', ''], ['EVE interrupt', '6', 'INT', 'EVE INT#', 'touch and display-list done'], ['EVE power down', '9', 'PD', 'EVE PD#', 'hold low to reset the screen'],
+      ['CAN TX / RX', '22 / 23', 'CTX1 / CRX1', 'CAN Pal TX / RX', 'CAN Pal VCC 5 V, VIO 3.3 V'],
+      ['CAN_H / CAN_L', 'CAN Pal terminal', '—', 'car CAN bus', '120 Ω on: the dash is the front end'],
+      ...(o.gps ? [['GPS', '7 / 8', 'RX2 / TX2', 'GPS TX / RX', 'crossed over; UBX binary at 10–25 Hz'], ['GPS PPS', '32', 'interrupt', 'GPS PPS', 'lines up the log clock to GPS time']] : []),
+      ...(o.imu ? [['IMU SDA / SCL', '18 / 19', 'Wire', 'IMU', 'or SPI for 1 kHz and up'], ['IMU data ready', '31', 'interrupt', 'IMU INT', '']] : []),
+      ...(o.lora ? [['LoRa SPI1 MOSI / MISO / SCK', '26 / 39 / 27', 'SPI1', 'RFM95W', 'own bus, so the screen never waits on the radio'], ['LoRa CS / DIO0 / RESET', '38 / 36 / 35', '—', 'RFM95W', 'antenna outside any carbon or metal']] : []),
+      ['MODE (button 1)', '2', 'INPUT_PULLUP', 'button → GND', '1 kΩ series + 100 nF to GND'],
+      ...(o.touchButtons ? [] : [['CLEAR (button 2)', '3', 'INPUT_PULLUP', 'button → GND', ''], ['MENU', '4', 'INPUT_PULLUP', 'button → GND', '']]),
+      ['Power-fail sense', '41 (A17)', 'interrupt', '12 V feed via 10k / 3.3k + 3.3 V zener', 'falls when the master switch opens: stop logging, sync, close']
+    ];
+    el.table.innerHTML = '<thead><tr><th>Signal</th><th>Teensy pin</th><th>Function</th><th>Goes to</th><th>Note</th></tr></thead><tbody>' +
+      rows.map(x => `<tr><td>${x[0]}</td><td class="mono">${x[1]}</td><td class="mono">${x[2]}</td><td>${x[3]}</td><td class="wrap">${x[4]}</td></tr>`).join('') + '</tbody>';
+    const amps = r.sel.amps + 0.08 + (o.lora ? 0.12 : 0) + (o.gps ? 0.03 : 0);
+    el.flags.innerHTML = [
+      ['good', `5 V budget: Teensy and screen about ${fmt(r.sel.amps, 1)} A, CAN Pal and modules about ${fmt(amps - r.sel.amps, 2)} A: ${fmt(amps, 1)} A of the module's 5 A.`],
+      [cut.clean ? 'good' : 'warn', cut.clean ? `On a power cut the hold-up gives ${fmt(cut.holdS, 2)} s; the power-fail interrupt needs about ${fmt(cut.needS, 2)} s to sync and close the log. Turn the screen backlight off first to stretch it.` : `With no hold-up the last ~${fmt(cut.lostS, 0)} s of log is lost on every switch-off. A 2,200 µF capacitor behind a diode on the 12 V feed is enough to close the file.`],
+      ['warn', 'Teensy 4.1 pins are 3.3 V and not 5 V tolerant: use 3.3 V modules or level shifters, and never feed a 5 V signal into a pin.'],
+      ['info', 'The program lives in the Teensy\'s flash, so a power cut can\'t stop it booting; only the log file on the SD card is at risk.']
+    ].map(([l, t]) => `<li class="${l}">${t}</li>`).join('');
+    el.cfg.textContent = [
+      '// Libraries: FlexCAN_T4, SdFat (SDIO), an FT81x/BT81x EVE library, TinyGPSPlus or SparkFun u-blox, RadioLib',
+      'FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> can1;   // pins 22/23',
+      'can1.begin(); can1.setBaudRate(1000000); can1.enableFIFO(); can1.enableFIFOInterrupt();',
+      'SdFs sd; sd.begin(SdioConfig(FIFO_SDIO));          // built-in slot',
+      'logFile.preAllocate(256UL << 20);                  // 256 MB, so a cut never leaves a 0-byte file',
+      `// sync the log every ${o.bufS} s; power-fail interrupt on pin 41 stops logging, syncs and closes`,
+      'attachInterrupt(digitalPinToInterrupt(41), powerFail, FALLING);',
+      ...(o.gps ? ['Serial2.begin(115200);                              // GPS, UBX at ' + o.gpsHz + ' Hz'] : []),
+      'pinMode(2, INPUT_PULLUP);  // MODE' + (o.touchButtons ? '' : '\npinMode(3, INPUT_PULLUP);  // CLEAR\npinMode(4, INPUT_PULLUP);  // MENU'),
+      '// watchdog: restart within 1 s if the firmware hangs'
+    ].join('\n');
+  }
+
   function draw(el, r, U) {
+    if (r.boardKey === 'teensy41') return drawTeensy(el, r, U);
     const o = r.o, b = r.board, disp = r.display, dsi = disp.port === 'dsi', usbCan = o.canIface === 'usb', pi = b.linux;
     const pi3 = r.boardKey === 'pi3', pi5 = r.boardKey === 'pi5';
     const hdmiPort = pi3 ? 'HDMI' : r.boardKey === 'zero2' ? 'mini HDMI' : 'micro HDMI';
@@ -105,7 +184,9 @@
     const amps = r.sel.watts / 5 + disp.W / 5 + 0.15 + (o.lora ? 0.12 : 0) + (o.gps ? 0.03 : 0) + (o.imu ? 0.01 : 0);
     const f = [
       [amps > 4 ? 'warn' : 'good', `5 V budget: Pi about ${fmt(r.sel.watts / 5, 1)} A, screen ${fmt(disp.W / 5, 1)} A, HAT and modules about ${fmt(0.15 + (o.lora ? 0.12 : 0) + (o.gps ? 0.03 : 0), 2)} A: ${fmt(amps, 1)} A of the module's 5 A.`],
-      ['crit', 'The master switch and kill relay cut the Pi\'s power with no warning, which can corrupt the SD card. Run the root file system read-only (raspi-config → Overlay File System), write logs to their own partition and flush every buffer. A small supercap UPS with a power-lost signal on GPIO26 gives it time to close the file.'],
+      r.sel.cut.osSafe
+        ? ['good', `Power cut: ${o.rootRO ? 'the root file system is read-only (raspi-config → Overlay File System), so the Pi always boots' : 'the hold-up gives it time to shut down cleanly'}${r.sel.cut.clean ? '; the hold-up lets it close the log too.' : `; the last ~${fmt(r.sel.cut.lostS, 0)} s of log can still be lost. A supercap with a power-lost signal on GPIO26 lets it close the file.`}`]
+        : ['crit', 'The master switch and kill relay cut the Pi\'s power with no warning, which can corrupt the SD card. Run the root file system read-only (raspi-config → Overlay File System), write logs to their own partition and flush every buffer. A small supercap UPS with a power-lost signal on GPIO26 gives it time to close the file.'],
       ['info', 'Buttons switch to ground with the Pi\'s internal pull-ups. A 1 kΩ series resistor and 100 nF to ground at the Pi end stop noise and static from the harness. The dash software debounces them (about 30 ms).'],
       ['info', 'Pi GPIO is 3.3 V only: use 3.3 V logic modules (or level shifters) for LoRa, IMU and GPS.']
     ];
