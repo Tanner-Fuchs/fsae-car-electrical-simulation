@@ -189,7 +189,7 @@ def schematic_svg():
     o.append(f'<rect class="zone" x="460" y="64" width="{n(W - 464)}" height="{n(H - 72)}" rx="8"/>')
     o.append('<text class="z" x="24" y="88">COCKPIT SIDE: DASH UNIT (DASH MCU + FUSE/RELAY BOX)</text>')
     o.append('<text class="z" x="480" y="88">ENGINE SIDE: EMU UNDER THE SLOPED FIREWALL LEG, ENGINE BAY</text>')
-    o.append('<text class="h" x="6" y="28">BR27 powertrain harness, EMU Black on 2012 CBR600RR</text>')
+    o.append('<text class="h" x="6" y="28">BR27 powertrain harness, EMU Black on 2016 CBR600RR</text>')
     o.append('<text class="s" x="6" y="48">Proposal, rev F, 2026-10-31 (bent firewall: battery and EMU under its sloped lower leg on the engine side, fuse/relay box in the dash unit; EMU-to-engine wires do not cross, box feeds cross at GR1; rev E grommets; rev D colors; rev C fuel level). Dashed boxes are parts still to be selected. Pins from the EMU Black label (B = black 39-pin, G = grey 24-pin). Fuse sizes and gauges are proposals; check against the EMU Black manual before building.</text>')
 
     # rev F: the firewall is one sheet bent ~135° (back panel + sloped lower leg). Battery and EMU sit
@@ -333,7 +333,7 @@ def fuel_system_svg():
     o.append('<text class="z" x="24" y="88">COCKPIT SIDE: DASH UNIT (FUSE/RELAY BOX)</text>')
     o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE SIDE: EMU UNDER THE FIREWALL LEG, TANK, PUMP, RAIL</text>')
     o.append(f'<line x1="{n(fwX)}" y1="64" x2="{n(fwX)}" y2="{n(H - 8)}" stroke="var(--k3)" stroke-width="3" class="dash"/>')
-    o.append('<text class="h" x="6" y="28">BR27 fuel system: how it connects (EMU Black, 2012 CBR600RR)</text>')
+    o.append('<text class="h" x="6" y="28">BR27 fuel system: how it connects (EMU Black, 2016 CBR600RR)</text>')
     o.append('<text class="s" x="6" y="48">Proposal, rev F, 2026-10-31. Same pins and refs as the harness schematic and wire list. Dashed boxes are parts still to be selected. Pink band = fuel line (plumbing, for context).</text>')
     o.append('<text class="s" x="24" y="104">Dashed line = firewall: F1, kill bus, pump, G13, CAN cross at GR1.</text>')
 
