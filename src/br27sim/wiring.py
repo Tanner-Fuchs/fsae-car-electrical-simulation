@@ -119,14 +119,14 @@ DEVICES = {
   'pumprly': ['Fuel pump relay', 'TBD, contacts → pump (TBD), F3', 'aux'],
   'fanrly': ['Fan relay', 'TBD, contacts → fan (TBD), F4', 'aux']
 }
-# Selection status, 2026-11-11 (knock sensor and regulator are stock on the 2016 CBR600RR). S = selected, K = stock CBR600RR part (assumed kept),
+# Selection status, 2026-11-11 (knock sensor stock on the 2016 CBR600RR; regulator bought, engine came without one). S = selected, K = stock CBR600RR part (assumed kept),
 # T = to be selected. Update as Tanner confirms parts.
 STATUS_LABEL = { 'S': 'Selected', 'K': 'Stock CBR600RR (assumed)', 'T': 'To be selected' }
 STATUS = {
   'EMU-B': 'S', 'EMU-G': 'S', 'BAT': 'S',
   'CKP': 'K', 'CMP': 'K', 'ECT': 'K', 'INJ1': 'K', 'INJ2': 'K', 'INJ3': 'K', 'INJ4': 'K', 'IGN1': 'K', 'IGN2': 'K', 'IGN3': 'K', 'IGN4': 'K', 'NEUT': 'K', 'TPS': 'K',
   'IAT': 'T', 'OILP': 'T', 'FUELP': 'T', 'FLVL': 'T', 'OILT': 'T', 'KNK': 'K', 'LSU': 'T', 'PUMP': 'T', 'FAN': 'T',
-  'FB': 'T', 'K1': 'T', 'K2': 'T', 'K3': 'T', 'GR1': 'T', 'GR2': 'T', 'BRK': 'T', 'PMS': 'T', 'REG': 'K',
+  'FB': 'T', 'K1': 'T', 'K2': 'T', 'K3': 'T', 'GR1': 'T', 'GR2': 'T', 'BRK': 'T', 'PMS': 'T', 'REG': 'T',
   'S1': '', 'S2': '', 'S3': '', 'GS': '', 'CAN': '', 'R1': ''
 }
 DEV_REF = { 'crank': 'CKP', 'cam': 'CMP', 'tps': 'TPS', 'clt': 'ECT', 'iat': 'IAT', 'oilp': 'OILP', 'fuelp': 'FUELP', 'fuellvl': 'FLVL', 'oilt': 'OILT', 'knock': 'KNK', 'neutral': 'NEUT', 'wbo': 'LSU',
@@ -277,7 +277,7 @@ def schematic_svg():
     o.append(f'<line class="w pw" x1="{n(px + bw / 2)}" y1="{n(by + 114)}" x2="{n(px + bw / 2)}" y2="{n(by + 140)}" stroke-width="3"/>')
     blk(px + 210, by, 200, 44, "Starter relay → starter", "heavy cable, own route")
     o.append(f'<line class="w pw" x1="{n(px + bw)}" y1="{n(by + 160)}" x2="{n(px + 310)}" y2="{n(by + 160)}"/><line class="w pw" x1="{n(px + 310)}" y1="{n(by + 160)}" x2="{n(px + 310)}" y2="{n(by + 44)}"/>')
-    blk(px + 210, by + 70, 200, 44, "Regulator (sidepod)", "stock 2016 (FH020AA type), via PMS pole 2", False)
+    blk(px + 210, by + 70, 200, 44, "Regulator (sidepod)", "FH020AA type (buy), via PMS pole 2", True)
     o.append(f'<line class="w pw dash" x1="{n(px + 230)}" y1="{n(by + 114)}" x2="{n(px + 230)}" y2="{n(by + 150)}"/><line class="w pw dash" x1="{n(px + 230)}" y1="{n(by + 150)}" x2="{n(px + bw)}" y2="{n(by + 150)}"/>')
     fbY, fbH = by + 215, 30 + len(FUSES) * 22
     blk(px, fbY, 410, fbH, "Fuse/relay box in the dash unit, TBD", "", True)
@@ -500,7 +500,7 @@ CONNECTORS = [
 def components():
     """Every powertrain electrical part with its selection status (for the PDF and xlsx)."""
     extra = [["BAT", "Battery: NOCO NLP14 (4 Ah LiFePO4)", "Under the sloped firewall leg (engine side); feed crosses GR1 to the box", ""], ["BRK", "Main breaker, ~100 A manual reset (proposed)", "Next to PMS", ""],
-             ["PMS", "Primary Master Switch, 2-pole (proposed)", "Main hoop, right side", ""], ["REG", "Regulator/rectifier, stock 2016 CBR600RR (series MOSFET, FH020AA type)", "Sidepod", ""]]
+             ["PMS", "Primary Master Switch, 2-pole (proposed)", "Main hoop, right side", ""], ["REG", "Regulator/rectifier, series MOSFET FH020AA type (buy, 2016 OEM type)", "Sidepod", ""]]
     return [{"ref": ref, "desc": desc, "loc": loc, "pins": pins, "status": STATUS_LABEL.get(STATUS.get(ref)) or "Selected"}
             for ref, desc, loc, pins in extra + CONNECTORS if STATUS.get(ref) != ""]
 
