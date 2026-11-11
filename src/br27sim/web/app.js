@@ -1629,7 +1629,7 @@
       ['good', 'Battery: NOCO NLP14, a 4S LiFePO4 (12.8 V, 4 Ah, 500 A), so it suits the 14.2–14.6 V charging system. Its internal resistance and BMS current limit are estimates; measure cranking voltage on the car.'],
       ['warn', 'Bitrate: everything is on one CAN 2.0 bus (decided). With no suspension pots and the IMU and GPS kept off CAN, it runs about 24 % at 1 Mbps. 500 kbps would also work at about 49 %, but leaves little room for added channels, so 1 Mbps is still recommended.'],
       ['info', 'Node MCU: the corner nodes are modeled as generic CAN 2.0 nodes. Any MCU with a CAN 2.0B controller at 1 Mbps works; the final part is not chosen yet.'],
-      ['warn', 'Engine: 2016 Honda CBR600RR (decided). Its stock 12-tooth crank and 3-tooth cam wheels are both VR. The model assumes the cam is cut to one sync tooth unless the EMU Black has a decoder for the stock cam; confirm with a scope. Stock secondary injectors are not used.'],
+      ['warn', 'Engine: 2016 Honda CBR600RR (decided). Its stock 12-tooth crank and 3-tooth cam wheels are both VR. The model assumes the cam is cut to one sync tooth unless the EMU Black has a decoder for the stock cam; confirm with a scope. Stock secondary injectors are not used. The 2013-16 update changed the stock ECU map (32-bit ECU, HISS immobilizer), not the trigger wheels or injectors, so the 2007-12 sensor data still applies.'],
       ['warn', 'EMU Black brown-out voltage and stream frame count: confirm with Ecumaster docs or the bench.'],
       ['info', 'Stator output, starter current and battery internal resistance should be measured once parts are in hand. Each one moves the cranking and charging results.']
     ]);
