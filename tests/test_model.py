@@ -7,7 +7,7 @@ def test_defaults_are_not_shared():
     a["nodeLoad5V"]["FL"] = 9
     a["gears"][0] = 9
     assert br27sim.DEFAULTS["nodeLoad5V"]["FL"] == 0.22
-    assert br27sim.DEFAULTS["gears"][0] == 2.666
+    assert br27sim.DEFAULTS["gears"][0] == 2.75
 
 
 def test_restrictor_limits_power():

@@ -14,7 +14,7 @@ from ._js import js_str
 BLACK = [
   [1, 'Ignition coil #5', '', '', 'spare'],
   [2, 'EGT in #1', 'Optional: EGT, exhaust collector', '22 AWG K-type ext.', 'spare'],
-  [3, 'Knock sensor in #1', 'Knock sensor, TBD (optional, see calibration form)', '22 AWG shielded', 'sensor'],
+  [3, 'Knock sensor in #1', 'Knock sensor, stock CBR600RR piezo (Bu sig, Y/R to sensor gnd)', '22 AWG shielded', 'sensor'],
   [4, 'Analog in #2', 'Fuel pressure sensor, TBD (0.5–4.5 V)', '22 AWG', 'sensor'],
   [5, 'CLT in', 'Coolant temp sensor (stock ECT)', '22 AWG', 'sensor'],
   [6, 'WBO Vs', 'LSU 4.9 wideband, Vs (pin 6)', '22 AWG', 'wbo'],
@@ -49,8 +49,8 @@ BLACK = [
   [35, 'Analog in #5', 'Fuel level sender, float, TBD (240–33 Ω reed type, 470 Ω pull-up to +5 V)', '22 AWG', 'sensor'],
   [36, 'Switch #3 in', 'Spare', '', 'spare'],
   [37, 'Analog in #6', 'Spare', '', 'spare'],
-  [38, 'Sensor ground', 'Sensor ground: TPS, CLT, IAT', '22 AWG', 'sgnd'],
-  [39, 'Sensor ground', 'Sensor ground: pressure sensors, oil temp, fuel level', '22 AWG', 'sgnd']
+  [38, 'Sensor ground', 'Knock sensor return only, inside shield SH1 with B3 (2026-11-13)', '22 AWG', 'knock'],
+  [39, 'Sensor ground', 'Sensor ground splice S2: TPS, CLT, IAT, pressure sensors, oil temp, fuel level', '22 AWG', 'sgnd']
 ]
 GREY = [
   [1, 'Ignition coil #6', '', '', 'spare'],
@@ -109,7 +109,7 @@ DEVICES = {
   'fuelp': ['Fuel pressure sensor', 'TBD, 0.5–4.5 V type', 'sensor'],
   'fuellvl': ['Fuel level sender (tank)', 'TBD float, 240–33 Ω, R1 470 Ω', 'sensor'],
   'oilt': ['Oil temp sensor', 'TBD, optional', 'sensor'],
-  'knock': ['Knock sensor', 'TBD, optional', 'sensor'],
+  'knock': ['Knock sensor', 'Stock CBR600RR piezo, 3P Blue', 'sensor'],
   'neutral': ['Neutral switch', 'gearbox', 'sensor'],
   'wbo': ['Wideband O2 sensor', 'TBD, LSU 4.9 type', 'wbo'],
   'inj1': ['Injector 1', 'stock primary, 12 Ω', 'inj'], 'inj2': ['Injector 2', 'stock primary, 12 Ω', 'inj'],
@@ -119,13 +119,13 @@ DEVICES = {
   'pumprly': ['Fuel pump relay', 'TBD, contacts → pump (TBD), F3', 'aux'],
   'fanrly': ['Fan relay', 'TBD, contacts → fan (TBD), F4', 'aux']
 }
-# Selection status, 2026-10-30. S = selected, K = stock CBR600RR part (assumed kept),
+# Selection status, 2026-11-11 (stock 2016 knock sensor is a piezo kept on the EMU; regulator bought). S = selected, K = stock CBR600RR part (assumed kept),
 # T = to be selected. Update as Tanner confirms parts.
 STATUS_LABEL = { 'S': 'Selected', 'K': 'Stock CBR600RR (assumed)', 'T': 'To be selected' }
 STATUS = {
   'EMU-B': 'S', 'EMU-G': 'S', 'BAT': 'S',
   'CKP': 'K', 'CMP': 'K', 'ECT': 'K', 'INJ1': 'K', 'INJ2': 'K', 'INJ3': 'K', 'INJ4': 'K', 'IGN1': 'K', 'IGN2': 'K', 'IGN3': 'K', 'IGN4': 'K', 'NEUT': 'K', 'TPS': 'K',
-  'IAT': 'T', 'OILP': 'T', 'FUELP': 'T', 'FLVL': 'T', 'OILT': 'T', 'KNK': 'T', 'LSU': 'T', 'PUMP': 'T', 'FAN': 'T',
+  'IAT': 'T', 'OILP': 'T', 'FUELP': 'T', 'FLVL': 'T', 'OILT': 'T', 'KNK': 'K', 'LSU': 'T', 'PUMP': 'T', 'FAN': 'T',
   'FB': 'T', 'K1': 'T', 'K2': 'T', 'K3': 'T', 'GR1': 'T', 'GR2': 'T', 'BRK': 'T', 'PMS': 'T', 'REG': 'T',
   'S1': '', 'S2': '', 'S3': '', 'GS': '', 'CAN': '', 'R1': ''
 }
@@ -189,7 +189,7 @@ def schematic_svg():
     o.append(f'<rect class="zone" x="460" y="64" width="{n(W - 464)}" height="{n(H - 72)}" rx="8"/>')
     o.append('<text class="z" x="24" y="88">COCKPIT SIDE: DASH UNIT (DASH MCU + FUSE/RELAY BOX)</text>')
     o.append('<text class="z" x="480" y="88">ENGINE SIDE: EMU UNDER THE SLOPED FIREWALL LEG, ENGINE BAY</text>')
-    o.append('<text class="h" x="6" y="28">BR27 powertrain harness, EMU Black on 2012 CBR600RR</text>')
+    o.append('<text class="h" x="6" y="28">BR27 powertrain harness, EMU Black on 2016 CBR600RR</text>')
     o.append('<text class="s" x="6" y="48">Proposal, rev F, 2026-10-31 (bent firewall: battery and EMU under its sloped lower leg on the engine side, fuse/relay box in the dash unit; EMU-to-engine wires do not cross, box feeds cross at GR1; rev E grommets; rev D colors; rev C fuel level). Dashed boxes are parts still to be selected. Pins from the EMU Black label (B = black 39-pin, G = grey 24-pin). Fuse sizes and gauges are proposals; check against the EMU Black manual before building.</text>')
 
     # rev F: the firewall is one sheet bent ~135° (back panel + sloped lower leg). Battery and EMU sit
@@ -277,7 +277,7 @@ def schematic_svg():
     o.append(f'<line class="w pw" x1="{n(px + bw / 2)}" y1="{n(by + 114)}" x2="{n(px + bw / 2)}" y2="{n(by + 140)}" stroke-width="3"/>')
     blk(px + 210, by, 200, 44, "Starter relay → starter", "heavy cable, own route")
     o.append(f'<line class="w pw" x1="{n(px + bw)}" y1="{n(by + 160)}" x2="{n(px + 310)}" y2="{n(by + 160)}"/><line class="w pw" x1="{n(px + 310)}" y1="{n(by + 160)}" x2="{n(px + 310)}" y2="{n(by + 44)}"/>')
-    blk(px + 210, by + 70, 200, 44, "Regulator (sidepod)", "TBD, output via PMS pole 2", True)
+    blk(px + 210, by + 70, 200, 44, "Regulator (sidepod)", "FH020AA (buy), via PMS pole 2", True)
     o.append(f'<line class="w pw dash" x1="{n(px + 230)}" y1="{n(by + 114)}" x2="{n(px + 230)}" y2="{n(by + 150)}"/><line class="w pw dash" x1="{n(px + 230)}" y1="{n(by + 150)}" x2="{n(px + bw)}" y2="{n(by + 150)}"/>')
     fbY, fbH = by + 215, 30 + len(FUSES) * 22
     blk(px, fbY, 410, fbH, "Fuse/relay box in the dash unit, TBD", "", True)
@@ -333,7 +333,7 @@ def fuel_system_svg():
     o.append('<text class="z" x="24" y="88">COCKPIT SIDE: DASH UNIT (FUSE/RELAY BOX)</text>')
     o.append(f'<text class="z" x="{n(fwX + 24)}" y="88">ENGINE SIDE: EMU UNDER THE FIREWALL LEG, TANK, PUMP, RAIL</text>')
     o.append(f'<line x1="{n(fwX)}" y1="64" x2="{n(fwX)}" y2="{n(H - 8)}" stroke="var(--k3)" stroke-width="3" class="dash"/>')
-    o.append('<text class="h" x="6" y="28">BR27 fuel system: how it connects (EMU Black, 2012 CBR600RR)</text>')
+    o.append('<text class="h" x="6" y="28">BR27 fuel system: how it connects (EMU Black, 2016 CBR600RR)</text>')
     o.append('<text class="s" x="6" y="48">Proposal, rev F, 2026-10-31. Same pins and refs as the harness schematic and wire list. Dashed boxes are parts still to be selected. Pink band = fuel line (plumbing, for context).</text>')
     o.append('<text class="s" x="24" y="104">Dashed line = firewall: F1, kill bus, pump, G13, CAN cross at GR1.</text>')
 
@@ -487,7 +487,7 @@ CONNECTORS = [
     ["IAT", "Intake air temp sensor", "Plenum", 2], ["OILP", "Oil pressure sensor 0.5-4.5 V", "Engine", 3],
     ["FUELP", "Fuel pressure sensor 0.5-4.5 V", "Fuel rail", 3], ["FLVL", "Fuel level sender, float type (proposed: reed-switch tube, 240-33 Ω, VDO 226-6xx class)", "Fuel tank, top flange", 2],
     ["R1", "Fuel level pull-up resistor, 470 Ω 0.25 W, in the sender pigtail", "Fuel tank", 2], ["OILT", "Oil temp sensor (optional)", "Engine", 2],
-    ["KNK", "Knock sensor (optional)", "Block", 2], ["NEUT", "Neutral switch (stock)", "Gearbox", 1],
+    ["KNK", "Knock sensor (stock piezo)", "Block", 2], ["NEUT", "Neutral switch (stock)", "Gearbox", 1],
     ["LSU", "Wideband O2 sensor, LSU 4.9 type (EMU internal controller)", "Exhaust", 6],
     ["INJ1", "Injector cyl 1", "Throttle body", 2], ["INJ2", "Injector cyl 2", "Throttle body", 2],
     ["INJ3", "Injector cyl 3", "Throttle body", 2], ["INJ4", "Injector cyl 4", "Throttle body", 2],
@@ -500,7 +500,7 @@ CONNECTORS = [
 def components():
     """Every powertrain electrical part with its selection status (for the PDF and xlsx)."""
     extra = [["BAT", "Battery: NOCO NLP14 (4 Ah LiFePO4)", "Under the sloped firewall leg (engine side); feed crosses GR1 to the box", ""], ["BRK", "Main breaker, ~100 A manual reset (proposed)", "Next to PMS", ""],
-             ["PMS", "Primary Master Switch, 2-pole (proposed)", "Main hoop, right side", ""], ["REG", "Regulator/rectifier, series MOSFET type (proposed)", "Sidepod", ""]]
+             ["PMS", "Primary Master Switch, 2-pole (proposed)", "Main hoop, right side", ""], ["REG", "Regulator/rectifier, series MOSFET Shindengen FH020AA (buy)", "Sidepod", ""]]
     return [{"ref": ref, "desc": desc, "loc": loc, "pins": pins, "status": STATUS_LABEL.get(STATUS.get(ref)) or "Selected"}
             for ref, desc, loc, pins in extra + CONNECTORS if STATUS.get(ref) != ""]
 
@@ -550,7 +550,9 @@ def wire_list():
     add("EMU-B", 34, "S1", "IN", "+5V_REF", 22, "Orange", 900, "", True)
     for d in ["TPS", "OILP", "FUELP"]:
         add("S1", "OUT", d, "+5V", "+5V_REF", 22, "Orange", 400)
-    add("EMU-B", 38, "S2", "IN", "SGND", 22, "Brown", 900, "", True)
+    # B38 is the knock return, twisted with KNOCK (B3) inside shield SH1 (Tanner 2026-11-13); S2 is fed from B39 only.
+    # Kept in this slot so later wire IDs don't shift (W018 was B38 to S2).
+    add("EMU-B", 38, "KNK", "GND", "KNOCK_GND", 22, "Black", 1400, "SH1", True)
     add("EMU-B", 39, "S2", "IN", "SGND", 22, "Brown", 900, "", True)
     for d in ["TPS", "ECT", "IAT", "OILP", "FUELP", "OILT"]:
         add("S2", "OUT", d, "GND", "SGND", 22, "Brown", 400)

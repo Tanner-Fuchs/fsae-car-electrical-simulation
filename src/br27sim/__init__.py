@@ -1,6 +1,6 @@
 """BR27 electrical system simulator (Bobcat Racing, FSAE 2027).
 
-Models the 2012 CBR600RR + EMU Black, the 12 V system through an endurance run,
+Models the 2016 CBR600RR + EMU Black, the 12 V system through an endurance run,
 the IC.9 shutdown circuit, the CAN bus and the DAQ, the powertrain harness, and
 component choices such as the wheel speed sensor.
 

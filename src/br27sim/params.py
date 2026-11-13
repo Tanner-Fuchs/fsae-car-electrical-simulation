@@ -25,11 +25,11 @@ DEFAULTS = {
     "accelLimitG": 1.1,       # traction limit [assumption]
     "latG": 1.4,              # cornering [assumption]
     "brakeG": 1.5,            # [assumption]
-    "primary": 2.111,         # 2007-12 CBR600RR primary 76/36 [Honda spec, verify]
-    "gears": [2.666, 1.937, 1.661, 1.409, 1.260, 1.166],  # 2007-12 CBR600RR [Honda spec, verify]
+    "primary": 2.111,         # 2016 CBR600RR primary 76/36 [Honda 2013 press info, same 2013-16]
+    "gears": [2.750, 2.000, 1.666, 1.444, 1.304, 1.208],  # 2013-16 CBR600RR [Honda 2013-2019 service manual]
     "finalDrive": 3.385,      # 13:44 sprockets [assumption]
 
-    # engine: 2012 Honda CBR600RR, 67 x 42.5 mm [form: ECU CBR600RR Engine Integration]
+    # engine: 2016 Honda CBR600RR, 67 x 42.5 mm [form: ECU CBR600RR Engine Integration]
     "dispL": 0.599,
     "cyl": 4,
     "restrictorMM": 20.0,     # gasoline [rules IC.1.6]
@@ -66,7 +66,7 @@ DEFAULTS = {
     "regSet": 14.4,           # V [form: Charging System, 14.2-14.6]
     "regFault": "none",       # none | open | overcharge
     "regFaultMin": 20,
-    "statorSat": 30,          # A, fit to 26 A @ 5000 rpm and ~10 A at idle [form: Charging System]
+    "statorSat": 31,          # A, fit to 27 A @ 5000 rpm (0.39 kW at 14.4 V) and ~10 A at idle [Honda 2013-2019 service manual]
     "statorK": 1973,
     "stagingMin": 5,
     "changeMin": 3,           # driver change [rules D.12.8]

@@ -41,7 +41,7 @@ def print_html():
 <div class="p">{W.schematic_svg()}</div>
 <div class="p">{W.fuel_system_svg()}</div>
 <div class="p"><h2>EMU Black pinout and BR27 assignment, rev F (2026-10-31)</h2>
-<p class="note">Pin functions copied from the label on the team's EMU Black. BR27 use is a proposal for the 2012 CBR600RR with cable throttle. Grey rows are unused. Check every pin against the EMU Black manual and assign the outputs in the EMU client before powering up.</p>
+<p class="note">Pin functions copied from the label on the team's EMU Black. BR27 use is a proposal for the 2016 CBR600RR with cable throttle. Grey rows are unused. Check every pin against the EMU Black manual and assign the outputs in the EMU client before powering up.</p>
 <div class="cols">{_pin_table('Black 39-pin connector (B)', W.BLACK)}<div>{_pin_table('Grey 24-pin connector (G)', W.GREY)}
 <h3>Fuses (fuse and relay box under the seat)</h3><table><tbody>{fuses}</tbody></table>
 <h3>Build notes</h3><ul>
@@ -55,7 +55,7 @@ def print_html():
 <li>CAN (2026-10-31): one chain, dash unit (120 Ω) → FR → FL → GR1 → CAN splice beside the EMU → RR → RL (120 Ω). The EMU joins on a ~0.1 m stub; turn its built-in selectable terminator OFF in the EMU client.</li>
 </ul></div></div></div>
 <div class="p"><h2>Powertrain electrical components and selection status</h2>
-<p class="note">"Stock CBR600RR (assumed)" means the part is assumed to stay as it comes on the 2012 engine; confirm it. "To be selected" parts are shown generically in the schematic (dashed boxes) and their pinouts, connectors and wire counts may change once chosen. The full from-to wire list is in {NAME}.xlsx.</p>
+<p class="note">"Stock CBR600RR (assumed)" means the part is assumed to stay as it comes on the 2016 engine; confirm it. "To be selected" parts are shown generically in the schematic (dashed boxes) and their pinouts, connectors and wire counts may change once chosen. The full from-to wire list is in {NAME}.xlsx.</p>
 <table><thead><tr><th>Ref</th><th>Component</th><th>Location</th><th>Pins</th><th>Status</th></tr></thead><tbody>{comps}</tbody></table>
 </div>
 </body></html>"""
