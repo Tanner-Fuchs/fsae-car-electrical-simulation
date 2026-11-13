@@ -1578,7 +1578,7 @@
     ['Engine', 'dwell14', 'Coil dwell at 14 V', 'ms', 'assumption'], ['Engine', 'triggerTeeth', 'Crank wheel teeth (12, no gap)', '', 'ECU CBR600RR form, verify with scope'],
     ['Engine', 'lambdaWot', 'Lambda at full throttle', '', 'Calibration Plan form'], ['Engine', 'bte', 'Brake thermal efficiency', '', 'assumption (~70 hp)'],
     ['Power', 'battery', 'Battery', '', 'Tanner: NOCO NLP14'], ['Power', 'regSet', 'Regulator set point', 'V', 'Charging form (14.2–14.6)'],
-    ['Power', 'statorSat', 'Stator current ceiling', 'A', 'fit to ~26 A @ 5000 rpm; 2016 ACG 360 W (~25 A)'], ['Power', 'starterA', 'Starter current', 'A', 'Charging form, verify'],
+    ['Power', 'statorSat', 'Stator current ceiling', 'A', 'fit to 27 A @ 5000 rpm (0.39 kW), Honda service manual'], ['Power', 'starterA', 'Starter current', 'A', 'Charging form, verify'],
     ['Power', 'cableMOhm', 'Cable + switch resistance', 'mΩ', 'Charging form'], ['Power', 'fanA', 'Radiator fan', 'A', 'Charging form'],
     ['Power', 'pumpA', 'Fuel pump', 'A', 'Charging form'], ['Power', 'ecuMinV', 'ECU brown-out voltage', 'V', 'assumption, ask Ecumaster'],
     ['Power', 'buckEff', 'Node buck efficiency', '', '5V Buck form (LT8609S)'], ['Power', 'changeMin', 'Driver change', 'min', 'Rules D.12.8'],
