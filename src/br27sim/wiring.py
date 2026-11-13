@@ -14,7 +14,7 @@ from ._js import js_str
 BLACK = [
   [1, 'Ignition coil #5', '', '', 'spare'],
   [2, 'EGT in #1', 'Optional: EGT, exhaust collector', '22 AWG K-type ext.', 'spare'],
-  [3, 'Knock sensor in #1', 'Knock sensor, Bosch piezo on stock boss (proposed)', '22 AWG shielded', 'sensor'],
+  [3, 'Knock sensor in #1', 'Knock sensor, stock CBR600RR piezo (Bu sig, Y/R to sensor gnd)', '22 AWG shielded', 'sensor'],
   [4, 'Analog in #2', 'Fuel pressure sensor, TBD (0.5–4.5 V)', '22 AWG', 'sensor'],
   [5, 'CLT in', 'Coolant temp sensor (stock ECT)', '22 AWG', 'sensor'],
   [6, 'WBO Vs', 'LSU 4.9 wideband, Vs (pin 6)', '22 AWG', 'wbo'],
@@ -109,7 +109,7 @@ DEVICES = {
   'fuelp': ['Fuel pressure sensor', 'TBD, 0.5–4.5 V type', 'sensor'],
   'fuellvl': ['Fuel level sender (tank)', 'TBD float, 240–33 Ω, R1 470 Ω', 'sensor'],
   'oilt': ['Oil temp sensor', 'TBD, optional', 'sensor'],
-  'knock': ['Knock sensor', 'Bosch piezo on stock boss (TBD)', 'sensor'],
+  'knock': ['Knock sensor', 'Stock CBR600RR piezo, 3P Blue', 'sensor'],
   'neutral': ['Neutral switch', 'gearbox', 'sensor'],
   'wbo': ['Wideband O2 sensor', 'TBD, LSU 4.9 type', 'wbo'],
   'inj1': ['Injector 1', 'stock primary, 12 Ω', 'inj'], 'inj2': ['Injector 2', 'stock primary, 12 Ω', 'inj'],
@@ -119,13 +119,13 @@ DEVICES = {
   'pumprly': ['Fuel pump relay', 'TBD, contacts → pump (TBD), F3', 'aux'],
   'fanrly': ['Fan relay', 'TBD, contacts → fan (TBD), F4', 'aux']
 }
-# Selection status, 2026-11-11 (stock 2016 knock sensor is an active 3-pin unit, so a Bosch piezo is proposed; regulator bought, engine came without one). S = selected, K = stock CBR600RR part (assumed kept),
+# Selection status, 2026-11-11 (stock 2016 knock sensor is a piezo kept on the EMU: Bu to B3, Y/R to sensor ground, Bl/Y unused; regulator bought, engine came without one). S = selected, K = stock CBR600RR part (assumed kept),
 # T = to be selected. Update as Tanner confirms parts.
 STATUS_LABEL = { 'S': 'Selected', 'K': 'Stock CBR600RR (assumed)', 'T': 'To be selected' }
 STATUS = {
   'EMU-B': 'S', 'EMU-G': 'S', 'BAT': 'S',
   'CKP': 'K', 'CMP': 'K', 'ECT': 'K', 'INJ1': 'K', 'INJ2': 'K', 'INJ3': 'K', 'INJ4': 'K', 'IGN1': 'K', 'IGN2': 'K', 'IGN3': 'K', 'IGN4': 'K', 'NEUT': 'K', 'TPS': 'K',
-  'IAT': 'T', 'OILP': 'T', 'FUELP': 'T', 'FLVL': 'T', 'OILT': 'T', 'KNK': 'T', 'LSU': 'T', 'PUMP': 'T', 'FAN': 'T',
+  'IAT': 'T', 'OILP': 'T', 'FUELP': 'T', 'FLVL': 'T', 'OILT': 'T', 'KNK': 'K', 'LSU': 'T', 'PUMP': 'T', 'FAN': 'T',
   'FB': 'T', 'K1': 'T', 'K2': 'T', 'K3': 'T', 'GR1': 'T', 'GR2': 'T', 'BRK': 'T', 'PMS': 'T', 'REG': 'T',
   'S1': '', 'S2': '', 'S3': '', 'GS': '', 'CAN': '', 'R1': ''
 }
@@ -487,7 +487,7 @@ CONNECTORS = [
     ["IAT", "Intake air temp sensor", "Plenum", 2], ["OILP", "Oil pressure sensor 0.5-4.5 V", "Engine", 3],
     ["FUELP", "Fuel pressure sensor 0.5-4.5 V", "Fuel rail", 3], ["FLVL", "Fuel level sender, float type (proposed: reed-switch tube, 240-33 Ω, VDO 226-6xx class)", "Fuel tank, top flange", 2],
     ["R1", "Fuel level pull-up resistor, 470 Ω 0.25 W, in the sender pigtail", "Fuel tank", 2], ["OILT", "Oil temp sensor (optional)", "Engine", 2],
-    ["KNK", "Knock sensor (Bosch piezo, proposed)", "Block", 2], ["NEUT", "Neutral switch (stock)", "Gearbox", 1],
+    ["KNK", "Knock sensor (stock piezo)", "Block", 2], ["NEUT", "Neutral switch (stock)", "Gearbox", 1],
     ["LSU", "Wideband O2 sensor, LSU 4.9 type (EMU internal controller)", "Exhaust", 6],
     ["INJ1", "Injector cyl 1", "Throttle body", 2], ["INJ2", "Injector cyl 2", "Throttle body", 2],
     ["INJ3", "Injector cyl 3", "Throttle body", 2], ["INJ4", "Injector cyl 4", "Throttle body", 2],
