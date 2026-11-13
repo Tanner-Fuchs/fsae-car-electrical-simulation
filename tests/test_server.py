@@ -45,7 +45,7 @@ def test_constants(url):
 
 def test_wiring_bundle(url):
     w = json.loads(get(url + "/api/wiring"))
-    assert w["schematicSVG"].startswith("<svg") and len(w["wireList"]) == 71
+    assert w["schematicSVG"].startswith("<svg") and len(w["wireList"]) == 72
 
 
 def test_lap_then_power(url):

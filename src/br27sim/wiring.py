@@ -594,6 +594,8 @@ def wire_list():
     add("S1", "OUT", "R1", 1, "+5V_REF", 22, "Orange", 500)
     add("R1", 2, "FLVL", "SIG", "FUEL_LVL", 22, "Grey", 100)
     add("S2", "OUT", "FLVL", "GND", "SGND", 22, "Brown", 500)
+    # stock knock sensor Y/R (Honda 5 V check-loop wire) to sensor ground; Bl/Y left unused (EMU training: knock GND to B29/B38/B39)
+    add("S2", "OUT", "KNK", "GND", "SGND", 22, "Brown", 400)
     # rev F: the fuse/relay box (FB, K1-K3) is part of the dash unit on the cockpit side; everything else
     # here is on the engine side. Wires with one end in the box cross the firewall at GR1 and run
     # about 1.4 m further than the old under-seat box position assumed.

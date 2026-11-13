@@ -6,7 +6,7 @@ from br27sim.exports import NAME, export_wiring
 
 def test_wire_list():
     wires = W.wire_list()
-    assert len(wires) == 71
+    assert len(wires) == 72
     assert len({w["id"] for w in wires}) == len(wires)
     known = {c[0] for c in W.CONNECTORS} | {"PUMP", "FAN"}
     for w in wires:
@@ -28,9 +28,9 @@ def test_drawings_are_svg():
 
 def test_export(tmp_path):
     files, n = export_wiring(tmp_path)
-    assert n == 71
+    assert n == 72
     names = {p.name for p in files}
     assert {NAME + ".svg", NAME + ".xlsx", NAME + ".html"} <= names
     wb = load_workbook(tmp_path / (NAME + ".xlsx"))
     assert wb.sheetnames == ["Wires", "Connectors", "EMU pinout", "Fuses", "Notes"]
-    assert wb["Wires"].max_row == 72
+    assert wb["Wires"].max_row == 73
