@@ -13,44 +13,44 @@ from ._js import js_str
 # group: sensor | wbo | out-inj | out-ign | out-aux | power | gnd | ref | sgnd | can | spare
 BLACK = [
   [1, 'Ignition coil #5', '', '', 'spare'],
-  [2, 'EGT in #1', 'Optional: EGT, exhaust collector', '22 AWG K-type ext.', 'spare'],
-  [3, 'Knock sensor in #1', 'Knock sensor, stock CBR600RR piezo (Bu sig, Y/R to sensor gnd)', '22 AWG shielded', 'sensor'],
-  [4, 'Analog in #2', 'Fuel pressure sensor, TBD (0.5–4.5 V)', '22 AWG', 'sensor'],
-  [5, 'CLT in', 'Coolant temp sensor (stock ECT)', '22 AWG', 'sensor'],
-  [6, 'WBO Vs', 'LSU 4.9 wideband, Vs (pin 6)', '22 AWG', 'wbo'],
+  [2, 'EGT in #1', 'Optional: EGT, exhaust collector', '20 AWG K-type ext.', 'spare'],
+  [3, 'Knock sensor in #1', 'Knock sensor, stock CBR600RR piezo (Bu sig, Y/R to sensor gnd)', '20 AWG shielded', 'sensor'],
+  [4, 'Analog in #2', 'Fuel pressure sensor, TBD (0.5–4.5 V)', '20 AWG', 'sensor'],
+  [5, 'CLT in', 'Coolant temp sensor (stock ECT)', '20 AWG', 'sensor'],
+  [6, 'WBO Vs', 'LSU 4.9 wideband, Vs (pin 6)', '20 AWG', 'wbo'],
   [7, 'Camsync in #2', '', '', 'spare'],
-  [8, 'Primary trigger', 'Crank VR sensor + (12 even teeth)', '22 AWG shielded twisted pair', 'sensor'],
+  [8, 'Primary trigger', 'Crank VR sensor + (12 even teeth)', '20 AWG shielded twisted pair', 'sensor'],
   [9, 'Flex fuel in', '', '', 'spare'],
-  [10, 'Switch #1 in', 'Neutral switch (to ground)', '22 AWG', 'sensor'],
+  [10, 'Switch #1 in', 'Neutral switch (to ground)', '20 AWG', 'sensor'],
   [11, 'RS232 TXD', '', '', 'spare'],
-  [12, 'CAN H', 'CAN H, ~0.1 m stub to the CAN splice beside the EMU (EMU 120 Ω OFF)', '22 AWG twisted pair', 'can'],
+  [12, 'CAN H', 'CAN H, ~0.1 m stub to the CAN splice beside the EMU (EMU 120 Ω OFF)', '20 AWG twisted pair', 'can'],
   [13, 'Battery +12V', 'ECU feed, F1 5 A, after PMS and ahead of kill relay', '18 AWG', 'power'],
   [14, 'Ignition coil #4', 'Coil, cylinder 4 (this one is on the black connector)', '20 AWG', 'out-ign'],
   [15, 'EGT in #2', '', '', 'spare'],
   [16, 'Knock sensor in #2', '', '', 'spare'],
-  [17, 'Analog in #3', 'Oil temp sensor, TBD (optional)', '22 AWG', 'sensor'],
-  [18, 'TPS in', 'Throttle position sensor (stock, confirm)', '22 AWG', 'sensor'],
-  [19, 'WBO Ip', 'LSU 4.9 wideband, Ip (pin 1)', '22 AWG', 'wbo'],
+  [17, 'Analog in #3', 'Oil temp sensor, TBD (optional)', '20 AWG', 'sensor'],
+  [18, 'TPS in', 'Throttle position sensor (stock, confirm)', '20 AWG', 'sensor'],
+  [19, 'WBO Ip', 'LSU 4.9 wideband, Ip (pin 1)', '20 AWG', 'wbo'],
   [20, 'VSS in', 'Spare (wheel speeds come over CAN)', '', 'spare'],
-  [21, 'Camsync in #1', 'Cam VR sensor + (cut to one sync tooth)', '22 AWG shielded twisted pair', 'sensor'],
-  [22, 'WBO Rcal', 'LSU 4.9 wideband, Rcal / trim (pin 5)', '22 AWG', 'wbo'],
+  [21, 'Camsync in #1', 'Cam VR sensor + (cut to one sync tooth)', '20 AWG shielded twisted pair', 'sensor'],
+  [22, 'WBO Rcal', 'LSU 4.9 wideband, Rcal / trim (pin 5)', '20 AWG', 'wbo'],
   [23, 'Switch #2 in', 'Spare (launch or pit limiter button)', '', 'spare'],
   [24, 'RS232 RXD', '', '', 'spare'],
-  [25, 'CAN L', 'CAN L, ~0.1 m stub to the CAN splice beside the EMU', '22 AWG twisted pair', 'can'],
-  [26, '+5V supply', '+5 V ref: TPS', '22 AWG', 'ref'],
+  [25, 'CAN L', 'CAN L, ~0.1 m stub to the CAN splice beside the EMU', '20 AWG twisted pair', 'can'],
+  [26, '+5V supply', '+5 V ref: TPS', '20 AWG', 'ref'],
   [27, 'Power ground', 'Power ground, engine block star point', '16 AWG', 'gnd'],
   [28, 'ECU ground', 'ECU ground, engine block star point', '18 AWG', 'gnd'],
-  [29, 'Sensor ground', 'Sensor ground: crank and cam VR (−), shields', '22 AWG', 'sgnd'],
+  [29, 'Sensor ground', 'Sensor ground: crank and cam VR (−), shields', '20 AWG', 'sgnd'],
   [30, 'Analog in #4', 'Spare (gear position if fitted)', '', 'spare'],
-  [31, 'Analog in #1', 'Oil pressure sensor, TBD (0.5–4.5 V)', '22 AWG', 'sensor'],
-  [32, 'IAT in', 'Intake air temp sensor, TBD (plenum)', '22 AWG', 'sensor'],
-  [33, 'WBO VGND', 'LSU 4.9 wideband, virtual ground (pin 2)', '22 AWG', 'wbo'],
-  [34, '+5V supply', '+5 V ref: oil and fuel pressure, fuel level pull-up', '22 AWG', 'ref'],
-  [35, 'Analog in #5', 'Fuel level sender, float, TBD (240–33 Ω reed type, 470 Ω pull-up to +5 V)', '22 AWG', 'sensor'],
+  [31, 'Analog in #1', 'Oil pressure sensor, TBD (0.5–4.5 V)', '20 AWG', 'sensor'],
+  [32, 'IAT in', 'Intake air temp sensor, TBD (plenum)', '20 AWG', 'sensor'],
+  [33, 'WBO VGND', 'LSU 4.9 wideband, virtual ground (pin 2)', '20 AWG', 'wbo'],
+  [34, '+5V supply', '+5 V ref: oil and fuel pressure, fuel level pull-up', '20 AWG', 'ref'],
+  [35, 'Analog in #5', 'Fuel level sender, float, TBD (240–33 Ω reed type, 470 Ω pull-up to +5 V)', '20 AWG', 'sensor'],
   [36, 'Switch #3 in', 'Spare', '', 'spare'],
   [37, 'Analog in #6', 'Spare', '', 'spare'],
-  [38, 'Sensor ground', 'Knock sensor return only, inside shield SH1 with B3 (2026-11-13)', '22 AWG', 'knock'],
-  [39, 'Sensor ground', 'Sensor ground splice S2: TPS, CLT, IAT, pressure sensors, oil temp, fuel level', '22 AWG', 'sgnd']
+  [38, 'Sensor ground', 'Knock sensor return only, inside shield SH1 with B3 (2026-11-13)', '20 AWG', 'knock'],
+  [39, 'Sensor ground', 'Sensor ground splice S2: TPS, CLT, IAT, pressure sensors, oil temp, fuel level', '20 AWG', 'sgnd']
 ]
 GREY = [
   [1, 'Ignition coil #6', '', '', 'spare'],
@@ -535,32 +535,32 @@ def wire_list():
         return ["EMU-B", pin] if c == "B" else ["EMU-G", pin]
 
     # sensors
-    sens = [["B", 8, "CKP", "+", "CRANK_VR+", 22, "White", 1400, "TSP1"], ["B", 21, "CMP", "+", "CAM_VR+", 22, "White", 1500, "TSP2"],
-            ["B", 18, "TPS", "SIG", "TPS", 22, "Green", 1300], ["B", 5, "ECT", "SIG", "ECT", 22, "Tan", 1300], ["B", 32, "IAT", "SIG", "IAT", 22, "Tan/Black", 1200],
-            ["B", 31, "OILP", "SIG", "OIL_P", 22, "Blue", 1400], ["B", 4, "FUELP", "SIG", "FUEL_P", 22, "Blue/White", 1200], ["B", 17, "OILT", "SIG", "OIL_T", 22, "Violet", 1400],
-            ["B", 3, "KNK", "SIG", "KNOCK", 22, "White", 1400, "SH1"], ["B", 10, "NEUT", "SIG", "NEUTRAL", 22, "Light green", 1500]]
+    sens = [["B", 8, "CKP", "+", "CRANK_VR+", 20, "White", 1400, "TSP1"], ["B", 21, "CMP", "+", "CAM_VR+", 20, "White", 1500, "TSP2"],
+            ["B", 18, "TPS", "SIG", "TPS", 20, "Green", 1300], ["B", 5, "ECT", "SIG", "ECT", 20, "Tan", 1300], ["B", 32, "IAT", "SIG", "IAT", 20, "Tan/Black", 1200],
+            ["B", 31, "OILP", "SIG", "OIL_P", 20, "Blue", 1400], ["B", 4, "FUELP", "SIG", "FUEL_P", 20, "Blue/White", 1200], ["B", 17, "OILT", "SIG", "OIL_T", 20, "Violet", 1400],
+            ["B", 3, "KNK", "SIG", "KNOCK", 20, "White", 1400, "SH1"], ["B", 10, "NEUT", "SIG", "NEUTRAL", 20, "Light green", 1500]]
     for s in sens:
         c, pin, d, dp, sig, awg, col, mm = s[:8]
         add(*E(c, pin), d, dp, sig, awg, col, mm, s[8] if len(s) > 8 else "", True)
     # VR pair returns go back to the EMU sensor ground pin directly (twisted with the signal)
-    add("EMU-B", 29, "CKP", "−", "CRANK_VR−", 22, "Black", 1400, "TSP1", True)
-    add("EMU-B", 29, "CMP", "−", "CAM_VR−", 22, "Black", 1500, "TSP2", True)
+    add("EMU-B", 29, "CKP", "−", "CRANK_VR−", 20, "Black", 1400, "TSP1", True)
+    add("EMU-B", 29, "CMP", "−", "CAM_VR−", 20, "Black", 1500, "TSP2", True)
     # +5 V ref and sensor ground through splices
-    add("EMU-B", 26, "S1", "IN", "+5V_REF", 22, "Orange", 900, "", True)
-    add("EMU-B", 34, "S1", "IN", "+5V_REF", 22, "Orange", 900, "", True)
+    add("EMU-B", 26, "S1", "IN", "+5V_REF", 20, "Orange", 900, "", True)
+    add("EMU-B", 34, "S1", "IN", "+5V_REF", 20, "Orange", 900, "", True)
     for d in ["TPS", "OILP", "FUELP"]:
-        add("S1", "OUT", d, "+5V", "+5V_REF", 22, "Orange", 400)
+        add("S1", "OUT", d, "+5V", "+5V_REF", 20, "Orange", 400)
     # B38 is the knock return, twisted with KNOCK (B3) inside shield SH1 (Tanner 2026-11-13); S2 is fed from B39 only.
     # Kept in this slot so later wire IDs don't shift (W018 was B38 to S2).
-    add("EMU-B", 38, "KNK", "GND", "KNOCK_GND", 22, "Black", 1400, "SH1", True)
-    add("EMU-B", 39, "S2", "IN", "SGND", 22, "Brown", 900, "", True)
+    add("EMU-B", 38, "KNK", "GND", "KNOCK_GND", 20, "Black", 1400, "SH1", True)
+    add("EMU-B", 39, "S2", "IN", "SGND", 20, "Brown", 900, "", True)
     for d in ["TPS", "ECT", "IAT", "OILP", "FUELP", "OILT"]:
-        add("S2", "OUT", d, "GND", "SGND", 22, "Brown", 400)
+        add("S2", "OUT", d, "GND", "SGND", 20, "Brown", 400)
     # wideband, Bosch LSU 4.9 connector numbering (Rcal 5, VGND 2; the 4.2 swaps them). Fixed 2026-10-31.
     for c, pin, lp, sig, col in [["B", 6, 6, "WBO_VS", "Black"], ["B", 19, 1, "WBO_IP", "Red"], ["B", 22, 5, "WBO_RCAL", "Green"],
                                  ["B", 33, 2, "WBO_VGND", "Yellow"], ["G", 19, 3, "WBO_HTR−", "White"]]:
         htr = sig == "WBO_HTR−"
-        add(*E(c, pin), "LSU", lp, sig, 18 if htr else 22, col, 1900, "" if htr else "TW1", True)
+        add(*E(c, pin), "LSU", lp, sig, 18 if htr else 20, col, 1900, "" if htr else "TW1", True)
     # injectors and coils, low side from EMU, +12 V from kill splice
     for i, (c, pin, d) in enumerate([["G", 7, "INJ1"], ["G", 15, "INJ2"], ["G", 23, "INJ3"], ["G", 6, "INJ4"]]):
         add(*E(c, pin), d, "−", d + "_LS", 20, ["Blue/Red", "Blue/Yellow", "Blue/Green", "Blue/Black"][i], 1300, "", True)
@@ -588,14 +588,14 @@ def wire_list():
     add("FB", "F1", "EMU-G", 18, "IGN_SENSE", 20, "Red/Yellow", 300)
     for c, pin, awg in [["B", 27, 16], ["B", 28, 18], ["G", 17, 16], ["G", 24, 16]]:
         add(*E(c, pin), "GS", "STUD", "ECU_GND", awg, "Black", 1200, "", True)
-    add("EMU-B", 12, "CAN", "H", "CAN_H", 22, "Yellow", 100, "TW2")
-    add("EMU-B", 25, "CAN", "L", "CAN_L", 22, "Green", 100, "TW2")
+    add("EMU-B", 12, "CAN", "H", "CAN_H", 20, "Yellow", 100, "TW2")
+    add("EMU-B", 25, "CAN", "L", "CAN_L", 20, "Green", 100, "TW2")
     # fuel level sender (rev C, appended so earlier wire IDs stay the same): EMU reads the
     # divider R1 (to +5 V) over the sender (to sensor ground). See the Fuel Level Sensor form.
-    add("EMU-B", 35, "FLVL", "SIG", "FUEL_LVL", 22, "Grey", 1300, "", True)
-    add("S1", "OUT", "R1", 1, "+5V_REF", 22, "Orange", 500)
-    add("R1", 2, "FLVL", "SIG", "FUEL_LVL", 22, "Grey", 100)
-    add("S2", "OUT", "FLVL", "GND", "SGND", 22, "Brown", 500)
+    add("EMU-B", 35, "FLVL", "SIG", "FUEL_LVL", 20, "Grey", 1300, "", True)
+    add("S1", "OUT", "R1", 1, "+5V_REF", 20, "Orange", 500)
+    add("R1", 2, "FLVL", "SIG", "FUEL_LVL", 20, "Grey", 100)
+    add("S2", "OUT", "FLVL", "GND", "SGND", 20, "Brown", 500)
     # rev F: the fuse/relay box (FB, K1-K3) is part of the dash unit on the cockpit side; everything else
     # here is on the engine side. Wires with one end in the box cross the firewall at GR1 and run
     # about 1.4 m further than the old under-seat box position assumed.
