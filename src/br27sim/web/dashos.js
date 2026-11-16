@@ -435,9 +435,18 @@
       if (id === 0x0A0) { b[0] = s.brakeLight ? 1 : 0; u16(1, s.brakeF * 10); u16(3, (s.brakeR || 0) * 10); }
       else if (id >= 0x100 && id <= 0x103) { u16(0, s.wheels[id - 0x100] * 100); if (id === 0x100) u16(2, s.brakeF * 10); if (id === 0x102) u16(2, (s.brakeR || 0) * 10); }
       else if (id === 0x140) { u16(0, s.v * 100); b[2] = s.gear; u16(3, s.rpm); }
-      else if (id === 0x600) { u16(0, s.rpm); u16(2, s.map * 10); b[4] = clamp(s.tps * 2, 0, 255); b[5] = clamp(s.lam * 100, 0, 255); }
-      else if (id === 0x601) { u16(0, s.oilP * 100); b[2] = clamp(s.oilC, 0, 255); b[3] = clamp(s.waterC, 0, 255); u16(4, s.fuelP * 100); b[6] = clamp(s.volts * 10, 0, 255); }
-      else if (id >= 0x602 && id <= 0x607) { b[0] = (id * 7 + Math.floor(t)) & 255; b[1] = 90 + (id & 7); }
+      // EMU Black stream, base 0x600, 8 frames, LITTLE-endian (EMU Black hardware manual v1.4 section 6)
+      else if (id >= 0x600 && id <= 0x607) {
+        const le = (k, v) => { v = clamp(Math.round(v || 0), 0, 65535); b[k] = v & 255; b[k + 1] = v >> 8; };
+        const s8 = v => (clamp(Math.round(v || 0), -128, 127) + 256) & 255;
+        if (id === 0x600) { le(0, s.rpm); b[2] = clamp(Math.round(s.tps * 2), 0, 255); b[3] = s8(s.iat != null ? s.iat : 30); le(4, s.map); le(6, (s.injMs != null ? s.injMs : 0) * 62); }
+        else if (id === 0x601) { le(0, (s.oilP / 10 + 0.5) * 1024 / 5); le(2, (s.fuelP / 10 + 0.5) * 1024 / 5); le(4, 2.5 * 1024 / 5); le(6, 0); } // AIN1 oil P, AIN2 fuel P (0.5-4.5 V, 0-10 bar sensors assumed), AIN3 oil T, AIN4 unused
+        else if (id === 0x602) { le(0, s.v); b[2] = 101; b[3] = clamp(Math.round(s.oilC), 0, 255); b[4] = clamp(Math.round(s.oilP * 16), 0, 255); b[5] = clamp(Math.round(s.fuelP * 16), 0, 255); le(6, (Math.round(s.waterC) + 65536) & 65535); }
+        else if (id === 0x603) { b[0] = s8((s.ign != null ? s.ign : 25) * 2); b[1] = clamp(Math.round(2.0 * 20), 0, 255); b[2] = clamp(Math.round(s.lam * 128), 0, 255); b[3] = 200; }  // lambda correction 100 % = 200
+        else if (id === 0x604) { b[0] = s.gear || 0; b[1] = s8(45); le(2, s.volts / 0.027); }  // error flag, flags1, ethanol = 0
+        else if (id === 0x606) { le(0, 2.0 * 1024 / 5); }  // AIN5 fuel level sender
+        else if (id === 0x607) { b[4] = clamp(Math.round((s.lamTarget != null ? s.lamTarget : 0.9) * 100), 0, 255); }
+      }
       else if (id >= 0x701) { b[0] = cnt & 255; b[1] = 1; }
       else { b[0] = 60 + ((id + Math.floor(t / 2)) % 30); b[1] = 62 + (id % 9); b[2] = 58 + (id % 5); }
       return b;

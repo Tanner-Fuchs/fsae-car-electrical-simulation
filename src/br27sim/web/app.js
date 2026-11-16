@@ -629,7 +629,7 @@
       [0x080, 0x08F, 'Critical faults', '--crit'], [0x090, 0x09F, 'Warning faults', '--warn'], [0x0A0, 0x0A0, 'Brake light state (node RL)', '--s2'],
       [0x100, 0x103, 'Corner nodes, 200 Hz data', '--s3'], [0x10C, 0x10F, 'Corner temperatures, 10 Hz', '--s3'],
       [0x120, 0x129, 'IMU and GPS via dash MCU', '--s7'], [0x130, 0x13B, 'Extra channels', '--ink-3'],
-      [0x600, 0x60F, 'EMU Black stream (base 0x600, verify)', '--s1'], [0x650, 0x650, 'Dash buttons, shift light', '--s7'],
+      [0x600, 0x607, 'EMU Black stream (base 0x600, 8 frames, little-endian; manual v1.4)', '--s1'], [0x650, 0x650, 'Dash buttons, shift light', '--s7'],
       [0x701, 0x705, 'Node and dash heartbeats', '--ink-3'], [0x7E0, 0x7EF, 'Info faults', '--accent'], [0x7F0, 0x7F0, 'Logger time sync', '--s7']
     ];
     const X0 = 40, X1 = 400, rowH = 24, top = 30;
