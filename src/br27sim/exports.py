@@ -47,7 +47,7 @@ def print_html():
 <h3>Build notes</h3><ul>
 <li>Injectors, coils, wideband heater and the pump relay take +12 V from the kill bus. The EMU only switches their ground side, so opening the CMS, BOTS or inertia switch kills fuel and spark in hardware (IC.9).</li>
 <li>The EMU itself is fed from F1 ahead of the kill relay, so it keeps logging after a shutdown.</li>
-<li>Crank and cam VR sensors: shielded twisted pair, shield grounded at the EMU sensor ground only.</li>
+<li>Crank and cam VR sensors: shielded twisted pair, shield drain to the B28 ECU ground wire at the EMU end only, never to sensor ground (Ecumaster).</li>
 <li>Coil 4 is on the black connector (B14), not the grey one.</li>
 <li>Fuel level (rev C): float sender in the tank to Analog #5 (B35). R1 470 Ω from +5 V to the signal, sender return to sensor ground (not the tank or chassis). Reads about 0.33 V full to 1.69 V empty; open circuit reads 5 V. Scale it in the EMU client and send it to the dash over CAN. See the Fuel Level Sensor Selection form.</li>
 <li>Fuel pump: +12 V from the kill bus through F3 and the pump relay (EMU AUX 2, G13, low side), so the CMS, BOTS or inertia switch stops the pump (IC.9.2.2).</li>
@@ -113,7 +113,7 @@ def write_xlsx(path):
         "Rows shaded yellow touch a part that is still to be selected; their pins and wire counts may change.",
         "Lengths are rough estimates (EMU under the sloped firewall leg, fuse/relay box in the dash unit); replace them with CAD routing lengths.",
         "Injectors, coils, wideband heater and pump relay coil take +12 V from the kill bus (S3); the EMU switches the low side.",
-        "Crank and cam VR pairs (TSP1, TSP2) are shielded twisted pairs; ground shields at the EMU sensor ground only.",
+        "Crank and cam VR pairs (TSP1, TSP2) are shielded twisted pairs; shield drains go to the B28 ECU ground wire (W063) at the EMU end only, never to sensor ground (Ecumaster first start checklist and 4-cyl wiring diagram). The knock shield SH1 is the same.",
     ]:
         ws.append([line])
     ws.column_dimensions["A"].width = 130

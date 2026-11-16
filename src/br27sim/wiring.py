@@ -40,7 +40,7 @@ BLACK = [
   [26, '+5V supply', '+5 V ref: TPS', '20 AWG', 'ref'],
   [27, 'Power ground', 'Power ground, engine block star point', '16 AWG', 'gnd'],
   [28, 'ECU ground', 'ECU ground, engine block star point', '18 AWG', 'gnd'],
-  [29, 'Sensor ground', 'Sensor ground: crank and cam VR (−), shields', '20 AWG', 'sgnd'],
+  [29, 'Sensor ground', 'Sensor ground: crank and cam VR (−) only (shield drains go to B28 ECU ground, not here)', '20 AWG', 'sgnd'],
   [30, 'Analog in #4', 'Spare (gear position if fitted)', '', 'spare'],
   [31, 'Analog in #1', 'Oil pressure sensor, TBD (0.5–4.5 V)', '20 AWG', 'sensor'],
   [32, 'IAT in', 'Intake air temp sensor, TBD (plenum)', '20 AWG', 'sensor'],
@@ -251,7 +251,7 @@ def schematic_svg():
         o.append(f'<text class="s" x="{n(devX + 10)}" y="{n(y0 + 4)}">{label}</text>')
 
     rail(rail5, y(0), ref_taps, "rfw", "--rf", "+5 V ref rail → TPS, oil and fuel pressure, fuel level (via R1 470 Ω)")
-    rail(railSG, y(1), sg_taps, "sgw", "--sg", "Sensor ground rail → sensors (VR shields at ECU end only)")
+    rail(railSG, y(1), sg_taps, "sgw", "--sg", "Sensor ground rail → sensors (shield drains to B28 ECU ground, ECU end only)")
 
     # kill bus
     kTop, kBot = y(0), max(kill_taps)
