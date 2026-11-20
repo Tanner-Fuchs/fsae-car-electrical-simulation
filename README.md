@@ -1,7 +1,7 @@
 # BR27 electrical simulator
 
 Bobcat Racing, FSAE 2027 electrical team. An interactive model of the car's electrical
-system: the 2012 Honda CBR600RR with the EMU Black (fuel, spark, a lap of the test track),
+system: the 2016 Honda CBR600RR with the EMU Black (fuel, spark, a lap of the test track),
 the 12 V system through a full endurance run, the IC.9 shutdown circuit, the CAN bus and
 DAQ, fault codes, the powertrain harness, and component choices such as the wheel speed
 sensor (Hall effect vs VR, how many teeth on the ring).
