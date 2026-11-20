@@ -629,7 +629,7 @@
       [0x080, 0x08F, 'Critical faults', '--crit'], [0x090, 0x09F, 'Warning faults', '--warn'], [0x0A0, 0x0A0, 'Brake light state (node RL)', '--s2'],
       [0x100, 0x103, 'Corner nodes, 200 Hz data', '--s3'], [0x10C, 0x10F, 'Corner temperatures, 10 Hz', '--s3'],
       [0x120, 0x129, 'IMU and GPS via dash MCU', '--s7'], [0x130, 0x13B, 'Extra channels', '--ink-3'],
-      [0x600, 0x60F, 'EMU Black stream (base 0x600, verify)', '--s1'], [0x650, 0x650, 'Dash buttons, shift light', '--s7'],
+      [0x600, 0x607, 'EMU Black stream (base 0x600, 8 frames, little-endian; manual v1.4)', '--s1'], [0x650, 0x650, 'Dash buttons, shift light', '--s7'],
       [0x701, 0x705, 'Node and dash heartbeats', '--ink-3'], [0x7E0, 0x7EF, 'Info faults', '--accent'], [0x7F0, 0x7F0, 'Logger time sync', '--s7']
     ];
     const X0 = 40, X1 = 400, rowH = 24, top = 30;
@@ -1608,7 +1608,7 @@
     flags('wiringNotes', [
       ['good', 'The EMU is fed from F1 ahead of the kill relay, so it keeps logging after a shutdown. Everything it fires (injectors, coils, wideband heater, pump relay) gets +12 V from the kill bus.'],
       ['warn', 'Coil 4 is on the black connector (B14), not the grey one. Easy to miss when building the harness.'],
-      ['info', 'Crank and cam VR sensors: shielded twisted pair, shield grounded at the EMU sensor ground only.'],
+      ['info', 'Crank and cam VR sensors: shielded twisted pair, shield drain to the B28 ECU ground wire at the EMU end only, never to sensor ground (Ecumaster).'],
       ['info', 'Firewall (rev F): one sheet bent ~135° (back panel + sloped lower leg). The battery and EMU sit in the wedge under the sloped leg on the engine side; the fuse/relay box is part of the dash unit at the front. EMU-to-engine wires do not cross; the battery feed, the dash-unit feeds back to the EMU and engine (F1, kill bus, pump and fan +12 V), the EMU relay drive wires (G13, G5) and the CAN chain cross at grommet GR1.'],
       ['info', 'Fuel system: the pump relay (G13) and the injectors take +12 V from the kill bus, so any shutdown switch stops fuel. The float fuel level sender reads on Analog #5 (B35) through a 470 Ω pull-up (R1) to +5 V, about 0.33 V full to 1.69 V empty; the EMU sends it to the dash over CAN.'],
       ['info', 'CAN: one chain, dash unit (120 Ω) → FR → FL → GR1 → splice beside the EMU → RR → RL (120 Ω). The EMU is on a ~0.1 m stub with its software-selectable 120 Ω OFF.'],

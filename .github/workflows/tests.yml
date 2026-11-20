@@ -5,8 +5,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-24.04, windows-latest]  # ubuntu-latest (26.04) has no Python 3.9 build
+        os: [ubuntu-latest, windows-latest]
         python: ["3.9", "3.12"]
+        exclude:
+          # ubuntu-latest (26.04) no longer ships Python 3.9; keep 3.9 coverage on 22.04
+          - os: ubuntu-latest
+            python: "3.9"
+        include:
+          - os: ubuntu-22.04
+            python: "3.9"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

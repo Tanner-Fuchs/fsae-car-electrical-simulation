@@ -138,7 +138,7 @@
       box(720, 220, 260, 92, o.canIface === 'mcp2515' ? 'CAN HAT (MCP2515, 2 rx buffers)' : 'CAN HAT (MCP2518FD, 31-frame FIFO)', ['stacks on the 40-pin header', 'SPI0 + CE0 (GPIO8) + INT GPIO25', '120 Ω jumper ON (dash = bus end)']);
       wire([[662, 246], [720, 246]], C.sig, 6);
     }
-    box(760, 40, 220, 90, 'CAN 2.0 bus, 1 Mbit/s', ['dash (120 Ω) → electrical box →', 'FR → FL → seat → EMU → RR → RL', 'twisted pair, 22 AWG TXL']);
+    box(760, 40, 220, 90, 'CAN 2.0 bus, 1 Mbit/s', ['dash (120 Ω) → electrical box →', 'FR → FL → seat → EMU → RR → RL', 'twisted pair, 20 AWG TXL']);
     wire([[900, usbCan ? 230 : 220], [900, 130]], C.can, 3, '', 'CAN_H', 894, 180, 'end'); wire([[920, usbCan ? 230 : 220], [920, 130]], C.can2, 3, '', 'CAN_L', 926, 196);
     // optional peripherals
     let y = 330;
