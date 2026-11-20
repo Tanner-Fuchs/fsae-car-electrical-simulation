@@ -33,10 +33,11 @@ WHEEL_DEFAULTS = {
     "timerMHz": 1.0,        # input capture timer tick [assumption, STM32 timer prescaled]
     "timeoutMs": 100,       # no edge for this long reads 0 km/h [assumption]
     "pitchErrPct": 0.5,     # tooth-to-tooth spacing error of the ring, 1 sigma [assumption, laser cut]
-    # Hall effect gear tooth sensor [assumption: Honeywell GT101 / ZF GS100 class]
+    # Hall effect gear tooth sensor: Littelfuse 55505-00-02-A [Tanner 2026-11-20]
+    # 4.75-24 V, internal pull-up, 15 kHz max. Gap per Littelfuse app note (1-1.5 mm typical, up to 2 mm)
     "hallMaxGapMM": 2.0,
     "hallMinToothMM": 2.0,  # minimum tooth (and slot) width along the ring
-    "hallMA": 10,           # supply current
+    "hallMA": 10.5,         # supply current, 55505 datasheet max
     # VR sensor [assumption: generic 2-wire wheel speed VR]
     "vrMvPerHz": 3.0,       # peak mV per Hz of tooth rate at 0.5 mm gap with full-size teeth
     "vrGapDecayMM": 0.6,    # amplitude falls by e for each this many mm of extra gap

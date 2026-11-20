@@ -855,7 +855,7 @@
       row('Signal', hallDead ? r.hallProblem : '0–5 V square wave at any speed', `${fmt(r.vrMvAt5, 0)} mV at ${sp(5, 0)}, ${fmt(r.vrMvTop / 1000, 2)} V at ${sp(r.topKmh, 0)} (needs ${fmt(r.detectMv, 0)} mV)`) +
       row('Wires', '3: 5 V, ground, signal', '2, twisted and shielded') +
       row('Power', `about ${w.hallMA} mA from the node's 5 V`, 'none') +
-      row('Extra parts on the node', 'pull-up resistor', 'VR conditioning chip (MAX9926 class) or the input clamps') +
+      row('Extra parts on the node', '1 kΩ series resistor into a 5 V tolerant pin (pull-up is built in)', 'VR conditioning chip (MAX9926 class) or the input clamps') +
       row('Air gap it tolerates', `up to about ${ln(w.hallMaxGapMM, 3)}`, 'larger, but signal drops fast with gap') +
       row('Tooth width it needs', `at least ${ln(w.hallMinToothMM, 2)}`, `about the ${ln(w.vrPoleMM, 2)} pole size (${fmt(r.vrGeo * 100, 0)} % signal now)`) +
       '</tbody>';
